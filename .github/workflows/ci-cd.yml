@@ -63,10 +63,10 @@ jobs:
       - name: Build with Gradle
         working-directory: ./Back
         run: |
-          ./gradlew clean build -Dspring.profiles.active=local
+          ./gradlew clean build -Dspring.profiles.active=local --stacktrace
 
     
       - name: Test with Gradle
         working-directory: ./Back
         run: |
-          ./gradlew test -Dspring.profiles.active=local
+          ./gradlew test -Dspring.profiles.active=local --stacktrace
