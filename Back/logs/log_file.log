@@ -1,0 +1,558 @@
+[32m2025-01-16 00:01:19.356[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:01:19.379[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32037 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:01:19.379[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:01:19.843[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:01:19.858[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 11 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:01:20.160[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:01:20.167[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:01:20.168[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:01:20.168[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:01:20.204[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:01:20.204[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 802 ms
+[0;39m[32m2025-01-16 00:01:20.249[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:01:20.250[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:01:20.263[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:01:20.273[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:02:35.169[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:02:35.201[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32056 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:02:35.202[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:02:35.811[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:02:35.822[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:02:36.122[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:02:36.128[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:02:36.130[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:02:36.130[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:02:36.165[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:02:36.165[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 937 ms
+[0;39m[32m2025-01-16 00:02:36.211[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:02:36.213[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:02:36.227[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:02:36.238[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:05:08.320[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:05:08.350[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32093 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:05:08.351[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:05:08.997[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:05:09.009[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 7 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:05:09.322[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:05:09.328[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:05:09.329[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:05:09.330[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:05:09.364[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:05:09.364[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 988 ms
+[0;39m[32m2025-01-16 00:05:09.405[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:05:09.406[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:05:09.420[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:05:09.430[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:09:35.193[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:09:35.267[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32113 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:09:35.269[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:09:36.381[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:09:36.403[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 13 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:09:36.867[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:09:36.874[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:09:36.875[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:09:36.875[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:09:36.911[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:09:36.911[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 1591 ms
+[0;39m[32m2025-01-16 00:09:36.954[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:09:36.955[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:09:36.967[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:09:36.977[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:16:10.356[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:16:10.386[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32351 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:16:10.387[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:16:10.855[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:16:10.865[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:16:11.160[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:16:11.166[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:16:11.168[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:16:11.168[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:16:11.203[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:16:11.203[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 782 ms
+[0;39m[32m2025-01-16 00:16:11.246[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:16:11.247[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:16:11.260[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:16:11.271[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:17:51.899[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:17:51.926[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32370 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:17:51.926[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:17:52.531[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:17:52.541[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:17:52.840[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:17:52.846[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:17:52.847[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:17:52.847[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:17:52.881[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:17:52.881[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 927 ms
+[0;39m[32m2025-01-16 00:17:52.923[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:17:52.924[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:17:52.937[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:17:52.947[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:18:01.240[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:18:01.268[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32374 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:18:01.269[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:18:01.721[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:18:01.732[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:18:02.023[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:18:02.029[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:18:02.030[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:18:02.030[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:18:02.066[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:18:02.066[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 773 ms
+[0;39m[32m2025-01-16 00:18:02.107[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:18:02.109[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:18:02.121[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:18:02.131[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:21:12.816[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:21:12.839[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32646 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:21:12.840[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:21:13.343[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:21:13.356[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 7 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:21:13.666[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:21:13.672[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:21:13.673[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:21:13.673[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:21:13.707[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:21:13.708[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 845 ms
+[0;39m[32m2025-01-16 00:21:13.748[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:21:13.749[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:21:13.763[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:21:13.773[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:23:03.247[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:23:03.279[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32666 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:23:03.279[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:23:03.780[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:23:03.790[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:23:04.088[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:23:04.094[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:23:04.096[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:23:04.096[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:23:04.130[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:23:04.130[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 823 ms
+[0;39m[32m2025-01-16 00:23:04.171[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:23:04.173[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:23:04.186[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:23:04.197[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:28:09.456[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:28:09.483[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32744 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:28:09.483[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:28:10.009[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:28:10.019[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:28:10.315[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:28:10.322[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:28:10.323[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:28:10.323[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:28:10.358[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:28:10.358[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 850 ms
+[0;39m[32m2025-01-16 00:28:10.399[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:28:10.400[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:28:10.413[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:28:10.423[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:31:47.097[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:31:47.132[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32780 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:31:47.133[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:31:47.601[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:31:47.611[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:31:47.920[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:31:47.926[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:31:47.927[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:31:47.927[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:31:47.961[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:31:47.961[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 802 ms
+[0;39m[32m2025-01-16 00:31:48.003[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:31:48.004[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:31:48.016[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:31:48.026[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:37:06.658[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:37:06.688[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32831 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:37:06.689[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:37:07.243[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:37:07.253[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:37:07.542[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:37:07.548[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:37:07.549[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:37:07.549[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:37:07.582[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:37:07.582[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 864 ms
+[0;39m[32m2025-01-16 00:37:07.623[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:37:07.625[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:37:07.637[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:37:07.647[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:37:42.607[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:37:42.635[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32835 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:37:42.636[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mNo active profile set, falling back to 1 default profile: "default"
+[0;39m[32m2025-01-16 00:37:43.084[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:37:43.095[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:37:43.398[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:37:43.404[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:37:43.405[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:37:43.405[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:37:43.437[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:37:43.437[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 779 ms
+[0;39m[32m2025-01-16 00:37:43.477[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext[0;39m - [33mException encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'dataSourceScriptDatabaseInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'dataSourceScriptDatabaseInitializer' defined in class path resource [org/springframework/boot/autoconfigure/sql/init/DataSourceInitializationConfiguration.class]: Unsatisfied dependency expressed through method 'dataSourceScriptDatabaseInitializer' parameter 0: Error creating bean with name 'dataSource' defined in class path resource [org/springframework/boot/autoconfigure/jdbc/DataSourceConfiguration$Hikari.class]: Failed to instantiate [com.zaxxer.hikari.HikariDataSource]: Factory method 'dataSource' threw exception with message: Failed to determine a suitable driver class
+[0;39m[32m2025-01-16 00:37:43.478[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStopping service [Tomcat]
+[0;39m[32m2025-01-16 00:37:43.491[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger[0;39m - [33m
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[0;39m[32m2025-01-16 00:37:43.501[0;39m [35m[main][0;39m [1;31mERROR[0;39m [36morg.springframework.boot.diagnostics.LoggingFailureAnalysisReporter[0;39m - [33m
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+
+Reason: Failed to determine a suitable driver class
+
+
+Action:
+
+Consider the following:
+	If you want an embedded database (H2, HSQL or Derby), please put it on the classpath.
+	If you have database settings to be loaded from a particular profile you may need to activate it (no profiles are currently active).
+
+[0;39m[32m2025-01-16 00:39:25.507[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:39:25.530[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32856 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:39:25.530[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mThe following 1 profile is active: "local"
+[0;39m[32m2025-01-16 00:39:25.975[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:39:25.986[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:39:26.282[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:39:26.289[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:39:26.290[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:39:26.290[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:39:26.325[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:39:26.326[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 772 ms
+[0;39m[32m2025-01-16 00:39:26.418[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.jpa.internal.util.LogHelper[0;39m - [33mHHH000204: Processing PersistenceUnitInfo [name: default]
+[0;39m[32m2025-01-16 00:39:26.459[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.Version[0;39m - [33mHHH000412: Hibernate ORM core version 6.5.2.Final
+[0;39m[32m2025-01-16 00:39:26.481[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.cache.internal.RegionFactoryInitiator[0;39m - [33mHHH000026: Second-level cache disabled
+[0;39m[32m2025-01-16 00:39:26.672[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo[0;39m - [33mNo LoadTimeWeaver setup: ignoring JPA class transformer
+[0;39m[32m2025-01-16 00:39:26.688[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Starting...
+[0;39m[32m2025-01-16 00:39:26.878[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.pool.HikariPool[0;39m - [33mHikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@6a04d2a4
+[0;39m[32m2025-01-16 00:39:26.879[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Start completed.
+[0;39m[32m2025-01-16 00:39:27.127[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator[0;39m - [33mHHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+[0;39m[32m2025-01-16 00:39:27.129[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean[0;39m - [33mInitialized JPA EntityManagerFactory for persistence unit 'default'
+[0;39m[32m2025-01-16 00:39:27.473[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration[0;39m - [33m
+
+Using generated security password: 4e94f337-8739-4be5-8d00-20ab6fd007e6
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+[0;39m[32m2025-01-16 00:39:27.481[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer[0;39m - [33mGlobal AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+[0;39m[32m2025-01-16 00:39:27.539[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.security.web.DefaultSecurityFilterChain[0;39m - [33mWill secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@c3114ea, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@642d971f, org.springframework.security.web.context.SecurityContextHolderFilter@6778636f, org.springframework.security.web.header.HeaderWriterFilter@579ee82, org.springframework.web.filter.CorsFilter@2afe825a, org.springframework.security.web.csrf.CsrfFilter@51bc649e, org.springframework.security.web.authentication.logout.LogoutFilter@6689bf04, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@5feaafb3, org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter@76bdfc19, org.springframework.security.web.authentication.ui.DefaultLogoutPageGeneratingFilter@49c6ee4a, org.springframework.security.web.authentication.www.BasicAuthenticationFilter@6e80de85, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@26c1244c, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@2a317af7, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4dd425dc, org.springframework.security.web.access.ExceptionTranslationFilter@f6e3b67, org.springframework.security.web.access.intercept.AuthorizationFilter@8d23cd8]
+[0;39m[32m2025-01-16 00:39:27.569[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mStarting ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:39:27.580[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat started on port 8080 (http) with context path '/'
+[0;39m[32m2025-01-16 00:39:27.589[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarted CtfApplication in 2.354 seconds (process running for 2.719)
+[0;39m[32m2025-01-16 00:39:34.559[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean[0;39m - [33mClosing JPA EntityManagerFactory for persistence unit 'default'
+[0;39m[32m2025-01-16 00:39:34.561[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Shutdown initiated...
+[0;39m[32m2025-01-16 00:39:34.565[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Shutdown completed.
+[0;39m[32m2025-01-16 00:43:38.564[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 00:43:38.588[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 32891 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 00:43:38.589[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mThe following 1 profile is active: "local"
+[0;39m[32m2025-01-16 00:43:39.057[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 00:43:39.069[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 00:43:39.368[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 00:43:39.374[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:43:39.375[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 00:43:39.375[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 00:43:39.414[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 00:43:39.414[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 804 ms
+[0;39m[32m2025-01-16 00:43:39.505[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.jpa.internal.util.LogHelper[0;39m - [33mHHH000204: Processing PersistenceUnitInfo [name: default]
+[0;39m[32m2025-01-16 00:43:39.542[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.Version[0;39m - [33mHHH000412: Hibernate ORM core version 6.5.2.Final
+[0;39m[32m2025-01-16 00:43:39.566[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.cache.internal.RegionFactoryInitiator[0;39m - [33mHHH000026: Second-level cache disabled
+[0;39m[32m2025-01-16 00:43:39.756[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo[0;39m - [33mNo LoadTimeWeaver setup: ignoring JPA class transformer
+[0;39m[32m2025-01-16 00:43:39.771[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Starting...
+[0;39m[32m2025-01-16 00:43:39.970[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.pool.HikariPool[0;39m - [33mHikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@41bd6a0f
+[0;39m[32m2025-01-16 00:43:39.971[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Start completed.
+[0;39m[32m2025-01-16 00:43:40.224[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator[0;39m - [33mHHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+[0;39m[32m2025-01-16 00:43:40.227[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean[0;39m - [33mInitialized JPA EntityManagerFactory for persistence unit 'default'
+[0;39m[32m2025-01-16 00:43:40.575[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration[0;39m - [33m
+
+Using generated security password: 710efc5f-93b9-4b5b-8add-452f69a18f34
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+[0;39m[32m2025-01-16 00:43:40.584[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer[0;39m - [33mGlobal AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+[0;39m[32m2025-01-16 00:43:40.640[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.security.web.DefaultSecurityFilterChain[0;39m - [33mWill secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@357e7113, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@8d23cd8, org.springframework.security.web.context.SecurityContextHolderFilter@76c85485, org.springframework.security.web.header.HeaderWriterFilter@3c65f2e1, org.springframework.web.filter.CorsFilter@5feaafb3, org.springframework.security.web.csrf.CsrfFilter@2adce412, org.springframework.security.web.authentication.logout.LogoutFilter@19b0a9f2, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@6689bf04, org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter@15405ba1, org.springframework.security.web.authentication.ui.DefaultLogoutPageGeneratingFilter@20a46227, org.springframework.security.web.authentication.www.BasicAuthenticationFilter@1cc42abe, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@4a7ac98b, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@13bf5fd, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@669469c9, org.springframework.security.web.access.ExceptionTranslationFilter@531b1778, org.springframework.security.web.access.intercept.AuthorizationFilter@3f2169e9]
+[0;39m[32m2025-01-16 00:43:40.673[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mStarting ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 00:43:40.684[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat started on port 8080 (http) with context path '/'
+[0;39m[32m2025-01-16 00:43:40.693[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarted CtfApplication in 2.41 seconds (process running for 2.873)
+[0;39m[32m2025-01-16 00:43:45.170[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean[0;39m - [33mClosing JPA EntityManagerFactory for persistence unit 'default'
+[0;39m[32m2025-01-16 00:43:45.172[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Shutdown initiated...
+[0;39m[32m2025-01-16 00:43:45.176[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Shutdown completed.
+[0;39m[32m2025-01-16 11:00:46.226[0;39m [35m[background-preinit][0;39m [34m INFO[0;39m [36morg.hibernate.validator.internal.util.Version[0;39m - [33mHV000001: Hibernate Validator 8.0.1.Final
+[0;39m[32m2025-01-16 11:00:46.249[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarting CtfApplication using Java 17.0.10 with PID 33285 (/Users/mnsoo/Desktop/zerobase/Back/build/classes/java/main started by mnsoo in /Users/mnsoo/Desktop/zerobase/Back)
+[0;39m[32m2025-01-16 11:00:46.250[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mThe following 1 profile is active: "local"
+[0;39m[32m2025-01-16 11:00:46.697[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mBootstrapping Spring Data JPA repositories in DEFAULT mode.
+[0;39m[32m2025-01-16 11:00:46.709[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.data.repository.config.RepositoryConfigurationDelegate[0;39m - [33mFinished Spring Data repository scanning in 6 ms. Found 0 JPA repository interfaces.
+[0;39m[32m2025-01-16 11:00:47.004[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat initialized with port 8080 (http)
+[0;39m[32m2025-01-16 11:00:47.011[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mInitializing ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 11:00:47.012[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardService[0;39m - [33mStarting service [Tomcat]
+[0;39m[32m2025-01-16 11:00:47.012[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.StandardEngine[0;39m - [33mStarting Servlet engine: [Apache Tomcat/10.1.24]
+[0;39m[32m2025-01-16 11:00:47.047[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.catalina.core.ContainerBase.[Tomcat].[localhost].[/][0;39m - [33mInitializing Spring embedded WebApplicationContext
+[0;39m[32m2025-01-16 11:00:47.047[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.servlet.context.ServletWebServerApplicationContext[0;39m - [33mRoot WebApplicationContext: initialization completed in 776 ms
+[0;39m[32m2025-01-16 11:00:47.139[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.jpa.internal.util.LogHelper[0;39m - [33mHHH000204: Processing PersistenceUnitInfo [name: default]
+[0;39m[32m2025-01-16 11:00:47.178[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.Version[0;39m - [33mHHH000412: Hibernate ORM core version 6.5.2.Final
+[0;39m[32m2025-01-16 11:00:47.200[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.cache.internal.RegionFactoryInitiator[0;39m - [33mHHH000026: Second-level cache disabled
+[0;39m[32m2025-01-16 11:00:47.391[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo[0;39m - [33mNo LoadTimeWeaver setup: ignoring JPA class transformer
+[0;39m[32m2025-01-16 11:00:47.410[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Starting...
+[0;39m[32m2025-01-16 11:00:47.604[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.pool.HikariPool[0;39m - [33mHikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@1c411474
+[0;39m[32m2025-01-16 11:00:47.605[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Start completed.
+[0;39m[32m2025-01-16 11:00:47.879[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator[0;39m - [33mHHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+[0;39m[32m2025-01-16 11:00:47.881[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean[0;39m - [33mInitialized JPA EntityManagerFactory for persistence unit 'default'
+[0;39m[32m2025-01-16 11:00:48.243[0;39m [35m[main][0;39m [31m WARN[0;39m [36morg.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration[0;39m - [33m
+
+Using generated security password: b0c335fc-772e-4120-afb7-65e62d2befa8
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+[0;39m[32m2025-01-16 11:00:48.252[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer[0;39m - [33mGlobal AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+[0;39m[32m2025-01-16 11:00:48.314[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.security.web.DefaultSecurityFilterChain[0;39m - [33mWill secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@5ead245, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@1e49a77e, org.springframework.security.web.context.SecurityContextHolderFilter@a74c940, org.springframework.security.web.header.HeaderWriterFilter@3f2a7ca0, org.springframework.web.filter.CorsFilter@57466fb7, org.springframework.security.web.csrf.CsrfFilter@84e43fb, org.springframework.security.web.authentication.logout.LogoutFilter@e76134d, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@6e149395, org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter@76c85485, org.springframework.security.web.authentication.ui.DefaultLogoutPageGeneratingFilter@7891742e, org.springframework.security.web.authentication.www.BasicAuthenticationFilter@2b9615cb, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@51bc649e, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@531b1778, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@2bbaf983, org.springframework.security.web.access.ExceptionTranslationFilter@7091a016, org.springframework.security.web.access.intercept.AuthorizationFilter@3976910]
+[0;39m[32m2025-01-16 11:00:48.345[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.apache.coyote.http11.Http11NioProtocol[0;39m - [33mStarting ProtocolHandler ["http-nio-8080"]
+[0;39m[32m2025-01-16 11:00:48.358[0;39m [35m[main][0;39m [34m INFO[0;39m [36morg.springframework.boot.web.embedded.tomcat.TomcatWebServer[0;39m - [33mTomcat started on port 8080 (http) with context path '/'
+[0;39m[32m2025-01-16 11:00:48.367[0;39m [35m[main][0;39m [34m INFO[0;39m [36mcom.mjsec.ctf.CtfApplication[0;39m - [33mStarted CtfApplication in 2.423 seconds (process running for 2.933)
+[0;39m[32m2025-01-16 11:00:51.423[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36morg.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean[0;39m - [33mClosing JPA EntityManagerFactory for persistence unit 'default'
+[0;39m[32m2025-01-16 11:00:51.425[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Shutdown initiated...
+[0;39m[32m2025-01-16 11:00:51.430[0;39m [35m[SpringApplicationShutdownHook][0;39m [34m INFO[0;39m [36mcom.zaxxer.hikari.HikariDataSource[0;39m - [33mHikariPool-1 - Shutdown completed.
+[0;39m
