@@ -16,14 +16,45 @@ jobs:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_PORT: 3306  # 고정값이므로 secrets가 아니어도 됨
+      DB_PORT: 3306  
 
     steps:
-      # 1) 코드 체크아웃
+   
       - name: Check out code
         uses: actions/checkout@v3
 
-      # 2) Gradle 빌드 & 유닛 테스트
+     
+      - name: Create .env file
+        run: |
+          echo "DB_NAME=${{ env.DB_NAME }}" >> .env
+          echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
+          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
+          echo "DB_PORT=${{ env.DB_PORT }}" >> .env
+
+   
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+ 
+      - name: Docker Compose Build
+        run: docker-compose build
+
+
+      - name: Start DB container
+        run: docker-compose up -d db
+
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            docker-compose exec db mysqladmin ping -h localhost --silent && break
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -43,45 +74,17 @@ jobs:
           chmod +x gradlew
           ./gradlew clean build
 
-      # 3) Create .env file (for Docker Compose)
-      - name: Create .env file
+
+      - name: Start app container
+        run: docker-compose up -d app
+
+
+      - name: Integration Tests (optional)
         run: |
-          echo "DB_NAME=${{ env.DB_NAME }}" >> .env
-          echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
-          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
-          echo "DB_PORT=${{ env.DB_PORT }}" >> .env
-
-      # 4) Install Docker Compose (Ubuntu)
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
-      # 5) Docker Compose build
-      - name: Build Docker images
-        run: docker-compose build
-
-      # 6) Docker Compose up (background)
-      - name: Start containers
-        run: docker-compose up -d
-
-      # 7) Wait for MySQL readiness
-      - name: Wait for MySQL
-        run: |
-          for i in {1..30}; do
-            docker-compose exec db mysqladmin ping -h localhost --silent && break
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
-
-      # 8) Integration / E2E tests (optional)
-      - name: Integration Tests
-        run: |
-          # 예) 간단히 curl로 health check
           curl -f http://localhost:8080/actuator/health
-          # 또는 Postman / newman / custom scripts / etc.
+          # or any other tests
 
-      # 9) Stop containers (always run)
+      # 10) Stop containers (always run)
       - name: Stop containers
         if: always()
         run: |
