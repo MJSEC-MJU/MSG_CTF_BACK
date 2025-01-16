@@ -16,14 +16,14 @@ jobs:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_PORT: 3306  
+      DB_PORT: 3306
 
     steps:
-   
+      
       - name: Check out code
         uses: actions/checkout@v3
 
-     
+      
       - name: Create .env file
         run: |
           echo "DB_NAME=${{ env.DB_NAME }}" >> .env
@@ -31,30 +31,30 @@ jobs:
           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
 
-   
+      
       - name: Install Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
- 
+      
       - name: Docker Compose Build
         run: docker-compose build
 
-
-      - name: Start DB container
+     
+      - name: Start DB
         run: docker-compose up -d db
 
-
+      
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
-            docker-compose exec db mysqladmin ping -h localhost --silent && break
+            docker-compose exec -T db mysqladmin ping -h localhost --silent && break
             echo "Waiting for MySQL..."
             sleep 2
           done
 
-
+      
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -68,21 +68,20 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradlew*', '**/*.gradle*') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Build & Test with Gradle
+      - name: Gradle build & test
         run: |
           cd Back
           chmod +x gradlew
           ./gradlew clean build
 
-
-      - name: Start app container
+      
+      - name: Start app
         run: docker-compose up -d app
 
-
-      - name: Integration Tests (optional)
+     
+      - name: Integration Tests
         run: |
           curl -f http://localhost:8080/actuator/health
-          # or any other tests
 
       # 10) Stop containers (always run)
       - name: Stop containers
