@@ -17,6 +17,15 @@ spring:
         show-sql: false
         jdbc:
           time_zone: UTC
+          
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
 
 springdoc:
   swagger-ui:
