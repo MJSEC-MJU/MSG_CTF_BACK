@@ -15,7 +15,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
 
   app:
     build:
@@ -43,6 +43,7 @@ services:
       - ./Back:/app
       - gradle_cache:/home/gradle/.gradle
     environment:
+      SPRING_PROFILES_ACTIVE: local
       DB_HOST: db
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
@@ -51,8 +52,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    entrypoint: ["./gradlew"]
-    command: ["test"]
+    entrypoint: ["sh", "-c"]
+    command: ["./gradlew test --stacktrace"]
 
 volumes:
   gradle_cache:

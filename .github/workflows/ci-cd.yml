@@ -19,19 +19,19 @@ jobs:
       DB_PORT: 3306
 
     steps:
-     
+ 
       - name: Check out code
         uses: actions/checkout@v3
 
      
       - name: Create .env file
         run: |
-          echo "DB_NAME=${{ env.DB_NAME }}" >> .env
+          echo "DB_NAME=${{ env.DB_NAME }}" > .env
           echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
 
-    
+   
       - name: Install Docker Compose
         run: |
           sudo apt-get update
@@ -39,10 +39,9 @@ jobs:
 
     
       - name: Docker Compose Build and Up
-        run: |
-          docker-compose up --build -d
+        run: docker-compose up --build -d
 
-     
+   
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
@@ -56,18 +55,24 @@ jobs:
         run: |
           docker-compose run --rm test
 
-    
       - name: Start App Container
         run: |
           docker-compose up -d app
 
-  
+     
       - name: Integration Tests
         run: |
           curl -f http://localhost:8080/actuator/health
 
-   
       - name: Stop containers
         if: always()
         run: |
           docker-compose down
+
+    
+      - name: Upload Test Report
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: Back/build/reports/tests/test
