@@ -17,21 +17,25 @@ jobs:
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_PORT: 3306
+      SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
+      SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
 
     steps:
  
       - name: Check out code
         uses: actions/checkout@v3
 
-     
+    
       - name: Create .env file
         run: |
           echo "DB_NAME=${{ env.DB_NAME }}" > .env
           echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
+          echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}" >> .env
+          echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}" >> .env
 
-   
+  
       - name: Install Docker Compose
         run: |
           sudo apt-get update
@@ -50,26 +54,27 @@ jobs:
             sleep 2
           done
 
-    
+     
       - name: Run Gradle Tests in Docker
         run: |
           docker-compose run --rm test
 
+  
       - name: Start App Container
         run: |
           docker-compose up -d app
 
-     
       - name: Integration Tests
         run: |
-          curl -f http://localhost:8080/actuator/health
+          # Actuator Health 엔드포인트에 인증 정보와 함께 접근
+          curl -u "${{ secrets.SPRING_SECURITY_USER_NAME }}:${{ secrets.SPRING_SECURITY_USER_PASSWORD }}" -f http://localhost:8080/actuator/health
 
       - name: Stop containers
         if: always()
         run: |
           docker-compose down
 
-    
+
       - name: Upload Test Report
         if: failure()
         uses: actions/upload-artifact@v3
