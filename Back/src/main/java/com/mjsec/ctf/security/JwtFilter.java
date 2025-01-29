@@ -73,7 +73,7 @@ public class JwtFilter extends OncePerRequestFilter {
         // Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
 
         // SecurityContextHolder.getContext().setAuthentication(authToken);
-        log.info("User authenticated and set in SecurityContext: {}", email);
+        // log.info("User authenticated and set in SecurityContext: {}", email);
 
         filterChain.doFilter(request, response);
         log.info("Completed JWTFilter for request: {}", request.getRequestURI());
