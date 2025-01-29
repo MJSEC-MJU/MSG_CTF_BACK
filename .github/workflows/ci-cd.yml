@@ -19,7 +19,7 @@ jobs:
       DB_PORT: 3306
       SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
       SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
-
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
     steps:
       - name: Check out code
         uses: actions/checkout@v3
