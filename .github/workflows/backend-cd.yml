@@ -1,0 +1,41 @@
+name: Backend CD
+
+on:
+  push:
+    branches:
+      - dev  # dev 브랜치에 push될 때 실행
+  workflow_dispatch:  # GitHub Actions에서 수동 실행 가능
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Build and Push Backend Image to Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f Dockerfile.backend .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+
+      - name: Deploy to GCP Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+            docker-compose up -d backend
+            docker image prune -f
