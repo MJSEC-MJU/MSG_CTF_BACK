@@ -62,6 +62,9 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/users/sign-up").permitAll() // 임시로 회원가입 테스트용 허용
+                        .requestMatchers("/api/users/sign-in").permitAll()
+                        .requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                         .requestMatchers("/").permitAll()
                 );
         //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
