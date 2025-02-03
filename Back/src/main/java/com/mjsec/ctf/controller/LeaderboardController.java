@@ -39,7 +39,7 @@ public class LeaderboardController {
                 while (true) {
                     List<Leaderboard> leaderboardEntities = leaderboardService.getLeaderboard();
                     emitter.send(leaderboardEntities, MediaType.APPLICATION_JSON);
-                    Thread.sleep(5000); //5초로 설정
+                    Thread.sleep(5000); //5초로 설정$
                 }
             } catch (IOException | InterruptedException e) {
                 emitter.completeWithError(e);

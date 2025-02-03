@@ -3,6 +3,8 @@ package com.mjsec.ctf.entity;
 import jakarta.persistence.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
+
 @Slf4j
 @Entity
 public class Leaderboard {
@@ -11,7 +13,18 @@ public class Leaderboard {
     private Long id; // Primary key
     private String userid;  // varchar(255)
     private String univ;
-    private int totalPoint;      // int
+    private int totalPoint; // int
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 
     public String getUniv(){
         return univ;
