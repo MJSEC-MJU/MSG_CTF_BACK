@@ -5,6 +5,8 @@ import com.mjsec.ctf.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Collections;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +14,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -21,6 +25,7 @@ public class SecurityConfig {
 
     private final JwtService jwtService;
 
+    @Autowired
     public SecurityConfig(JwtService jwtService) {
         this.jwtService = jwtService;
     }
@@ -63,6 +68,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/").permitAll()
+
+                        // leaderboard 테스트 용으로 일단 permitAll() 했습니다.
+                        .requestMatchers("/leaderboard").permitAll()
+                        // 마찬가지로 sse 통신 확인을 위해 일시적으로 permitAll() 했습니다.
+                        .requestMatchers("/leaderboard/**").permitAll()
+
                 );
         //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
         http

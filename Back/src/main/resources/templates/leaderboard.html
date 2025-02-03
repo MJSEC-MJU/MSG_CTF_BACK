@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리더보드(임시)</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+<h1>개인별 점수</h1>
+<table id="leaderboard">
+    <thead>
+    <tr>
+        <th>이름</th>
+        <th>학교</th>
+        <th>점수</th>
+    </tr>
+    </thead>
+    <tbody id="leaderboard-body">
+    <!-- leaderboard data will be dynamically inserted here -->
+    </tbody>
+</table>
+
+<h1>학교별 점수</h1>
+<table id="school-scores">
+    <thead>
+    <tr>
+        <th>학교</th>
+        <th>점수</th>
+    </tr>
+    </thead>
+    <tbody id="school-scores-body">
+    <!-- school scores data will be dynamically inserted here -->
+    </tbody>
+</table>
+
+<script>
+    // SSE 연결 설정
+    const eventSource = new EventSource('/leaderboard/stream');
+
+    eventSource.onmessage = function(event) {
+        const leaderboard = JSON.parse(event.data);
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        const schoolScoresBody = document.getElementById('school-scores-body');
+
+        leaderboardBody.innerHTML = '';  // 기존 내용 지우기
+        schoolScoresBody.innerHTML = '';  // 기존 학교별 점수 합산 내용 지우기
+
+
+        // 테이블로 표시한 부분은 제가 테스트 하면서 보기 편하려고 임시로 만들었습니다.
+        // 학교별 점수 합산 계산
+        const schoolScores = {};
+
+        leaderboard.forEach(item => {
+            // 리더보드에 항목 추가
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.userid}</td>
+                <td>${item.univ}</td>
+                <td>${item.totalPoint}</td>
+            `;
+            leaderboardBody.appendChild(row);
+
+            // 학교별 점수 합산 계산
+            if (schoolScores[item.univ]) {
+                schoolScores[item.univ] += item.totalPoint;
+            } else {
+                schoolScores[item.univ] = item.totalPoint;
+            }
+        });
+
+        // 학교별 점수 합산 테이블 업데이트
+        for (const [univ, totalScore] of Object.entries(schoolScores)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${univ}</td>
+                <td>${totalScore}</td>
+            `;
+            schoolScoresBody.appendChild(row);
+        }
+    };
+
+    eventSource.onerror = function(error) {
+        console.error("Error occurred:", error);
+        eventSource.close();
+    };
+</script>
+</body>
+</html>
