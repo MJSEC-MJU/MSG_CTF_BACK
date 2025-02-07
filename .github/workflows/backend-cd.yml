@@ -48,14 +48,15 @@ jobs:
             sudo rm -rf /home/ubuntu/app/docker-compose.yml
             sudo rm -rf /tmp/docker-compose.yml
 
-      - name: Upload docker-compose.yml to Server
+      - name: Upload docker-compose.yml to Server (temporary location)
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yml"
-          target: "/tmp/docker-compose.yml"
+          target: "/tmp/"
+          strip_components: 1
 
       - name: Move docker-compose.yml to target directory with sudo
         uses: appleboy/ssh-action@v0.1.5
@@ -64,17 +65,16 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml  
-            
+            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
-      - name: Create .env file on Server with sudo
+      - name: Create .env file on server with sudo
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo bash -c 'cat > /home/ubuntu/app/docker-compose.yml .env <<EOF
+            sudo bash -c 'cat > /home/ubuntu/app/.env <<EOF
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -84,14 +84,14 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             EOF'
 
-      - name: Deploy to GCP Server
+      - name: Deploy containers on server
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /home/ubuntu/app/docker-compose.yml
+            cd /home/ubuntu/app
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
             sudo docker-compose up -d backend
             sudo docker image prune -f
