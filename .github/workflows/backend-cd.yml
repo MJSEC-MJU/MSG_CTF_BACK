@@ -38,6 +38,16 @@ jobs:
           script: |
             sudo mkdir -p /home/ubuntu/app
 
+      - name: Remove old docker-compose file on server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo rm -rf /home/ubuntu/app/docker-compose.yml
+            sudo rm -rf /tmp/docker-compose.yml
+
       - name: Upload docker-compose.yml to Server
         uses: appleboy/scp-action@v0.1.1
         with:
@@ -54,8 +64,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo rm -rf /home/ubuntu/app/docker-compose.yml
-            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
+            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml  
+            
 
       - name: Create .env file on Server with sudo
         uses: appleboy/ssh-action@v0.1.5
