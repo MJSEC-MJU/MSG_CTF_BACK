@@ -54,6 +54,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            sudo rm -rf /home/ubuntu/app/docker-compose.yml
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
       - name: Create .env file on Server with sudo
