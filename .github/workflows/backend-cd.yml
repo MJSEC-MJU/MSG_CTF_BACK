@@ -29,6 +29,15 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
+      - name: Create target directory on server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo mkdir -p /home/ubuntu/app
+
       - name: Upload docker-compose.yml to Server
         uses: appleboy/scp-action@v0.1.1
         with:
@@ -36,7 +45,16 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yml"
-          target: "/home/ubuntu/app"  # 원격 서버에서 docker-compose.yml 파일을 위치시킬 디렉토리
+          target: "/tmp/docker-compose.yml"
+
+      - name: Move docker-compose.yml to target directory with sudo
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
       - name: Deploy to GCP Server
         uses: appleboy/ssh-action@v0.1.5
@@ -45,7 +63,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /home/ubuntu/app  # docker-compose.yml 파일이 있는 디렉토리로 이동
+            cd /home/ubuntu/app
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
             sudo docker-compose up -d backend
             sudo docker image prune -f
