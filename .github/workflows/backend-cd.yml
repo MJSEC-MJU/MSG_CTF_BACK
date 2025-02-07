@@ -56,6 +56,23 @@ jobs:
           script: |
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
+      - name: Create .env file on Server with sudo
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo bash -c 'cat > /home/ubuntu/app/.env <<EOF
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
+            SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            EOF'
+
       - name: Deploy to GCP Server
         uses: appleboy/ssh-action@v0.1.5
         with:
