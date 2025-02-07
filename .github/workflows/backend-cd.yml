@@ -55,8 +55,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yml"
-          target: "/tmp/"
-          strip_components: 1
+          target: "/tmp/docker-compose.yml"
+         
 
       - name: Move docker-compose.yml to target directory with sudo
         uses: appleboy/ssh-action@v0.1.5
