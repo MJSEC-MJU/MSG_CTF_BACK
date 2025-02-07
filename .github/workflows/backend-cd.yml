@@ -30,12 +30,12 @@ jobs:
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
       - name: Deploy to GCP Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
-            docker-compose up -d backend
-            docker image prune -f
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+            sudo docker-compose up -d backend
+            sudo docker image prune -f
