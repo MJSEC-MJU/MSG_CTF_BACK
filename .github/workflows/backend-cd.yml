@@ -74,7 +74,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo bash -c 'cat > /home/ubuntu/app/docker-compose.yml.env <<EOF
+            sudo bash -c 'cat > /home/ubuntu/app/docker-compose.yml/.env <<EOF
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
