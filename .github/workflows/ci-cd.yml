@@ -22,7 +22,7 @@ jobs:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create .env file
         run: |
@@ -32,6 +32,12 @@ jobs:
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
           echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}" >> .env
           echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}" >> .env
+
+      - name: Create SSL files
+        run: |
+          mkdir -p ./nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
 
       - name: Install Docker Compose
         run: |
@@ -50,25 +56,21 @@ jobs:
           done
 
       - name: Run Gradle Tests in Docker
-        run: |
-          docker-compose run --rm test
+        run: docker-compose run --rm test
 
       - name: Start App Container
-        run: |
-          docker-compose up -d app
+        run: docker-compose up -d app
 
       - name: Check App Container Logs
-        run: |
-          docker-compose logs app
+        run: docker-compose logs app
 
       - name: Stop containers
         if: always()
-        run: |
-          docker-compose down
+        run: docker-compose down
 
       - name: Upload Test Report
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-report
           path: Back/build/reports/tests/test

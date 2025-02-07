@@ -37,8 +37,6 @@ services:
       SPRING_SECURITY_USER_NAME: ${SPRING_SECURITY_USER_NAME}
       SPRING_SECURITY_USER_PASSWORD: ${SPRING_SECURITY_USER_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-    networks:
-      - ctf-network
 
   test:
     image: gradle:8.1.1-jdk17
@@ -62,29 +60,17 @@ services:
         condition: service_healthy
     entrypoint: ["sh", "-c"]
     command: ["./gradlew test --stacktrace"]
-    networks:
-      - ctf-network
 
-  nginx:  
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
+  nginx:
+    image: nginx:latest
     container_name: ctf-nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro  # SSL 인증서 마운트
     depends_on:
       - app
-    networks:
-      - ctf-network
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
 
 volumes:
   gradle_cache:
-
-networks:
-  ctf-network:
-    driver: bridge
