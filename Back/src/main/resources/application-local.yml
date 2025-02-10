@@ -29,8 +29,6 @@ management:
     health:
       show-details: always
 
-
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -9,7 +9,6 @@ import org.hibernate.annotations.FetchMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Entity
 @Getter
 @Setter
@@ -40,6 +39,7 @@ public class UserEntity extends BaseEntity {
     @Fetch(FetchMode.JOIN)
     private List<UserRole> roles;
      */
+
     @Column(nullable = false)
     private String roles;
 

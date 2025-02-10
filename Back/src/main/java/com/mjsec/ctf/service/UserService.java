@@ -1,7 +1,9 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
@@ -16,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,8 +29,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshRepository refreshRepository;  // ✅ final 추가
 
-    //회원가입
+
     public void signUp(UserDTO.SignUp request) {
         if (userRepository.existsByLoginId(request.getLoginId())) {
             throw new RestApiException(ErrorCode.BAD_REQUEST);
@@ -63,7 +63,6 @@ public class UserService {
         }
          */
 
-        //유저 정보 저장
         UserEntity user = UserEntity.builder()
                 .loginId(request.getLoginId())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -74,9 +73,12 @@ public class UserService {
                 .build();
 
         userRepository.save(user);
+
     }
 
+    /*
     public Map<String, Object> signIn(UserDTO.SignIn request){
+
 
         // 로그인 아이디로 유저 조회
         UserEntity user = userRepository.findByLoginId(request.getLoginId())
@@ -86,28 +88,16 @@ public class UserService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RestApiException(ErrorCode.BAD_REQUEST);
         }
-        /* roles를 UserEntity로 썼을 때
-        List<String> roles = user.getRoles().stream()
-                .map(Enum::name)
-                .collect(Collectors.toList());
-
-        // JWT 토큰 생성
-        String token = jwtService.createJwt("access", user.getLoginId(), roles, 3600000L); // 1시간 만료
-         */
 
         final long ACCESS_TOKEN_EXPIRY = 3600000L; // 1시간
-        final long REFRESH_TOKEN_EXPIRY = 604800000L; // 1주일
+        final long REFRESH_TOKEN_EXPIRY = 43200000L; //
 
         // JWT 토큰 생성 - 제대로 구현 미지수 (더 추가 예정)
-        String accessToken = jwtService.createJwt("access", user.getLoginId(), List.of(user.getRoles()), ACCESS_TOKEN_EXPIRY); // 1시간 만료
+        String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(user.getRoles()), ACCESS_TOKEN_EXPIRY); // 1시간 만료
 
-        String refreshToken = jwtService.createJwt("refresh", user.getLoginId(),List.of(user.getRoles()),REFRESH_TOKEN_EXPIRY);//일주일 만료
+        String refreshToken = jwtService.createJwt("refreshToken", user.getLoginId(),List.of(user.getRoles()),REFRESH_TOKEN_EXPIRY);
 
-        /*
-        accessToken과 refreshToken을 둘 다 사용함.
-        accessToken은 Authentication Bearer <Token>
-        refreshToken은 Cookie에 저장함
-         */
+        addRefreshEntity(user.getLoginId(),refreshToken,REFRESH_TOKEN_EXPIRY);
 
         HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
         if (response != null) {
@@ -119,7 +109,7 @@ public class UserService {
             response.addCookie(refreshCookie);
 
             // Access Token은 헤더에 추가
-            response.setHeader("access", accessToken);
+            response.setHeader("accessToken", accessToken);
 
             log.info("JWT added to response for user '{}'", user.getLoginId());
         }
@@ -132,8 +122,31 @@ public class UserService {
 
         return message;
     }
+
     
-    //로그아웃
+    //나중에 LoginFilter로 이동 예정
+    private void addRefreshEntity(String loginId, String refresh, Long expiredMs) {
+
+        Date date = new Date(System.currentTimeMillis() + expiredMs);
+
+        RefreshEntity refreshEntity = new RefreshEntity();
+        refreshEntity.setLoginId(loginId);
+        refreshEntity.setRefresh(refresh);
+        refreshEntity.setExpiration(date.toString());
+
+        refreshRepository.save(refreshEntity);
+    }
+     */
+        /* roles를 UserEntity로 썼을 때 (혹시 모르는 용도)
+        List<String> roles = user.getRoles().stream()
+                .map(Enum::name)
+                .collect(Collectors.toList());
+
+        // JWT 토큰 생성
+        String token = jwtService.createJwt("accessToken", user.getLoginId(), roles, 3600000L); // 1시간 만료
+     */
+
+    /*
     public void logout(String token) {
         try {
             // 1. 토큰이 만료되었는지 확인
@@ -142,14 +155,14 @@ public class UserService {
                 throw new RestApiException(ErrorCode.UNAUTHORIZED);
             }
 
-            // 2. 토큰 타입이 "access"인지 확인
+            // 2. 토큰 타입이 "accessToken"인지 확인
             String tokenType = jwtService.getTokenType(token);
-            if (!"access".equals(tokenType)) {
+            if (!"accessToken".equals(tokenType)) {
                 log.warn("Invalid token type used for logout: {}", tokenType);
                 throw new RestApiException(ErrorCode.UNAUTHORIZED);
             }
 
-            // 3. 로그아웃 처리
+            // 3. 로그아웃 처리 (블랙리스트 추가 가능)
             log.info("Token invalidated: {}", token);
 
             // 4. Refresh Token 쿠키 삭제
@@ -170,4 +183,37 @@ public class UserService {
             throw new RestApiException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+     */
+
+    public Map<String, Object> getProfile(String token) {
+        // 토큰 유효성 검사
+        if (jwtService.isExpired(token)) {
+            log.warn("Access Token이 만료되었습니다. 다시 로그인하세요.");
+            throw new RestApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 토큰에서 로그인 ID 가져오기
+        String loginId = jwtService.getLoginId(token);
+
+        // 로그인 ID로 유저 조회
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST));
+
+        // 프로필 정보 반환
+        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> userProfile = new HashMap<>();
+
+        userProfile.put("user_id", user.getUserId());
+        userProfile.put("email", user.getEmail());
+        userProfile.put("univ", user.getUniv());
+        userProfile.put("roles", user.getRoles());
+        userProfile.put("total_point", user.getTotalPoint());
+        userProfile.put("created_at", user.getCreatedAt());
+        userProfile.put("updated_at", user.getUpdatedAt());
+
+        response.put("user", userProfile);
+
+        return response;
+    }
+
 }

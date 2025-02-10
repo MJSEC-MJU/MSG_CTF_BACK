@@ -65,6 +65,8 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
          */
+
+
         String authorizationHeader = request.getHeader("Authorization");
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -75,19 +77,22 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String accessToken = authorizationHeader.substring(7); // "Bearer " 이후 토큰 추출
-
+        
+        //토큰 만료인지 확인
         if (jwtService.isExpired(accessToken)) {
             log.info("Access token is expired, rejecting the request.");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Access token expired");
             return;
         }
-
+        
+        //토큰 검증
         String tokenType = jwtService.getTokenType(accessToken);
-        if (!"access".equals(tokenType)) {
+        if (!tokenType.equals("accessToken")) {
             log.info("Invalid token type, rejecting the request.");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Invalid access token");
+            
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 

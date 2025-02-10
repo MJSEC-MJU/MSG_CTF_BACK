@@ -30,7 +30,6 @@ public class JwtService {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("email", String.class);
     }
 
-
     public List<String> getRoles(String token) {
 
         List<?> roles = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("roles", List.class);
@@ -43,6 +42,7 @@ public class JwtService {
             return Collections.emptyList();
         }
     }
+
 
     public String getLoginId(String token){
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("loginId", String.class);
@@ -71,7 +71,7 @@ public class JwtService {
         return Jwts.builder()
                 .claim("tokenType", tokenType)
                 .claim("loginId", loginId)
-                .claim("roles", roles) //UserRole로 수정함.
+                .claim("roles", roles)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)

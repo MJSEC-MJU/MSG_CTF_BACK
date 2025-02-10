@@ -8,7 +8,6 @@ import java.util.List;
 
 public class UserDTO {
 
-    //회원가입용
     @Data
     public static class SignIn {
         @NotBlank(message = "로그인 아이디는 필수입니다.")
@@ -18,7 +17,6 @@ public class UserDTO {
         private String password;
     }
 
-    //로그인용
     @Data
     public static class SignUp {
         @NotBlank(message = "로그인 아이디는 필수입니다.") //비밀번호 규칙 있으면 수정할 예정
