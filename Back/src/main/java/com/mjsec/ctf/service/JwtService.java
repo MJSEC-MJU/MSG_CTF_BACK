@@ -1,5 +1,6 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.type.UserRole;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +43,10 @@ public class JwtService {
         }
     }
 
+
+    public String getLoginId(String token){
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("loginId", String.class);
+    }
     public Boolean isExpired(String token) {
 
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
@@ -57,7 +62,7 @@ public class JwtService {
      *
      * @param tokenType : 토큰 타입(ACCESS 토큰 / REFRESH 토큰)
      * @param loginId : 유저의 로그인 id
-     * @param roles : 유저의 권한
+     * @param roles : 유저의 권한 -> 일단 Enum 타입으로 수정함.
      * @param expiredMs : 만료 시점
      * @return JWT
      */
