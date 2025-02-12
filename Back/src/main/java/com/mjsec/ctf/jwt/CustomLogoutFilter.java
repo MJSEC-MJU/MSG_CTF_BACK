@@ -1,5 +1,8 @@
 package com.mjsec.ctf.jwt;
 
+import com.mjsec.ctf.domain.BlacklistedTokenEntity;
+import com.mjsec.ctf.domain.BlacklistedTokenEntity;
+import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.service.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -11,19 +14,23 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.GenericFilterBean;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 public class CustomLogoutFilter extends GenericFilterBean {
     private final JwtService jwtService;
     private final RefreshRepository refreshRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper(); // ✅ JSON 변환용
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 변환용
 
-    public CustomLogoutFilter(JwtService jwtService, RefreshRepository refreshRepository) {
+    public CustomLogoutFilter(JwtService jwtService, RefreshRepository refreshRepository,BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtService = jwtService;
         this.refreshRepository = refreshRepository;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
     @Override
@@ -37,6 +44,33 @@ public class CustomLogoutFilter extends GenericFilterBean {
             filterChain.doFilter(request, response);
             return;
         }
+
+        String authorizationHeader = request.getHeader("Authorization");
+        if(authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")){
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("error: Missing or invalid Authorization header");
+            return;
+        }
+
+        String accessToken = authorizationHeader.substring(7);
+
+        // 토큰 만료 여부 확인
+        try {
+            jwtService.isExpired(accessToken);
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("{\"error\": \"Access token has expired\"}");
+            return;
+        }
+
+        // 블랙리스트에 토큰 추가
+        BlacklistedTokenEntity blacklistedToken = new BlacklistedTokenEntity();
+        blacklistedToken.setToken(accessToken);
+        blacklistedToken.setExpiration(jwtService.getExpirationDate(accessToken));
+        blacklistedTokenRepository.save(blacklistedToken);
+
+        log.info("Access token added to blacklist: {}", accessToken);
+
 
         // Refresh Token 가져오기
         String refresh = null;
@@ -92,7 +126,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
         cookie.setMaxAge(0);
         response.addCookie(cookie);
 
-        // ✅ 로그아웃 성공 메시지 반환
+        //로그아웃 성공 메시지 반환
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");

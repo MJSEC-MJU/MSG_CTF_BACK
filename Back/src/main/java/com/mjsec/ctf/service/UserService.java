@@ -3,6 +3,7 @@ package com.mjsec.ctf.service;
 import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
@@ -29,16 +30,22 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final RefreshRepository refreshRepository;  // ✅ final 추가
+    private final RefreshRepository refreshRepository;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-
+    //회원가입 로직
     public void signUp(UserDTO.SignUp request) {
         if (userRepository.existsByLoginId(request.getLoginId())) {
-            throw new RestApiException(ErrorCode.BAD_REQUEST);
+            throw new RestApiException(ErrorCode.DUPLICATE_ID);
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RestApiException(ErrorCode.BAD_REQUEST);
+            throw new RestApiException(ErrorCode.DUPLICATE_EMAIL);
+        }
+
+        // 이메일 형식 검사
+        if (!isValidEmail(request.getEmail())) {
+            throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
 
         // 요청의 roles 값 확인
@@ -51,18 +58,6 @@ public class UserService {
             throw new RestApiException(ErrorCode.BAD_REQUEST);
         }
 
-        /* roles 타입이 UserEntity였을 때
-        // ✅ 요청에서 roles이 없거나 비어 있으면 기본값 설정
-        List<UserRole> userRoles;
-        if (request.getRoles() == null || request.getRoles().isEmpty()) {
-            userRoles = new ArrayList<>(List.of(UserRole.ROLE_USER)); // 기본값 설정
-        } else {
-            userRoles = request.getRoles().stream()
-                    .map(UserRole::valueOf) // String -> Enum 변환
-                    .collect(Collectors.toList());
-        }
-         */
-
         UserEntity user = UserEntity.builder()
                 .loginId(request.getLoginId())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -73,122 +68,31 @@ public class UserService {
                 .build();
 
         userRepository.save(user);
-
     }
 
-    /*
-    public Map<String, Object> signIn(UserDTO.SignIn request){
-
-
-        // 로그인 아이디로 유저 조회
-        UserEntity user = userRepository.findByLoginId(request.getLoginId())
-                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST));
-
-        // 비밀번호 확인
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RestApiException(ErrorCode.BAD_REQUEST);
-        }
-
-        final long ACCESS_TOKEN_EXPIRY = 3600000L; // 1시간
-        final long REFRESH_TOKEN_EXPIRY = 43200000L; //
-
-        // JWT 토큰 생성 - 제대로 구현 미지수 (더 추가 예정)
-        String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(user.getRoles()), ACCESS_TOKEN_EXPIRY); // 1시간 만료
-
-        String refreshToken = jwtService.createJwt("refreshToken", user.getLoginId(),List.of(user.getRoles()),REFRESH_TOKEN_EXPIRY);
-
-        addRefreshEntity(user.getLoginId(),refreshToken,REFRESH_TOKEN_EXPIRY);
-
-        HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
-        if (response != null) {
-            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-            refreshCookie.setHttpOnly(true);
-            refreshCookie.setSecure(true); // HTTPS 사용 시 true로 설정
-            refreshCookie.setPath("/");
-            refreshCookie.setMaxAge((int) REFRESH_TOKEN_EXPIRY / 1000); // 초 단위로 설정
-            response.addCookie(refreshCookie);
-
-            // Access Token은 헤더에 추가
-            response.setHeader("accessToken", accessToken);
-
-            log.info("JWT added to response for user '{}'", user.getLoginId());
-        }
-
-        Map<String, Object> message = new HashMap<>();
-        message.put("accessToken",accessToken);
-        message.put("refreshToken",refreshToken);
-
-        log.info("User '{}' signed in successfully", user.getLoginId());
-
-        return message;
+    public boolean isLoginIdExists(String loginId) {
+        return userRepository.existsByLoginId(loginId);
     }
 
-    
-    //나중에 LoginFilter로 이동 예정
-    private void addRefreshEntity(String loginId, String refresh, Long expiredMs) {
-
-        Date date = new Date(System.currentTimeMillis() + expiredMs);
-
-        RefreshEntity refreshEntity = new RefreshEntity();
-        refreshEntity.setLoginId(loginId);
-        refreshEntity.setRefresh(refresh);
-        refreshEntity.setExpiration(date.toString());
-
-        refreshRepository.save(refreshEntity);
+    public boolean isEmailExists(String email) {
+        return userRepository.existsByEmail(email);
     }
-     */
-        /* roles를 UserEntity로 썼을 때 (혹시 모르는 용도)
-        List<String> roles = user.getRoles().stream()
-                .map(Enum::name)
-                .collect(Collectors.toList());
 
-        // JWT 토큰 생성
-        String token = jwtService.createJwt("accessToken", user.getLoginId(), roles, 3600000L); // 1시간 만료
-     */
-
-    /*
-    public void logout(String token) {
-        try {
-            // 1. 토큰이 만료되었는지 확인
-            if (jwtService.isExpired(token)) {
-                log.warn("Attempt to logout with expired token: {}", token);
-                throw new RestApiException(ErrorCode.UNAUTHORIZED);
-            }
-
-            // 2. 토큰 타입이 "accessToken"인지 확인
-            String tokenType = jwtService.getTokenType(token);
-            if (!"accessToken".equals(tokenType)) {
-                log.warn("Invalid token type used for logout: {}", tokenType);
-                throw new RestApiException(ErrorCode.UNAUTHORIZED);
-            }
-
-            // 3. 로그아웃 처리 (블랙리스트 추가 가능)
-            log.info("Token invalidated: {}", token);
-
-            // 4. Refresh Token 쿠키 삭제
-            HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getResponse();
-            if (response != null) {
-                Cookie refreshCookie = new Cookie("refreshToken", null);
-                refreshCookie.setHttpOnly(true);
-                refreshCookie.setSecure(true); // HTTPS 사용 시
-                refreshCookie.setPath("/");
-                refreshCookie.setMaxAge(0); // 즉시 만료
-                response.addCookie(refreshCookie);
-
-                log.info("Refresh Token cleared from cookies");
-            }
-
-        } catch (Exception e) {
-            log.error("Error occurred during logout: {}", e.getMessage());
-            throw new RestApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
+    // 이메일 유효성 검사 함수
+    public boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        return email.matches(emailRegex);
     }
-     */
 
     public Map<String, Object> getProfile(String token) {
         // 토큰 유효성 검사
         if (jwtService.isExpired(token)) {
             log.warn("Access Token이 만료되었습니다. 다시 로그인하세요.");
+            throw new RestApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (blacklistedTokenRepository.existsByToken(token)) {
+            log.warn("Access Token is blacklisted. Rejecting request.");
             throw new RestApiException(ErrorCode.UNAUTHORIZED);
         }
 

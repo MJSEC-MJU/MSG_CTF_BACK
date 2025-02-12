@@ -2,6 +2,7 @@
 
     import com.mjsec.ctf.jwt.CustomLoginFilter;
     import com.mjsec.ctf.jwt.CustomLogoutFilter;
+    import com.mjsec.ctf.repository.BlacklistedTokenRepository;
     import com.mjsec.ctf.repository.RefreshRepository;
     import com.mjsec.ctf.repository.UserRepository;
     import com.mjsec.ctf.security.JwtFilter;
@@ -29,12 +30,14 @@
         private final RefreshRepository refreshRepository;
         private final UserRepository userRepository;
         private final PasswordEncoder passwordEncoder;
+        private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-        public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,PasswordEncoder passwordEncoder) {
+        public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,PasswordEncoder passwordEncoder,BlacklistedTokenRepository blacklistedTokenRepository) {
             this.jwtService = jwtService;
             this.refreshRepository = refreshRepository;
             this.userRepository = userRepository;
             this.passwordEncoder = passwordEncoder;
+            this.blacklistedTokenRepository = blacklistedTokenRepository;
         }
 
         @Bean
@@ -70,10 +73,10 @@
 
             //JWTFilter
             http
-                    .addFilterAfter(new JwtFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                    .addFilterAfter(new JwtFilter(jwtService,blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class);
             http
                     .addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder), UsernamePasswordAuthenticationFilter.class)
-                    .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository), LogoutFilter.class);
+                    .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository,blacklistedTokenRepository), LogoutFilter.class);
 
             // 경로별 인가 작업
             http
@@ -81,6 +84,8 @@
                             .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
                             .requestMatchers("/api/users/sign-up").permitAll() // 임시로 회원가입 테스트용 허용
                             .requestMatchers("/api/users/sign-in").permitAll()
+                            .requestMatchers("/api/users/check-id").permitAll()
+                            .requestMatchers("/api/users/check-email").permitAll()
                             //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                             .requestMatchers("/api/users/profile").authenticated()
                             .requestMatchers("/api/users/profile").hasAnyRole("admin","user")

@@ -68,21 +68,24 @@ public class CustomLoginFilter extends GenericFilterBean {
             return;
         }
 
+        // 아이디 검증 (아이디가 존재하지 않는 경우)
+        var user = userRepository.findByLoginId(loginRequest.getLoginId()).orElse(null);
 
-        // 유저 검증
-        var user = userRepository.findByLoginId(loginRequest.getLoginId())
-                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST));
-
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            log.warn("Invalid login attempt for user: {}", loginRequest.getLoginId());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"error\": \"Invalid username or password\"}");
+        if (user == null) {
+            log.warn("Invalid login attempt with non-existing ID: {}", loginRequest.getLoginId());
+            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.INVALID_LOGIN_ID);
             return;
         }
 
+        // 비밀번호 검증 (비밀번호가 틀린 경우)
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            log.warn("Invalid login attempt: Incorrect password for user: {}", loginRequest.getLoginId());
+            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.INVALID_PASSWORD);
+            return;
+        }
 
         // JWT 토큰 발급
-        final long ACCESS_TOKEN_EXPIRY = 3600000L; // 1시간
+        final long ACCESS_TOKEN_EXPIRY = 7200000L; // 2시간
         final long REFRESH_TOKEN_EXPIRY = 43200000L; // 12시간
 
         String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(user.getRoles()), ACCESS_TOKEN_EXPIRY);
@@ -129,5 +132,17 @@ public class CustomLoginFilter extends GenericFilterBean {
         refreshEntity.setExpiration(date.toString());
 
         refreshRepository.save(refreshEntity);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("code", errorCode.name());  // 예: "INVALID_LOGIN_ID"
+        errorResponse.put("message", errorCode.getDescription());  // 예: "아이디를 잘못 입력하셨습니다."
+
+        objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }
