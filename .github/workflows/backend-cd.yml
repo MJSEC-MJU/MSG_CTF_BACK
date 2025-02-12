@@ -95,6 +95,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "nginx/nginx.conf"
           target: "/home/ubuntu/app/nginx/"
+          strip_components: 1
 
       - name: Upload nginx SSL directory to server
         uses: appleboy/scp-action@v0.1.1
@@ -104,6 +105,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "nginx/ssl"
           target: "/home/ubuntu/app/nginx/"
+          strip_components: 1
 
       - name: Create .env file on server with sudo
         uses: appleboy/ssh-action@v0.1.5
