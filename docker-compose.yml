@@ -53,6 +53,14 @@ services:
     networks:
       - ctf-network
 
+  frontend:
+    image: ${DOCKER_HUB_USERNAME}/frontend:latest
+    container_name: ctf-frontend
+    expose:
+      - "80"
+    networks:
+      - ctf-network
+
   test:
     image: gradle:8.1.1-jdk17
     container_name: ctf-test
