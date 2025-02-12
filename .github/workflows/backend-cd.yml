@@ -84,7 +84,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: |
-            nginx/conf.d
+            nginx/nginx.conf
             nginx/ssl
           target: /home/ubuntu/app/nginx
 
