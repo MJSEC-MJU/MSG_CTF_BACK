@@ -3,8 +3,8 @@ name: Backend & NGINX CD
 on:
   push:
     branches:
-      - feature/nginx-backend-cd  
-  workflow_dispatch:  # GitHub Actions에서 수동 실행 가능
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
