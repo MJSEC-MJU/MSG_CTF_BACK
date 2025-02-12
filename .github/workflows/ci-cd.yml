@@ -20,6 +20,8 @@ jobs:
       SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
       SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}  # docker-compose 파일에서 사용 중이면
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
