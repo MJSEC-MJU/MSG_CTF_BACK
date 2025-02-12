@@ -50,6 +50,15 @@ jobs:
           script: |
             sudo mkdir -p /home/ubuntu/app
 
+      - name: Create target nginx directory on server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo mkdir -p /home/ubuntu/app/nginx
+
       - name: Remove old docker-compose file on server
         uses: appleboy/ssh-action@v0.1.5
         with:
