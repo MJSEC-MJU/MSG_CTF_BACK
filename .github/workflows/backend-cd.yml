@@ -1,4 +1,4 @@
-name: Backend CD
+name: Backend & NGINX CD
 
 on:
   push:
@@ -21,6 +21,12 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Create SSL files locally for nginx
+        run: |
+          mkdir -p ./nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
+
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
@@ -28,6 +34,11 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+
+      - name: Build and Push NGINX Image to Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
 
       - name: Create target directory on server
         uses: appleboy/ssh-action@v0.1.5
@@ -56,7 +67,6 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yml"
           target: "/tmp/docker-compose.yml"
-          # strip_components 옵션은 사용하지 않습니다.
 
       - name: Move docker-compose.yml to target directory with sudo
         uses: appleboy/ssh-action@v0.1.5
@@ -67,6 +77,17 @@ jobs:
           script: |
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
+      - name: Upload nginx configuration and SSL files to server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: |
+            nginx/conf.d
+            nginx/ssl
+          target: /home/ubuntu/app/nginx
+
       - name: Create .env file on server with sudo
         uses: appleboy/ssh-action@v0.1.5
         with:
@@ -74,7 +95,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo bash -c 'cat > /home/ubuntu/app/docker-compose.yml/.env <<EOF
+            sudo bash -c 'cat > /home/ubuntu/app/.env <<EOF
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -91,7 +112,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /home/ubuntu/app/docker-compose.yml
+            cd /home/ubuntu/app
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
-            sudo docker-compose up -d backend
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
+            sudo docker-compose up -d backend nginx
             sudo docker image prune -f
