@@ -53,6 +53,34 @@ services:
     networks:
       - ctf-network
 
+  test:
+    image: gradle:8.1.1-jdk17
+    container_name: ctf-test
+    working_dir: /app
+    volumes:
+      - ./Back:/app
+      - gradle_cache:/home/gradle/.gradle
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_SECURITY_USER_NAME: ${SPRING_SECURITY_USER_NAME}
+      SPRING_SECURITY_USER_PASSWORD: ${SPRING_SECURITY_USER_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command: ["./gradlew test --stacktrace"]
+    networks:
+      - ctf-network
+
+volumes:
+  gradle_cache:
+
 networks:
   ctf-network:
     driver: bridge
