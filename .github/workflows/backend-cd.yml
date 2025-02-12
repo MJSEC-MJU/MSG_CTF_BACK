@@ -58,6 +58,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo mkdir -p /home/ubuntu/app/nginx
+            sudo chmod -R 777 /home/ubuntu/app/nginx  # 권한 부여
 
       - name: Remove old docker-compose file on server
         uses: appleboy/ssh-action@v0.1.5
