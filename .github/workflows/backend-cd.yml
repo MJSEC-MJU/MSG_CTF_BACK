@@ -26,8 +26,7 @@ jobs:
           mkdir -p ./nginx/ssl
           echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
           echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
-          # 디버그: 생성된 파일 확인
-          ls -la ./nginx/ssl
+          ls -la ./nginx/ssl  # 디버그: 생성된 파일 확인
 
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
@@ -86,7 +85,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "nginx/nginx.conf"
-          target: "/home/ubuntu/app/nginx/nginx.conf"
+          target: "/home/ubuntu/app/nginx/"
 
       - name: Upload nginx SSL directory to server
         uses: appleboy/scp-action@v0.1.1
@@ -95,7 +94,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "nginx/ssl"
-          target: "/home/ubuntu/app/nginx/ssl"
+          target: "/home/ubuntu/app/nginx/"
 
       - name: Create .env file on server with sudo
         uses: appleboy/ssh-action@v0.1.5
