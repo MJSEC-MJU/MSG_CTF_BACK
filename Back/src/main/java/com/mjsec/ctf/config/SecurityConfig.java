@@ -51,7 +51,7 @@
                             CorsConfiguration configuration = new CorsConfiguration();
 
                             configuration.setAllowedOrigins(
-                                    Arrays.asList("http://localhost:3000")); // 배포시에는 변경될 주소
+                                    Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소
                             configuration.setAllowedMethods(Collections.singletonList("*"));
                             configuration.setAllowCredentials(true);
                             configuration.setAllowedHeaders(Collections.singletonList("*"));
