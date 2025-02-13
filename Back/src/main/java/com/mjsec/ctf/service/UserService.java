@@ -87,13 +87,13 @@ public class UserService {
     public Map<String, Object> getProfile(String token) {
         // 토큰 유효성 검사
         if (jwtService.isExpired(token)) {
-            log.warn("Access Token이 만료되었습니다. 다시 로그인하세요.");
-            throw new RestApiException(ErrorCode.UNAUTHORIZED);
+            log.warn("다시 로그인하세요.(Access Token이 만료되었습니다.)");
+            throw new RestApiException(ErrorCode.UNAUTHORIZED,"다시 로그인하세요.(Access Token이 만료되었습니다.)");
         }
 
         if (blacklistedTokenRepository.existsByToken(token)) {
-            log.warn("Access Token is blacklisted. Rejecting request.");
-            throw new RestApiException(ErrorCode.UNAUTHORIZED);
+            log.warn("다시 로그인하세요.(블랙리스트 설정됨)");
+            throw new RestApiException(ErrorCode.UNAUTHORIZED,"다시 로그인하세요.(블랙리스트 설정됨)");
         }
 
         // 토큰에서 로그인 ID 가져오기

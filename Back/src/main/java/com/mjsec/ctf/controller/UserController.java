@@ -30,6 +30,7 @@ public class UserController {
         return ResponseEntity.status(201).body(SuccessResponse.of(ResponseMessage.SIGNUP_SUCCESS));
     }
 
+    @Operation(summary = "ID 확인", description = "해당 ID 사용 여부 확인 API")
     @GetMapping("/check-id")
     public ResponseEntity<?> checkLoginId(@RequestParam String loginId) {
         boolean exists = userService.isLoginIdExists(loginId);
@@ -39,6 +40,7 @@ public class UserController {
         return ResponseEntity.ok("사용 가능한 아이디입니다.");
     }
 
+    @Operation(summary = "이메일 확인", description = "해당 이메일 사용 여부 확인 API")
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
         if (!userService.isValidEmail(email)) {

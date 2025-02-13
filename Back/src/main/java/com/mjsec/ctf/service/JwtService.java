@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class JwtService {
 
@@ -58,12 +61,14 @@ public class JwtService {
     }
 
     public Date getExpirationDate(String token) {
-        return Jwts.parser()
+        Date expDate = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .getExpiration();
+        log.info("Extracted Expiration Date from JWT: {}", expDate);
+        return expDate;
     }
 
     /**

@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.GenericFilterBean;
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,6 +68,8 @@ public class CustomLogoutFilter extends GenericFilterBean {
         BlacklistedTokenEntity blacklistedToken = new BlacklistedTokenEntity();
         blacklistedToken.setToken(accessToken);
         blacklistedToken.setExpiration(jwtService.getExpirationDate(accessToken));
+        Date expirationDate = jwtService.getExpirationDate(accessToken);
+        log.info("Blacklisting Token: {} | Expiration Time: {}", accessToken, expirationDate);
         blacklistedTokenRepository.save(blacklistedToken);
 
         log.info("Access token added to blacklist: {}", accessToken);
