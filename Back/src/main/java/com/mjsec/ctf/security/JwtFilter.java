@@ -39,6 +39,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
         log.info("Starting JWTFilter for request: {}", request.getRequestURI());
 
+        // 회원가입 요청은 JWT 필터를 건너뛰도록 설정
+        if (request.getRequestURI().equals("/api/users/sign-up")) {
+            log.info("Skipping JWT filter for sign-up request.");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authorizationHeader = request.getHeader("Authorization");
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
