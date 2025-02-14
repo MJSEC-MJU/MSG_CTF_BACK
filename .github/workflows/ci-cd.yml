@@ -20,6 +20,8 @@ jobs:
       SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
       SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}  # docker-compose 파일에서 사용 중이면
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -32,6 +34,13 @@ jobs:
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
           echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}" >> .env
           echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}" >> .env
+          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> .env
+
+      - name: Create SSL files
+        run: |
+          mkdir -p ./nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
 
       - name: Install Docker Compose
         run: |
@@ -50,21 +59,17 @@ jobs:
           done
 
       - name: Run Gradle Tests in Docker
-        run: |
-          docker-compose run --rm test
+        run: docker-compose run --rm test
 
-      - name: Start App Container
-        run: |
-          docker-compose up -d app
+      - name: Start Backend Container
+        run: docker-compose up -d backend
 
-      - name: Check App Container Logs
-        run: |
-          docker-compose logs app
+      - name: Check Backend Container Logs
+        run: docker-compose logs backend
 
       - name: Stop containers
         if: always()
-        run: |
-          docker-compose down
+        run: docker-compose down
 
       - name: Upload Test Report
         if: failure()
