@@ -16,12 +16,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ctf-network
 
-  app:
-    build:
-      context: .
-      dockerfile: ./dockerfile
-    container_name: ctf-app
+  backend:
+    image: ${DOCKER_HUB_USERNAME}/backend:latest
+    container_name: ctf-backend
     depends_on:
       db:
         condition: service_healthy
@@ -37,6 +37,29 @@ services:
       SPRING_SECURITY_USER_NAME: ${SPRING_SECURITY_USER_NAME}
       SPRING_SECURITY_USER_PASSWORD: ${SPRING_SECURITY_USER_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - ctf-network
+
+  nginx:
+    image: ${DOCKER_HUB_USERNAME}/nginx:latest
+    container_name: ctf-nginx
+    depends_on:
+      - backend
+    ports:
+      - "443:443"
+    volumes:
+      - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /home/ubuntu/app/nginx/ssl:/etc/letsencrypt/live/msg.mjsec.kr:ro
+    networks:
+      - ctf-network
+
+  frontend:
+    image: ${DOCKER_HUB_USERNAME}/frontend:latest
+    container_name: ctf-frontend
+    expose:
+      - "80"
+    networks:
+      - ctf-network
 
   test:
     image: gradle:8.1.1-jdk17
@@ -60,6 +83,12 @@ services:
         condition: service_healthy
     entrypoint: ["sh", "-c"]
     command: ["./gradlew test --stacktrace"]
+    networks:
+      - ctf-network
 
 volumes:
   gradle_cache:
+
+networks:
+  ctf-network:
+    driver: bridge

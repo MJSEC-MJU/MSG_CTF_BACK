@@ -18,7 +18,7 @@ spring:
       hibernate:
         show-sql: false
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Seoul
 
 management:
   endpoints:
@@ -28,8 +28,6 @@ management:
   endpoint:
     health:
       show-details: always
-  
-
 
 springdoc:
   swagger-ui:

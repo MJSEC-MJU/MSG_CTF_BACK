@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Controller
-@RequestMapping("/leaderboard")
+@RequestMapping("/api/leaderboard")
 public class LeaderboardController {
     private final LeaderboardService leaderboardService;
 

@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
         List<ValidationError> validationErrorList = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(ErrorResponse.ValidationError::of)
+                .map(ValidationError::of)
                 .collect(Collectors.toList());
 
         return ErrorResponse.builder()
