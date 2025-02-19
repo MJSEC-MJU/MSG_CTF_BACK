@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -118,6 +119,22 @@ public class UserService {
         response.put("user", userProfile);
 
         return response;
+    }
+     // 관리자용 회원정보 수정 메서드
+    @Transactional
+    public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+        user.setEmail(updateDto.getEmail());
+        user.setUniv(updateDto.getUniv());
+        if (updateDto.getLoginId() != null && !updateDto.getLoginId().isBlank()) {
+            user.setLoginId(updateDto.getLoginId());
+        }
+        if (updateDto.getPassword() != null && !updateDto.getPassword().isBlank()) {
+            String encodedPassword = passwordEncoder.encode(updateDto.getPassword());
+            user.setPassword(encodedPassword);
+        }
+        return userRepository.save(user);
     }
 
 }

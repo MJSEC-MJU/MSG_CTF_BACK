@@ -93,6 +93,7 @@
                             .requestMatchers("/api/users/check-id").permitAll()
                             .requestMatchers("/api/users/check-email").permitAll()
                             //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
+                            .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
                             .requestMatchers("/api/users/profile").authenticated()
                             .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
                             .requestMatchers("/reissue").permitAll() //토큰 재생성
