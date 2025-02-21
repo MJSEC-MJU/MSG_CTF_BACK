@@ -1,8 +1,10 @@
 package com.mjsec.ctf.controller;
 
+import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.USER.UserDTO;
 import com.mjsec.ctf.exception.RestApiException;
+import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.AuthCodeService;
 import com.mjsec.ctf.service.EmailService;
 import com.mjsec.ctf.service.UserService;
@@ -27,6 +29,7 @@ public class UserController {
     private final UserService userService;
     private final EmailService emailService;
     private final AuthCodeService authCodeService;
+    private final UserRepository userRepository;
 
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@dankook.ac.kr", "@sju.ac.kr"};
 
@@ -36,6 +39,7 @@ public class UserController {
         if (!isAllowedDomain(request.getEmail())) {
             throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
         }
+
         userService.signUp(request); // 🚀 회원가입 서비스 호출
         return ResponseEntity.status(201).body(SuccessResponse.of(ResponseMessage.SIGNUP_SUCCESS));
     }
@@ -107,9 +111,9 @@ public class UserController {
     public ResponseEntity<String> verifyAuthCode(@RequestParam String email, @RequestParam String code) {
         boolean isValid = authCodeService.verifyCode(email, code);
         if (isValid) {
-            return ResponseEntity.ok(ResponseMessage.PROFILE_SUCCESS.getMessage());
+            return ResponseEntity.ok("이메일 인증이 완료되었습니다.");
         } else {
-            throw new RestApiException(ErrorCode.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다.");
+            throw new RestApiException(ErrorCode.FAILED_VERIFICATION);
         }
     }
 }

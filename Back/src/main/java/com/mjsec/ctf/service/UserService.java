@@ -30,6 +30,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthCodeService authCodeService;
     private final JwtService jwtService;
     private final RefreshRepository refreshRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
@@ -49,17 +50,11 @@ public class UserService {
             throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
 
-        /*
-        // 요청의 roles 값 확인
-        String roles = request.getRoles() != null && !request.getRoles().isEmpty()
-                ? request.getRoles().get(0).toLowerCase() // roles가 리스트이므로 첫 번째 값 사용
-                : "user"; // 기본값 설정
-
-        // roles 값 유효성 검사
-        if (!roles.equals("user") && !roles.equals("admin")) {
-            throw new RestApiException(ErrorCode.BAD_REQUEST);
+        // 이메일 인증 여부 확인
+        if (!authCodeService.isEmailVerified(request.getEmail())) {
+            throw new RestApiException(ErrorCode.EMAIL_VERIFICATION_PENDING);
         }
-         */
+
         UserEntity user = UserEntity.builder()
                 .loginId(request.getLoginId())
                 .password(passwordEncoder.encode(request.getPassword()))
