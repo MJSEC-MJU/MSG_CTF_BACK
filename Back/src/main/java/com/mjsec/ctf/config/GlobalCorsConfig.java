@@ -14,7 +14,7 @@ public class GlobalCorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         // 허용할 출처를 명시합니다.
-        config.setAllowedOriginPatterns(Arrays.asList("http://localhost", "https://msg.mjsec.kr"));
+        config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "https://msg.mjsec.kr"));
         config.setAllowCredentials(true);
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
