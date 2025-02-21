@@ -31,6 +31,7 @@ public class LeaderboardController {
     }
 
     // stream 경로에서 json 데이터 확인 (글자 깨지는 경우가 종종 있음)
+    @CrossOrigin(origins = "*")
     @GetMapping("/stream")
     public SseEmitter stream() {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); //접속 중에는 sse 연결 timeout 제한 없음
