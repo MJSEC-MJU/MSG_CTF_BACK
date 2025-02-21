@@ -49,6 +49,7 @@ public class UserService {
             throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
 
+        /*
         // 요청의 roles 값 확인
         String roles = request.getRoles() != null && !request.getRoles().isEmpty()
                 ? request.getRoles().get(0).toLowerCase() // roles가 리스트이므로 첫 번째 값 사용
@@ -58,13 +59,13 @@ public class UserService {
         if (!roles.equals("user") && !roles.equals("admin")) {
             throw new RestApiException(ErrorCode.BAD_REQUEST);
         }
-
+         */
         UserEntity user = UserEntity.builder()
                 .loginId(request.getLoginId())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .roles(roles)
+                .roles("user")
                 .totalPoint(0)
                 .build();
 

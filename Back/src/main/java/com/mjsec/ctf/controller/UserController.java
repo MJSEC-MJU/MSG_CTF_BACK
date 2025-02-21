@@ -3,6 +3,8 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.USER.UserDTO;
 import com.mjsec.ctf.exception.RestApiException;
+import com.mjsec.ctf.service.AuthCodeService;
+import com.mjsec.ctf.service.EmailService;
 import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ErrorCode;
 import com.mjsec.ctf.type.ResponseMessage;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -22,10 +25,17 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final EmailService emailService;
+    private final AuthCodeService authCodeService;
+
+    private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@dankook.ac.kr", "@sju.ac.kr"};
 
     @Operation(summary = "회원가입", description = "유저 등록")
     @PostMapping("/sign-up")
     public ResponseEntity<SuccessResponse<Void>> signUp(@RequestBody @Valid UserDTO.SignUp request) {
+        if (!isAllowedDomain(request.getEmail())) {
+            throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
+        }
         userService.signUp(request); // 🚀 회원가입 서비스 호출
         return ResponseEntity.status(201).body(SuccessResponse.of(ResponseMessage.SIGNUP_SUCCESS));
     }
@@ -37,7 +47,7 @@ public class UserController {
         if (exists) {
             throw new RestApiException(ErrorCode.DUPLICATE_ID);
         }
-        return ResponseEntity.ok("사용 가능한 아이디입니다.");
+        return ResponseEntity.ok(Map.of("message", "사용 가능한 아이디입니다."));
     }
 
     @Operation(summary = "이메일 확인", description = "해당 이메일 사용 여부 확인 API")
@@ -50,7 +60,7 @@ public class UserController {
         if (exists) {
             throw new RestApiException(ErrorCode.DUPLICATE_EMAIL);
         }
-        return ResponseEntity.ok("사용 가능한 이메일입니다.");
+        return ResponseEntity.ok(Map.of("message","사용 가능한 이메일입니다."));
     }
 
     @Operation(summary = "유저 프로필 조회", description = "JWT 토큰을 이용해 프로필 조회")
@@ -70,4 +80,36 @@ public class UserController {
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.PROFILE_SUCCESS, response));
     }
 
+    @Operation(summary = "유저 이메일 인증 코드 보내기", description = "해당하는 학교 이메일만 인증 코드 보내기")
+    @PostMapping("/send-code")
+    public ResponseEntity<String> sendAuthCode(@RequestParam String email) {
+        if (!isAllowedDomain(email)) {
+            throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
+        }
+
+        String code = authCodeService.generateAndStoreCode(email);
+        emailService.sendVerificationEmail(email, code);
+        return ResponseEntity.ok("인증 코드가 전송되었습니다.");
+    }
+
+    // 허용된 도메인인지 검증
+    private boolean isAllowedDomain(String email) {
+        for (String domain : ALLOWED_DOMAINS) {
+            if (email.endsWith(domain)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 인증 코드 검증 API
+    @PostMapping("/verify-code")
+    public ResponseEntity<String> verifyAuthCode(@RequestParam String email, @RequestParam String code) {
+        boolean isValid = authCodeService.verifyCode(email, code);
+        if (isValid) {
+            return ResponseEntity.ok(ResponseMessage.PROFILE_SUCCESS.getMessage());
+        } else {
+            throw new RestApiException(ErrorCode.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다.");
+        }
+    }
 }

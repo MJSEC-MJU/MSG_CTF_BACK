@@ -11,6 +11,7 @@ public enum ResponseMessage {
     LOGOUT_SUCCESS("로그아웃 성공"),
     PROFILE_SUCCESS("유저 프로필 조회 성공"),
     UPDATE_SUCCESS("회원정보 수정 성공"),
+    AUTH_SUCCESS("인증 성공"),
     ;
 
     private final String message;

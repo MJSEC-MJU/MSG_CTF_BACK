@@ -30,7 +30,7 @@ public class ReissueController {
     }
 
     //토큰 재생성
-    @PostMapping("/reissue")
+    @PostMapping("/api/reissue")
     public ResponseEntity<?> reissue(HttpServletRequest request, HttpServletResponse response) {
 
         //get refresh token

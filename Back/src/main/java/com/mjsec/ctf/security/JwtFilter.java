@@ -41,8 +41,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // JWT 검증을 건너뛸 public 엔드포인트 설정
         if (request.getRequestURI().equals("/api/users/sign-up") ||
-            request.getRequestURI().equals("/api/leaderoard")||
-            request.getRequestURI().equals("/api/leaderboard/stream")) {
+                request.getRequestURI().equals("/api/leaderboard")||
+                request.getRequestURI().equals("/api/leaderboard/stream")) {
             log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
@@ -83,26 +83,14 @@ public class JwtFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-
         // 기존에는 유저의 이메일과 권한을 가져왔지만 loginId를 가져오도록 커스터마이징 가능
         // -> loginId와 권한을 가져오도록 일단 설정
-        
+
         String loginId = jwtService.getLoginId(accessToken);
         List<String> roles = jwtService.getRoles(accessToken);
 
         log.info("Token validated. loginId: {}, Roles: {}", loginId, roles);
-        
-        /*
-        UserDTO.SignUp userDTO = new UserDTO.SignUp();
-        userDTO.setLoginId(loginId);
-        userDTO.setRoles(roles);
 
-        List<SimpleGrantedAuthority> authorities = roles.stream()
-                .map(SimpleGrantedAuthority::new) //String을 SimpleGrantedAuthority로 변환
-                .collect(Collectors.toList());
-
-        Authentication authToken = new UsernamePasswordAuthenticationToken(userDTO, null, authorities);
-        */
 
         // 권한 문자열을 리스트로 변환
         List<SimpleGrantedAuthority> authorities = roles.stream()

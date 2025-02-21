@@ -1,4 +1,16 @@
 spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME}  # Gmail 주소
+    password: ${GMAIL_APP_PASSWORD}   # 앱 비밀번호 사용
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   config:
     activate:
       on-profile: local
