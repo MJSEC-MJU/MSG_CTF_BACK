@@ -132,5 +132,10 @@ public class UserService {
         }
         return userRepository.save(user);
     }
+    public void deleteMember(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+        userRepository.delete(user);
+    }
 
 }

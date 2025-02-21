@@ -32,4 +32,13 @@ public class AdminController {
         log.info("관리자에 의해 회원 {} 정보 수정 완료", userId);
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.UPDATE_SUCCESS));
     }
+     // 관리자용 회원 삭제 API
+    @Operation(summary = "회원 삭제", description = "관리자 권한으로 특정 회원을 삭제합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/delete/member/{userId}")
+    public ResponseEntity<SuccessResponse<Void>> deleteMember(@PathVariable Long userId) {
+        userService.deleteMember(userId);
+        log.info("관리자에 의해 회원 {} 삭제 완료", userId);
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.DELETE_SUCCESS));
+    }
 }
