@@ -138,4 +138,9 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    // **전체 사용자 목록 조회 **
+    public List<UserEntity> getAllUsers() {
+        return userRepository.findAll();
+    }
+
 }
