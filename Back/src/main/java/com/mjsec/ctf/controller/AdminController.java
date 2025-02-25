@@ -64,5 +64,10 @@ public class AdminController {
         ).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
-    
+    @Operation(summary = "관리자 권한 검증", description = "현재 인증된 사용자가 관리자임을 확인하는 API입니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/validate")
+    public ResponseEntity<String> validateAdmin() {
+        return ResponseEntity.ok("admin");
+    }
 }

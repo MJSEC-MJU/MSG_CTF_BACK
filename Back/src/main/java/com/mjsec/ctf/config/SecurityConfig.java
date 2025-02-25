@@ -75,7 +75,7 @@
             // HTTP Basic 인증 방식 disable (HTTP Basic 인증은 사용자 이름과 비밀번호를 Base64로 인코딩하여 전송하는 방식으로, 보안이 취약할 수 있음)
             http
                     .httpBasic((auth) -> auth.disable());
-
+            
             //JWTFilter
             http
                     .addFilterAfter(new JwtFilter(jwtService,blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class);

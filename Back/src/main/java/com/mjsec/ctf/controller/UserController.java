@@ -46,7 +46,7 @@ public class UserController {
 
     @Operation(summary = "ID 확인", description = "해당 ID 사용 여부 확인 API")
     @GetMapping("/check-id")
-    public ResponseEntity<Map<String,String>> checkLoginId(@RequestParam String loginId) {
+    public ResponseEntity<?> checkLoginId(@RequestParam String loginId) {
         boolean exists = userService.isLoginIdExists(loginId);
         if (exists) {
             throw new RestApiException(ErrorCode.DUPLICATE_ID);
@@ -56,7 +56,7 @@ public class UserController {
 
     @Operation(summary = "이메일 확인", description = "해당 이메일 사용 여부 확인 API")
     @GetMapping("/check-email")
-    public ResponseEntity<Map<String,String>> checkEmail(@RequestParam String email) {
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
         if (!userService.isValidEmail(email)) {
             throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
