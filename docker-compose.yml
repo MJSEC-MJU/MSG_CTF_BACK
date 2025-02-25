@@ -54,6 +54,7 @@ services:
       SPRING_REDIS_PORT: 6379
       GMAIL_USERNAME: ${GMAIL_USERNAME}
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      API_KEY: ${API_KEY} #디스코드봇 요청 API키
     networks:
       - ctf-network
 
