@@ -1,6 +1,14 @@
 version: "3.8"
 
 services:
+  redis:
+    image: redis:7.0
+    container_name: ctf-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ctf-network
+
   db:
     image: mysql:8.0
     container_name: ctf-mysql
@@ -37,6 +45,10 @@ services:
       SPRING_SECURITY_USER_NAME: ${SPRING_SECURITY_USER_NAME}
       SPRING_SECURITY_USER_PASSWORD: ${SPRING_SECURITY_USER_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      GMAIL_USERNAME: ${GMAIL_USERNAME}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
     networks:
       - ctf-network
 

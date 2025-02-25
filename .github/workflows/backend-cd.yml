@@ -16,7 +16,8 @@ jobs:
       SERVER_IP: ${{ secrets.SERVER_IP }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }} 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -125,6 +126,8 @@ jobs:
             SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
             SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }} 
+            GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }} 
             EOF'
 
       - name: Deploy containers on server
