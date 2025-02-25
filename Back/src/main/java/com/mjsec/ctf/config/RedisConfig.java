@@ -14,14 +14,11 @@ public class RedisConfig {
 
     // private final RedisMessageListener redisMessageListener;
 
-    @Value("${spring.data.redis.host}")
+    @Value("${spring.redis.host}")
     private String host;
 
-    @Value("${spring.data.redis.port}")
+    @Value("${spring.redis.port}")
     private int port;
-
-    @Value("${spring.data.redis.password}")
-    private String password;
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
