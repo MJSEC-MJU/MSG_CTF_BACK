@@ -24,6 +24,7 @@ public enum ErrorCode {
     INVALID_LOGIN_ID(HttpStatus.UNAUTHORIZED, "아이디를 잘못 입력하셨습니다. 다시 입력해주세요."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호를 잘못 입력하셨습니다. 다시 입력해주세요."),
 
+    CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND,"문제 ID를 찾을 수 없습니다."),
     ;
 
     private final HttpStatus httpStatus;
