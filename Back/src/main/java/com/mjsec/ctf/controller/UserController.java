@@ -1,12 +1,11 @@
 package com.mjsec.ctf.controller;
 
-import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.service.EmailService;
+import com.mjsec.ctf.service.AuthCodeService;
 import com.mjsec.ctf.dto.SuccessResponse;
-import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
-import com.mjsec.ctf.service.AuthCodeService;
-import com.mjsec.ctf.service.EmailService;
 import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ErrorCode;
 import com.mjsec.ctf.type.ResponseMessage;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.Map;
-import java.util.regex.Pattern;
 
 @Slf4j
 @RestController

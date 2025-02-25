@@ -13,6 +13,8 @@ public enum ResponseMessage {
     UPDATE_SUCCESS("회원정보 수정 성공"),
     AUTH_SUCCESS("인증 성공"),
     DELETE_SUCCESS("회원 삭제 성공"),
+    CREATE_CHALLENGE_SUCCESS("문제 생성 성공"),
+    UPDATE_CHALLENGE_SUCCESS("문제 수정 성공"),
     ;
 
     private final String message;

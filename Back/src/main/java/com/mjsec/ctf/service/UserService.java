@@ -1,31 +1,21 @@
 package com.mjsec.ctf.service;
 
-import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
-import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
-import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
@@ -34,6 +24,17 @@ public class UserService {
     private final JwtService jwtService;
     private final RefreshRepository refreshRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthCodeService authCodeService,
+                       JwtService jwtService, RefreshRepository refreshRepository,
+                       BlacklistedTokenRepository blacklistedTokenRepository) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authCodeService = authCodeService;
+        this.jwtService = jwtService;
+        this.refreshRepository = refreshRepository;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
+    }
 
     //회원가입 로직
     public void signUp(UserDTO.SignUp request) {
@@ -85,12 +86,12 @@ public class UserService {
         // 토큰 유효성 검사
         if (jwtService.isExpired(token)) {
             log.warn("다시 로그인하세요.(Access Token이 만료되었습니다.)");
-            throw new RestApiException(ErrorCode.UNAUTHORIZED,"다시 로그인하세요.(Access Token이 만료되었습니다.)");
+            throw new RestApiException(ErrorCode.UNAUTHORIZED, "다시 로그인하세요.(Access Token이 만료되었습니다.)");
         }
 
         if (blacklistedTokenRepository.existsByToken(token)) {
             log.warn("다시 로그인하세요.(블랙리스트 설정됨)");
-            throw new RestApiException(ErrorCode.UNAUTHORIZED,"다시 로그인하세요.(블랙리스트 설정됨)");
+            throw new RestApiException(ErrorCode.UNAUTHORIZED, "다시 로그인하세요.(블랙리스트 설정됨)");
         }
 
         // 토큰에서 로그인 ID 가져오기
@@ -116,7 +117,8 @@ public class UserService {
 
         return response;
     }
-     // 관리자용 회원정보 수정 메서드
+
+    // 관리자용 회원정보 수정 메서드
     @Transactional
     public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
         UserEntity user = userRepository.findById(userId)
@@ -132,10 +134,16 @@ public class UserService {
         }
         return userRepository.save(user);
     }
+
     public void deleteMember(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         userRepository.delete(user);
     }
 
+    // **전체 사용자 목록 조회 **
+    public List<UserEntity> getAllUsers() {
+        return userRepository.findAll();
+    }
+    
 }

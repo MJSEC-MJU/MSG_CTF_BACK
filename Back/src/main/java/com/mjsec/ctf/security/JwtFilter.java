@@ -1,17 +1,12 @@
 package com.mjsec.ctf.security;
 
-import com.mjsec.ctf.domain.BlacklistedTokenEntity;
-import com.mjsec.ctf.dto.USER.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.service.JwtService;
-import com.mjsec.ctf.type.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
