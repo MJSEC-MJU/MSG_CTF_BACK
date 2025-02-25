@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,6 +34,20 @@ public class ChallengeController {
                 SuccessResponse.of(
                         ResponseMessage.GET_ALL_CHALLENGE_SUCCESS,
                         challenges
+                )
+        );
+    }
+    
+    @Operation(summary = "특정 문제 상세 조회", description = "해당 문제 id를 가진 문제의 상세 정보를 반환합니다.")
+    @GetMapping("/{challengeId}")
+    public ResponseEntity<SuccessResponse<ChallengeDto.Detail>> getDetailChallenge(@PathVariable Long challengeId){
+
+        ChallengeDto.Detail challengeDetail = challengeService.getDetailChallenge(challengeId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.GET_CHALLENGE_DETAIL_SUCCESS,
+                        challengeDetail
                 )
         );
     }

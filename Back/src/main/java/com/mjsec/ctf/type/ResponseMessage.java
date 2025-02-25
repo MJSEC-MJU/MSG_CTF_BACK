@@ -14,6 +14,7 @@ public enum ResponseMessage {
     AUTH_SUCCESS("인증 성공"),
     DELETE_SUCCESS("회원 삭제 성공"),
     GET_ALL_CHALLENGE_SUCCESS("모든 문제 조회 성공"),
+    GET_CHALLENGE_DETAIL_SUCCESS("특정 문제 상세 정보 조회 성공"),
     ;
 
     private final String message;

@@ -95,6 +95,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
+                        .requestMatchers("/api/challenges/all").permitAll()
+                        .requestMatchers("/api/challenges/{challengeId}").permitAll()
                         .requestMatchers("/api/leaderboard").permitAll()
                         .requestMatchers("/api/leaderboard/stream").permitAll()
                 );

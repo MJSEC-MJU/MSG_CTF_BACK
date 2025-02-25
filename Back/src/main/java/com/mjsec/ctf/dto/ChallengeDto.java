@@ -53,7 +53,7 @@ public class ChallengeDto {
         }
     }
 
-    //각 문제 상세 정보 조회(API 명세내 solver 아직 구현 못함)
+    //각 문제 상세 정보 조회(API 명세내 solver 아직 구현 못함...)
     @Getter
     @Builder
     @NoArgsConstructor
