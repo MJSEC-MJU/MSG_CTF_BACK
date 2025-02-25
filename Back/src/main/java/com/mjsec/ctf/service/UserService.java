@@ -137,6 +137,39 @@ public class UserService {
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         userRepository.delete(user);
     }
+    @Transactional
+    public void adminSignUp(UserDTO.SignUp request) {
+        if (userRepository.existsByLoginId(request.getLoginId())) {
+            throw new RestApiException(ErrorCode.DUPLICATE_ID);
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RestApiException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        if (!isValidEmail(request.getEmail())) {
+            throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
+        }
+        
+        // roles 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
+        String role;
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            // 예를 들어, 리스트의 첫번째 값을 사용합니다.
+            role = request.getRoles().get(0).toLowerCase();
+        } else {
+            role = "user";
+        }
+        
+        UserEntity user = UserEntity.builder()
+                .loginId(request.getLoginId())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .email(request.getEmail())
+                .univ(request.getUniv())
+                .roles(role)  // 전달된 역할로 설정 (관리자 생성 시 "admin" 입력 가능)
+                .totalPoint(0)
+                .build();
+        
+        userRepository.save(user);
+    }
+
 
     // **전체 사용자 목록 조회 **
     public List<UserEntity> getAllUsers() {
