@@ -86,14 +86,14 @@ public class UserController {
 
     @Operation(summary = "유저 이메일 인증 코드 보내기", description = "해당하는 학교 이메일만 인증 코드 보내기")
     @PostMapping("/send-code")
-    public ResponseEntity<Map<String,String>> sendAuthCode(@RequestParam String email) {
+    public ResponseEntity<String> sendAuthCode(@RequestParam String email) {
         if (!isAllowedDomain(email)) {
             throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
         }
 
         String code = authCodeService.generateAndStoreCode(email);
         emailService.sendVerificationEmail(email, code);
-        return ResponseEntity.ok(Map.of("message","인증 코드가 전송되었습니다."));
+        return ResponseEntity.ok("인증 코드가 전송되었습니다.");
     }
 
     // 허용된 도메인인지 검증
@@ -108,10 +108,10 @@ public class UserController {
 
     // 인증 코드 검증 API
     @PostMapping("/verify-code")
-    public ResponseEntity<Map<String,String>> verifyAuthCode(@RequestParam String email, @RequestParam String code) {
+    public ResponseEntity<String> verifyAuthCode(@RequestParam String email, @RequestParam String code) {
         boolean isValid = authCodeService.verifyCode(email, code);
         if (isValid) {
-            return ResponseEntity.ok(Map.of("message","이메일 인증이 완료되었습니다."));
+            return ResponseEntity.ok("이메일 인증이 완료되었습니다.");
         } else {
             throw new RestApiException(ErrorCode.FAILED_VERIFICATION);
         }
