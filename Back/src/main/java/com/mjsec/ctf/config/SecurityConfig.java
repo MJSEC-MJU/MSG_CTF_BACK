@@ -2,6 +2,7 @@
 
     import com.mjsec.ctf.jwt.CustomLoginFilter;
     import com.mjsec.ctf.jwt.CustomLogoutFilter;
+    import com.mjsec.ctf.repository.BlacklistedTokenRepository;
     import com.mjsec.ctf.repository.RefreshRepository;
     import com.mjsec.ctf.repository.UserRepository;
     import com.mjsec.ctf.security.JwtFilter;
@@ -9,6 +10,7 @@
     import jakarta.servlet.http.HttpServletRequest;
     import java.util.Arrays;
     import java.util.Collections;
+    import lombok.extern.slf4j.Slf4j;
     import org.springframework.context.annotation.Bean;
     import org.springframework.context.annotation.Configuration;
     import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,12 +31,14 @@
         private final RefreshRepository refreshRepository;
         private final UserRepository userRepository;
         private final PasswordEncoder passwordEncoder;
+        private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-        public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,PasswordEncoder passwordEncoder) {
+        public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,PasswordEncoder passwordEncoder,BlacklistedTokenRepository blacklistedTokenRepository) {
             this.jwtService = jwtService;
             this.refreshRepository = refreshRepository;
             this.userRepository = userRepository;
             this.passwordEncoder = passwordEncoder;
+            this.blacklistedTokenRepository = blacklistedTokenRepository;
         }
 
         @Bean
@@ -47,13 +51,17 @@
 
                             CorsConfiguration configuration = new CorsConfiguration();
 
-                            configuration.setAllowedOrigins(
-                                    Arrays.asList("http://localhost:3000")); // 배포시에는 변경될 주소
-                            configuration.setAllowedMethods(Collections.singletonList("*"));
+                            /*configuration.setAllowedOrigins(
+                                    Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
+                             */
+                            configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msg.mjsec.kr"));
+                            //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
+                            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                             configuration.setAllowCredentials(true);
-                            configuration.setAllowedHeaders(Collections.singletonList("*"));
+                            //configuration.setAllowedHeaders(Collections.singletonList("*")); //테스트로 잠시 비활성화
+                            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie", "X-Requested-With", "Accept"));
                             configuration.setMaxAge(3600L); // 브라우저가 CORS 관련 정보를 캐시할 시간을 설정
-                            configuration.setExposedHeaders(Arrays.asList("Set-Cookie", "Authorization", "access"));
+                            configuration.setExposedHeaders(Arrays.asList("Authorization", "access", "X-Custom-Header"));
 
                             return configuration;
                         }
@@ -70,22 +78,24 @@
 
             //JWTFilter
             http
-                    .addFilterAfter(new JwtFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                    .addFilterAfter(new JwtFilter(jwtService,blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class);
             http
                     .addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder), UsernamePasswordAuthenticationFilter.class)
-                    .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository), LogoutFilter.class);
+                    .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository,blacklistedTokenRepository), LogoutFilter.class);
 
             // 경로별 인가 작업
             http
                     .authorizeHttpRequests((auth) -> auth
                             .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
-                            .requestMatchers("/api/users/sign-up").permitAll() // 임시로 회원가입 테스트용 허용
-                            .requestMatchers("/api/users/sign-in").permitAll()
+                            .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
                             //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
+                            .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
                             .requestMatchers("/api/users/profile").authenticated()
                             .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
-                            .requestMatchers("/reissue").permitAll() //토큰 재생성
+                            .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                             .requestMatchers("/").permitAll()
+                            .requestMatchers("/api/leaderboard").permitAll()
+                            .requestMatchers("/api/leaderboard/stream").permitAll()
                     );
             //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
             http
