@@ -175,4 +175,10 @@ public class UserService {
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
     }
+    // ** id로 한 명의 사용자 조회 **
+    @Transactional(readOnly = true)
+    public UserEntity getUserById(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+    }
 }
