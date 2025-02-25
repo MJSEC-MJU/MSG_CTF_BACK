@@ -68,13 +68,12 @@ public class JwtFilter extends OncePerRequestFilter {
             response.getWriter().write("Access token expired");
             return;
         }
-        
+
         //토큰 검증
         String tokenType = jwtService.getTokenType(accessToken);
         if (!tokenType.equals("accessToken")) {
             log.info("Invalid token type, rejecting the request.");
             response.getWriter().write("Invalid access token");
-            
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }

@@ -74,7 +74,6 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
         log.info("Access token added to blacklist: {}", accessToken);
 
-
         // Refresh Token 가져오기
         String refresh = null;
         Cookie[] cookies = request.getCookies();

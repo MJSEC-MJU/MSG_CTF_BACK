@@ -3,8 +3,11 @@ package com.mjsec.ctf.dto.user;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 public class UserDTO {
 
@@ -50,5 +53,18 @@ public class UserDTO {
         
         // 비밀번호 업데이트 (관리자에 의한 변경)
         private String password;
+    }
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Response {
+        private Long userId;
+        private String email;
+        private String loginId;
+        private String roles;
+        private Integer totalPoint;
+        private String univ;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
     }
 }

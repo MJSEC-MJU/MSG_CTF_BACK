@@ -19,6 +19,14 @@ services:
     networks:
       - ctf-network
 
+  redis:
+    image: redis:7.0
+    container_name: local-ctf-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ctf-network
+
   backend:
     build:
       context: .
@@ -27,6 +35,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: local
       DB_HOST: db
@@ -37,6 +47,8 @@ services:
       SPRING_SECURITY_USER_NAME: ${SPRING_SECURITY_USER_NAME}
       SPRING_SECURITY_USER_PASSWORD: ${SPRING_SECURITY_USER_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
     ports:
       - "8080:8080"
     networks:

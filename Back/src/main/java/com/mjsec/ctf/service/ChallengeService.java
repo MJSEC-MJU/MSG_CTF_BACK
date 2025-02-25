@@ -1,27 +1,48 @@
 package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
-import com.mjsec.ctf.dto.challenge.ChallengeDto;
+import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+
 @Slf4j
+@RequiredArgsConstructor
 @Service
 public class ChallengeService {
 
-    public final FileService fileService;
-    public final ChallengeRepository challengeRepository;
+    private final FileService fileService;
+    private final ChallengeRepository challengeRepository;
+    
+    //모든 문제 조회
+    public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
+        log.info("Getting all challenges ordered by Id ASC!!");
 
-    public ChallengeService(FileService fileService, ChallengeRepository challengeRepository) {
-        this.fileService = fileService;
-        this.challengeRepository = challengeRepository;
+        Page<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(pageable);
+
+        return challenges.map(ChallengeDto.Simple::fromEntity);
     }
 
+    //특정 문제 상세 조회 (문제 설명, 문제 id, point)
+    public ChallengeDto.Detail getDetailChallenge(Long challengeId){
+        log.info("Fetching details for challengeId: {}", challengeId);
+
+        // 해당 challengeId를 가진 엔티티 조회
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        return ChallengeDto.Detail.fromEntity(challenge);
+    }
+
+    // 문제 생성
     public void createChallenge(MultipartFile file, ChallengeDto challengeDto) throws IOException {
 
         if(challengeDto == null) {
@@ -48,6 +69,7 @@ public class ChallengeService {
         challengeRepository.save(challenge);
     }
 
+    // 문제 수정
     public void updateChallenge(MultipartFile file, ChallengeDto challengeDto) throws IOException {
 
         if(challengeDto == null) {
