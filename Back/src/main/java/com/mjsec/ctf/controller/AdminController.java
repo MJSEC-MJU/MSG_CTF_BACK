@@ -41,4 +41,13 @@ public class AdminController {
         log.info("관리자에 의해 회원 {} 삭제 완료", userId);
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.DELETE_SUCCESS));
     }
+    @Operation(summary = "회원 추가 (관리자)", description = "관리자 권한으로 이메일 인증 없이 새로운 회원 계정을 생성합니다. (관리자 계정도 추가 가능)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/add/member")
+    public ResponseEntity<SuccessResponse<Void>> addMember(@RequestBody @Valid UserDTO.SignUp newUser) {
+        userService.adminSignUp(newUser);
+        log.info("관리자에 의해 새로운 회원 추가 완료: {}", newUser.getLoginId());
+        return ResponseEntity.status(201).body(SuccessResponse.of(ResponseMessage.SIGNUP_SUCCESS));
+    }
+
 }
