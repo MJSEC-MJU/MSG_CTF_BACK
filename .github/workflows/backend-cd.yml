@@ -18,7 +18,7 @@ jobs:
       SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }} 
-      API_KEY: ${{ API_KEY }}
+      API_KEY: ${{ secrets.API_KEY }} # 디스코드봇 api키키
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -129,7 +129,7 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }} 
             GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }} 
-            API_KEY: ${{API_KEY}}
+            API_KEY: ${{ secrets.API_KEY}}
             EOF'
 
       - name: Deploy containers on server
