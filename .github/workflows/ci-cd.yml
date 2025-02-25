@@ -20,7 +20,9 @@ jobs:
       SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
       SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}  # docker-compose 파일에서 사용 중이면
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  # 추가
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}  # 추가
 
     steps:
       - name: Check out code
@@ -35,6 +37,8 @@ jobs:
           echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}" >> .env
           echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}" >> .env
           echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> .env
+          echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}" >> .env  # 추가
+          echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}" >> .env  # 추가
 
       - name: Create SSL files
         run: |

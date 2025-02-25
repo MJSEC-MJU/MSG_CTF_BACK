@@ -88,15 +88,12 @@
             http
                     .authorizeHttpRequests((auth) -> auth
                             .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
-                            .requestMatchers("/api/users/sign-up").permitAll() // 임시로 회원가입 테스트용 허용
-                            .requestMatchers("/api/users/sign-in").permitAll()
-                            .requestMatchers("/api/users/check-id").permitAll()
-                            .requestMatchers("/api/users/check-email").permitAll()
+                            .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
                             //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                             .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
                             .requestMatchers("/api/users/profile").authenticated()
                             .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
-                            .requestMatchers("/reissue").permitAll() //토큰 재생성
+                            .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                             .requestMatchers("/").permitAll()
                             .requestMatchers("/api/leaderboard").permitAll()
                             .requestMatchers("/api/leaderboard/stream").permitAll()
