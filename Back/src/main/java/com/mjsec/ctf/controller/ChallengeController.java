@@ -27,7 +27,7 @@ public class ChallengeController {
     @GetMapping("/all")
     public ResponseEntity<SuccessResponse<Page<ChallengeDto.Simple>>> getAllChallenges(Pageable pageable) {
 
-        Page<ChallengeDto.Simple> challenges = challengeService.getAllChallenges(pageable);
+        Page<ChallengeDto.Simple> challenges = challengeService.getAllChallengesOrderedById(pageable);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(

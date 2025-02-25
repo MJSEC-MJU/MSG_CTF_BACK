@@ -18,10 +18,10 @@ public class ChallengeService {
     private  final ChallengeRepository challengeRepository;
     
     //모든 문제 조회
-    public Page<ChallengeDto.Simple> getAllChallenges(Pageable pageable) {
-        log.info("Getting all challenges!!");
+    public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
+        log.info("Getting all challenges ordered by Id ASC!!");
 
-        Page<ChallengeEntity> challenges = challengeRepository.findAllChallenges(pageable);
+        Page<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(pageable);
 
         return challenges.map(ChallengeDto.Simple::fromEntity);
     }
