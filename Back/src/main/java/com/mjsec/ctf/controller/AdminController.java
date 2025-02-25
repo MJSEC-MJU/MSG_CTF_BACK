@@ -64,6 +64,23 @@ public class AdminController {
         ).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
+    @Operation(summary = "회원 정보 조회", description = "관리자 권한으로 특정 회원의 정보를 조회하여 수정을 위한 데이터를 반환합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/member/{userId}")
+    public ResponseEntity<UserDTO.Response> getMember(@PathVariable Long userId) {
+        UserEntity user = userService.getUserById(userId);
+        UserDTO.Response responseDto = new UserDTO.Response(
+                user.getUserId(),
+                user.getEmail(),
+                user.getLoginId(),
+                user.getRoles(),
+                user.getTotalPoint(),
+                user.getUniv(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
+        return ResponseEntity.ok(responseDto);
+    }
     @Operation(summary = "관리자 권한 검증", description = "현재 인증된 사용자가 관리자임을 확인하는 API입니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/validate")
