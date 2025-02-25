@@ -140,5 +140,5 @@ jobs:
             cd /home/ubuntu/app/docker-compose.yml/
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
             sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
-            sudo docker-compose up -d backend nginx
+            sudo docker-compose up -d backend nginx redis
             sudo docker image prune -f
