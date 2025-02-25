@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.stream.Collectors;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -41,4 +43,17 @@ public class AdminController {
         log.info("관리자에 의해 회원 {} 삭제 완료", userId);
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.DELETE_SUCCESS));
     }
+    @Operation(summary = "전체 사용자 조회", description = "관리자 권한으로 전체 회원 목록을 JSON 형식으로 반환합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
+    @GetMapping("/member")
+    public ResponseEntity<List<UserDTO.Response>> getAllMembers() {
+        List<UserEntity> users = userService.getAllUsers();
+        // UserEntity를 UserDTO.Response 형태로 변환 (필요에 따라 DTO 변환 로직 추가)
+        List<UserDTO.Response> responseList = users.stream().map(user -> 
+            new UserDTO.Response(user.getUserId(), user.getEmail(), user.getLoginId(), user.getRoles(), user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt())
+        ).collect(Collectors.toList());
+        return ResponseEntity.ok(responseList);
+    }
+    
 }
