@@ -60,7 +60,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .roles("user")
+                .roles("ROLE_USER")
                 .totalPoint(0)
                 .build();
 
@@ -156,7 +156,7 @@ public class UserService {
             // 예를 들어, 리스트의 첫번째 값을 사용합니다.
             role = request.getRoles().get(0).toLowerCase();
         } else {
-            role = "user";
+            role = "ROLE_USER";
         }
         
         UserEntity user = UserEntity.builder()
