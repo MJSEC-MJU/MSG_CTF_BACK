@@ -1,6 +1,6 @@
 package com.mjsec.ctf.security;
 
-import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.service.JwtService;
 import com.mjsec.ctf.type.UserRole;
 import jakarta.servlet.FilterChain;
@@ -8,8 +8,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,9 +22,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-    public JwtFilter(JwtService jwtService) {
+    public JwtFilter(JwtService jwtService, BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtService = jwtService;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
     @Override
@@ -35,37 +35,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         log.info("Starting JWTFilter for request: {}", request.getRequestURI());
 
-        /* 로그아웃 로직 개발중 잠시 주석처리
-        String accessToken = request.getHeader("access");
-
-        if (accessToken == null) {
-            log.info("Access token is null, proceeding without authentication.");
+        // JWT 검증을 건너뛸 public 엔드포인트 설정
+        if (request.getRequestURI().equals("/api/users/sign-up") ||
+            request.getRequestURI().equals("/api/leaderboard")||
+            request.getRequestURI().equals("/api/leaderboard/stream")) {
+            log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
-            log.info("Completed JWTFilter for request: {}", request.getRequestURI());
             return;
         }
-
-        if(jwtService.isExpired(accessToken)) {
-            PrintWriter writer = response.getWriter();
-            writer.print("access token expired");
-
-            log.info("Access token is expired, proceeding without authentication.");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-
-        String tokenType = jwtService.getTokenType(accessToken);
-
-        if (!tokenType.equals("access")) {
-            PrintWriter writer = response.getWriter();
-            writer.print("invalid access token");
-
-            log.info("Invalid access token, proceeding without authentication.");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-         */
-
 
         String authorizationHeader = request.getHeader("Authorization");
 
@@ -77,7 +54,14 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String accessToken = authorizationHeader.substring(7); // "Bearer " 이후 토큰 추출
-        
+
+        if(blacklistedTokenRepository.existsByToken(accessToken)){
+            log.warn("Access token is blacklisted: {}", accessToken);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Access token is blacklisted");
+            return;
+        }
+
         //토큰 만료인지 확인
         if (jwtService.isExpired(accessToken)) {
             log.info("Access token is expired, rejecting the request.");
@@ -85,13 +69,12 @@ public class JwtFilter extends OncePerRequestFilter {
             response.getWriter().write("Access token expired");
             return;
         }
-        
+
         //토큰 검증
         String tokenType = jwtService.getTokenType(accessToken);
         if (!tokenType.equals("accessToken")) {
             log.info("Invalid token type, rejecting the request.");
             response.getWriter().write("Invalid access token");
-            
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -103,18 +86,6 @@ public class JwtFilter extends OncePerRequestFilter {
         List<String> roles = jwtService.getRoles(accessToken);
 
         log.info("Token validated. loginId: {}, Roles: {}", loginId, roles);
-
-        /*
-        UserDTO.SignUp userDTO = new UserDTO.SignUp();
-        userDTO.setLoginId(loginId);
-        userDTO.setRoles(roles);
-
-        List<SimpleGrantedAuthority> authorities = roles.stream()
-                .map(SimpleGrantedAuthority::new) //String을 SimpleGrantedAuthority로 변환
-                .collect(Collectors.toList());
-
-        Authentication authToken = new UsernamePasswordAuthenticationToken(userDTO, null, authorities);
-        */
 
         // 권한 문자열을 리스트로 변환
         List<SimpleGrantedAuthority> authorities = roles.stream()

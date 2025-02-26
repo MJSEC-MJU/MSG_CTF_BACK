@@ -1,4 +1,28 @@
 spring:
+  redis:
+    host: redis
+    port: 6379
+    timeout: 6000
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME}  # Gmail 주소
+    password: ${GMAIL_APP_PASSWORD}   # 앱 비밀번호 사용
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  cloud:
+    gcp:
+      storage:
+        credentials:
+          location: ${LOCATION}
+        project-id: ${PROJECT_ID}
+        bucket: ${BUCKET}
+
   config:
     activate:
       on-profile: local
@@ -18,7 +42,7 @@ spring:
       hibernate:
         show-sql: false
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Seoul
 
 management:
   endpoints:
@@ -28,8 +52,6 @@ management:
   endpoint:
     health:
       show-details: always
-  
-
 
 springdoc:
   swagger-ui:

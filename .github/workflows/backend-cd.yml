@@ -1,0 +1,160 @@
+name: Backend & NGINX CD
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      API_KEY: ${{ secrets.API_KEY }}
+      BUCKET: ${{ secrets.BUCKET }}
+      LOCATION: ${{ secrets.LOCATION }}
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      # GCP 서비스 계정 키 파일명 (예: extreme-world-450010-q0-7d448bb68c2e.json)
+      GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create SSL files locally for nginx
+        run: |
+          mkdir -p ./nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
+          ls -la ./nginx/ssl
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Build and Push Backend Image to Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+
+      - name: Build and Push NGINX Image to Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
+
+      - name: Create target directories on server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo mkdir -p /home/ubuntu/app
+            sudo mkdir -p /home/ubuntu/app/nginx
+            sudo mkdir -p /home/ubuntu/src
+
+      - name: Remove old docker-compose and .env on server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo rm -rf /home/ubuntu/app/docker-compose.yml
+            sudo rm -rf /tmp/docker-compose.yml
+            sudo rm -f /home/ubuntu/app/.env
+
+      - name: Upload docker-compose.yml to server (temporary location)
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/tmp/docker-compose.yml"
+
+      - name: Move docker-compose.yml to target directory with sudo
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
+
+      - name: Upload nginx configuration file to server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "nginx/nginx.conf"
+          target: "/home/ubuntu/app/nginx/"
+          strip_components: 1
+
+      - name: Upload nginx SSL directory to server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "nginx/ssl"
+          target: "/home/ubuntu/app/nginx/"
+          strip_components: 1
+
+      - name: Create .env file on server with sudo
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            sudo bash -c "cat > /home/ubuntu/app/docker-compose.yml/.env <<EOF
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+            DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+            SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
+            SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+            GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
+            API_KEY=${{ secrets.API_KEY }}
+            BUCKET=${{ secrets.BUCKET }}
+            LOCATION=${{ secrets.LOCATION }}
+            PROJECT_ID=${{ secrets.PROJECT_ID }}
+            GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
+            GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
+            EOF"
+
+      - name: Upload and decode GCP Service Account Key to server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # base64 디코딩 후 /home/ubuntu/src/에 저장 (파일명은 GCP_JSON_FILE 환경 변수에 설정된 값 사용)
+            echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 -d | sudo tee /home/ubuntu/src/${{ secrets.GCP_JSON_FILE }}
+
+      - name: Deploy containers on server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/app/docker-compose.yml/
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
+            sudo docker-compose up -d backend nginx redis
+            sudo docker image prune -f
