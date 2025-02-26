@@ -98,6 +98,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/leaderboard").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/leaderboard/stream").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN") // 모든 챌린지 관련 요청은 USER 또는 ADMIN 역할이 있어야 접근 허용
+                        .requestMatchers("/api/leaderboard").permitAll()
+                        .requestMatchers("/api/leaderboard/stream").permitAll()
                 );
         //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
         http
