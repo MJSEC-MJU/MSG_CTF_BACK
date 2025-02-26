@@ -19,27 +19,29 @@ jobs:
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       API_KEY: ${{ secrets.API_KEY }}
+      # 이미 Secret에 추가된 환경변수 사용
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      # GCP 서비스 계정 키 파일명은 고정
+      GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Decode GCP Service Account Key
-        env:
-          # GitHub Secret에 저장한 파일명 (예: gcp_service_account.json)
-          GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
+      - name: Create GCP Service Account Key in resources
         run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT }}" | base64 --decode > $GCP_JSON_FILE
-          export GOOGLE_APPLICATION_CREDENTIALS=$GCP_JSON_FILE
+          mkdir -p ./src/main/resources
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT }}" | base64 --decode > ./src/main/resources/${GCP_JSON_FILE}
+        shell: bash
 
       - name: Create SSL files locally for nginx
         run: |
           mkdir -p ./nginx/ssl
           echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
           echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
-          ls -la ./nginx/ssl  # 디버그: 생성된 파일 확인
+          ls -la ./nginx/ssl
 
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
@@ -101,16 +103,17 @@ jobs:
           script: |
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
-      - name: Upload GCP Service Account JSON to server
+      - name: Upload GCP Service Account Key to server
+        # 만약 애플리케이션 빌드시 외부 리소스로 포함할 필요가 없고,
+        # classpath에 포함되어 빌드가 이루어졌다면 이 스텝은 생략할 수 있습니다.
+        # 여기서는 예시로 resources 폴더에 이미 생성한 키 파일을 그대로 사용합니다.
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          # source 파일은 로컬에 생성된 GCP_JSON_FILE (예: gcp_service_account.json)
-          source: ${{ secrets.GCP_JSON_FILE }}
-          # target은 파일명이 아닌 디렉토리로 지정하여, 파일명이 그대로 유지되도록 합니다.
-          target: "/home/ubuntu/app/"
+          source: "./src/main/resources/${GCP_JSON_FILE}"
+          target: "/home/ubuntu/app/src/main/resources/"
 
       - name: Upload nginx configuration file to server
         uses: appleboy/scp-action@v0.1.1
@@ -155,7 +158,8 @@ jobs:
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
+            # classpath를 사용하므로 애플리케이션 내부에 포함된 리소스를 참조
+            GOOGLE_APPLICATION_CREDENTIALS=classpath:${GCP_JSON_FILE}
             EOF'
 
       - name: Deploy containers on server
