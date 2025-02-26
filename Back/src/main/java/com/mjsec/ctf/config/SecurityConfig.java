@@ -105,12 +105,6 @@ public class SecurityConfig {
                 .sessionManagement((session) -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        //세션 로그인 설정 (최대 로그인 개수 3개까지 가능)
-        http
-                .sessionManagement((auth)->auth
-                        .maximumSessions(3)
-                        .maxSessionsPreventsLogin(true));
-
         //로그인 시 동일한 세션에 대한 id 변경
         http
                 .sessionManagement((auth)->auth
