@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
+import org.springframework.core.io.ByteArrayResource;
 
 @RestController
 @RequestMapping("/api/challenges")
@@ -24,7 +25,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class ChallengeController {
     private final ChallengeService challengeService;
-    
 
     @Operation(summary = "모든 문제 조회", description = "모든 문제의 id와 points를 반환합니다.")
     @GetMapping("/all")
