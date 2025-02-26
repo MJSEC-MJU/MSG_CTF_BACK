@@ -95,8 +95,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
-                        .requestMatchers("/api/challenges/all").permitAll()
-                        .requestMatchers("/api/challenges/{challengeId}").permitAll()
+                        .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN") // 모든 챌린지 관련 요청은 USER 또는 ADMIN 역할이 있어야 접근 허용
                         .requestMatchers("/api/leaderboard").permitAll()
                         .requestMatchers("/api/leaderboard/stream").permitAll()
                 );
