@@ -90,15 +90,15 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
                         //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
+                        .requestMatchers("/api/leaderboard").permitAll()
+                        .requestMatchers("/api/leaderboard/stream").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
                         .requestMatchers("/api/users/profile").authenticated()
                         .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/leaderboard").permitAll()
-                        .requestMatchers("/api/leaderboard/stream").permitAll()
-                        .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN") // 모든 챌린지 관련 요청은 USER 또는 ADMIN 역할이 있어야 접근 허용
+                        
                 );
         return http.build();
     }
