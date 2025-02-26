@@ -1,9 +1,11 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.ChallengeDto;
+import com.mjsec.ctf.dto.FlagDto;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.ChallengeDto.Simple;
 import com.mjsec.ctf.service.ChallengeService;
+import com.mjsec.ctf.service.JwtService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +18,11 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.core.io.ByteArrayResource;
 import java.io.IOException;
@@ -26,6 +32,8 @@ import java.io.IOException;
 @Controller
 @RequiredArgsConstructor
 public class ChallengeController {
+
+    private final JwtService jwtService;
     private final ChallengeService challengeService;
 
     @Operation(summary = "모든 문제 조회", description = "모든 문제의 id와 points를 반환합니다.")
@@ -72,5 +80,25 @@ public class ChallengeController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
     }
-    
+
+    @Operation(summary = "문제 제출", description = "사용자가 플래그를 제출합니다.")
+    @PostMapping("/{challengeId}/submit")
+    public ResponseEntity<SuccessResponse<Void>> submitChallenge(
+            @PathVariable Long challengeId,
+            @RequestBody FlagDto flagDto,
+            @RequestHeader("Authorization") String authorizationHeader) {
+
+        String token = authorizationHeader.substring(7);
+        String loginId = jwtService.getLoginId(token);
+
+        String flag = flagDto.getSubmitFlag();
+
+        challengeService.submit(loginId, challengeId, flag);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.SUBMIT_SUCCESS
+                )
+        );
+    }
 }
