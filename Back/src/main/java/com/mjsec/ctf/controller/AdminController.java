@@ -45,12 +45,44 @@ public class AdminController {
         );
     }
 
+    @Operation(summary = "문제 수정", description = "관리자 권한으로 문제를 수정합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/update/challenge/{challengeId}")
+    public ResponseEntity<SuccessResponse<Void>> updateChallenge(
+            @PathVariable Long challengeId,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("challenge") ChallengeDto challengeDto) throws IOException {
+
+        challengeService.updateChallenge(challengeId, file, challengeDto);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.UPDATE_CHALLENGE_SUCCESS
+                )
+        );
+    }
+
+    @Operation(summary = "문제 삭제", description = "관리자 권한으로 문제를 삭제합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/delete/challenge/{challengeId}")
+    public ResponseEntity<SuccessResponse<Void>> deleteChallenge(@PathVariable Long challengeId) {
+
+        challengeService.deleteChallenge(challengeId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.DELETE_CHALLENGE_SUCCESS
+                )
+        );
+    }
+
     @DeleteMapping("/delete/member/{userId}")
     public ResponseEntity<SuccessResponse<Void>> deleteMember(@PathVariable Long userId) {
         userService.deleteMember(userId);
         log.info("관리자에 의해 회원 {} 삭제 완료", userId);
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.DELETE_SUCCESS));
     }
+
     @Operation(summary = "회원 추가 (관리자)", description = "관리자 권한으로 이메일 인증 없이 새로운 회원 계정을 생성합니다. (관리자 계정도 추가 가능)")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/add/member")
@@ -72,6 +104,7 @@ public class AdminController {
         ).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
+
     @Operation(summary = "회원 정보 조회", description = "관리자 권한으로 특정 회원의 정보를 조회하여 수정을 위한 데이터를 반환합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/member/{userId}")
@@ -89,6 +122,7 @@ public class AdminController {
         );
         return ResponseEntity.ok(responseDto);
     }
+
     @Operation(summary = "관리자 권한 검증", description = "현재 인증된 사용자가 관리자임을 확인하는 API입니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/validate")
