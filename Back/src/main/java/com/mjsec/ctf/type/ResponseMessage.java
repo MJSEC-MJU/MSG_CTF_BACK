@@ -15,6 +15,7 @@ public enum ResponseMessage {
     DELETE_SUCCESS("회원 삭제 성공"),
     CREATE_CHALLENGE_SUCCESS("문제 생성 성공"),
     UPDATE_CHALLENGE_SUCCESS("문제 수정 성공"),
+    DELETE_CHALLENGE_SUCCESS("문제 삭제 성공"),
     GET_ALL_CHALLENGE_SUCCESS("모든 문제 조회 성공"),
     GET_CHALLENGE_DETAIL_SUCCESS("특정 문제 상세 정보 조회 성공"),
     ;
