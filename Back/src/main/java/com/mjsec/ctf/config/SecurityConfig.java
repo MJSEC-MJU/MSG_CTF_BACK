@@ -100,21 +100,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/leaderboard/stream").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN") // 모든 챌린지 관련 요청은 USER 또는 ADMIN 역할이 있어야 접근 허용
                 );
-        //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
-        http
-                .sessionManagement((session) -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        //세션 로그인 설정 (최대 로그인 개수 3개까지 가능)
-        http
-                .sessionManagement((auth)->auth
-                        .maximumSessions(3)
-                        .maxSessionsPreventsLogin(true));
-
-        //로그인 시 동일한 세션에 대한 id 변경
-        http
-                .sessionManagement((auth)->auth
-                        .sessionFixation().changeSessionId());
         return http.build();
     }
 }
