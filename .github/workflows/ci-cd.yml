@@ -26,7 +26,8 @@ jobs:
       API_KEY: ${{ secrets.API_KEY }} #디스코드봇 요청 API키키
       BUCKET : ${{ secrets.BUCKET}}
       LOCATION : ${{ secrets.LOCATION}}
-      PROJECT_ID : ${{ secrets.PROJECT_ID}} 
+      PROJECT_ID : ${{ secrets.PROJECT_ID}}
+      GCP_JSON_FILE :  ${{ secrets.GCP_JSON_FILE}}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -46,6 +47,8 @@ jobs:
           echo "BUCKET=${{ env.BUCKET }}" >> .env
           echo "LOCATION=${{ env.LOCATION }}" >> .env
           echo "PROJECT_ID=${{ env.PROJECT_ID }}" >> .env
+          echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}" >> .env
+          
       - name: Create SSL files
         run: |
           mkdir -p ./nginx/ssl
