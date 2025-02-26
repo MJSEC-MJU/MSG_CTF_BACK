@@ -16,12 +16,23 @@ jobs:
       SERVER_IP: ${{ secrets.SERVER_IP }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }} 
-      API_KEY: ${{ secrets.API_KEY }} # 디스코드봇 api키키
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      API_KEY: ${{ secrets.API_KEY }}
+      BUCKET: ${{ secrets.BUCKET }}
+      LOCATION: ${{ secrets.LOCATION }}
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      - name: Decode GCP Service Account Key
+        env:
+          # GitHub Secret에 저장한 파일명 (예: gcp_service_account.json)
+          GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT }}" | base64 --decode > $GCP_JSON_FILE
+          export GOOGLE_APPLICATION_CREDENTIALS=$GCP_JSON_FILE
 
       - name: Create SSL files locally for nginx
         run: |
@@ -60,7 +71,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo mkdir -p /home/ubuntu/app/nginx
-            sudo chmod -R 777 /home/ubuntu/app/nginx  # 권한 부여
+            sudo chmod -R 777 /home/ubuntu/app/nginx
 
       - name: Remove old docker-compose file on server
         uses: appleboy/ssh-action@v0.1.5
@@ -89,6 +100,16 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
+
+      - name: Upload GCP Service Account JSON to server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          # 업로드할 때 디코딩한 파일명을 그대로 사용합니다.
+          source: ${{ secrets.GCP_JSON_FILE }}
+          target: "/home/ubuntu/app/gcp_service_account.json"
 
       - name: Upload nginx configuration file to server
         uses: appleboy/scp-action@v0.1.1
@@ -123,13 +144,17 @@ jobs:
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_PORT=${{ secrets.DB_PORT }}
             DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
-            DOCKER_HUB_ACCESS_TOKEN= ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+            DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
             SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
             SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
-            GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }} 
-            GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }} 
-            API_KEY: ${{ secrets.API_KEY}}
+            GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+            GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
+            API_KEY=${{ secrets.API_KEY }}
+            BUCKET=${{ secrets.BUCKET }}
+            LOCATION=${{ secrets.LOCATION }}
+            PROJECT_ID=${{ secrets.PROJECT_ID }}
+            GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
             EOF'
 
       - name: Deploy containers on server
