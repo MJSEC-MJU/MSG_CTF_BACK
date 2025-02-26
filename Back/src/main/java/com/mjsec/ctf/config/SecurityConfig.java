@@ -79,9 +79,8 @@ public class SecurityConfig {
 
         //JWTFilter
         http
-                .addFilterAfter(new JwtFilter(jwtService,blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class);
-        http
                 .addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new JwtFilter(jwtService, blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository,blacklistedTokenRepository), LogoutFilter.class);
 
         // 경로별 인가 작업
@@ -90,31 +89,16 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
                         //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
-                        .requestMatchers("/api/users/profile").authenticated()
-                        .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
-                        .requestMatchers("/api/reissue").permitAll() //토큰 재생성
-                        .requestMatchers("/").permitAll()
-                        .requestMatchers("/api/challenges/all").permitAll()
-                        .requestMatchers("/api/challenges/{challengeId}").permitAll()
                         .requestMatchers("/api/leaderboard").permitAll()
                         .requestMatchers("/api/leaderboard/stream").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
+                        .requestMatchers("/api/users/profile").authenticated()
+                        .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/api/reissue").permitAll() //토큰 재생성
+                        .requestMatchers("/").permitAll()
+                        .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
+                        
                 );
-        //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
-        http
-                .sessionManagement((session) -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        //세션 로그인 설정 (최대 로그인 개수 3개까지 가능)
-        http
-                .sessionManagement((auth)->auth
-                        .maximumSessions(3)
-                        .maxSessionsPreventsLogin(true));
-
-        //로그인 시 동일한 세션에 대한 id 변경
-        http
-                .sessionManagement((auth)->auth
-                        .sessionFixation().changeSessionId());
         return http.build();
     }
 }
