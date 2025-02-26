@@ -29,9 +29,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      #- name: Create GCP Service Account Key in resources
-      #  >> 이 단계는 제거 (직접 서버에 JSON 파일을 넣으실 예정)
-
       - name: Create SSL files locally for nginx
         run: |
           mkdir -p ./nginx/ssl
@@ -92,9 +89,6 @@ jobs:
           script: |
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
-      #- name: Upload GCP Service Account Key to server
-      #  >> 이 단계도 제거합니다. (직접 /home/ubuntu/src에 JSON 파일을 넣으실 예정)
-
       - name: Upload nginx configuration file to server
         uses: appleboy/scp-action@v0.1.1
         with:
@@ -138,7 +132,8 @@ jobs:
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=file:/home/ubuntu/src/${{ env.GCP_JSON_FILE }}
+            # 컨테이너 내부에서 사용할 경로로 지정합니다.
+            GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
             EOF"
 
       - name: Deploy containers on server
