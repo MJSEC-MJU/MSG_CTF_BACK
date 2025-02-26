@@ -56,8 +56,9 @@ services:
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
       API_KEY: ${API_KEY}
       BUCKET: ${BUCKET}
-      LOCATION: ${LOCATION}
+      LOCATION: file:/secrets/gcp_service_account.json
       PROJECT_ID: ${PROJECT_ID}
+      GCP_JSON_FILE: ${GCP_JSON_FILE}
       # 컨테이너 내부에서 서비스 계정 키 파일 경로를 지정합니다.
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp_service_account.json
     # 서버의 /home/ubuntu/src 에 업로드된 키 파일을 컨테이너로 마운트합니다.
