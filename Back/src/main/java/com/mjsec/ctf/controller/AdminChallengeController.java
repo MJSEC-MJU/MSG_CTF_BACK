@@ -8,7 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import com.mjsec.ctf.dto.ChallengeDto;
+import com.mjsec.ctf.service.ChallengeService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/admin/challenge")
 @RequiredArgsConstructor
 public class AdminChallengeController {
-
+    private final ChallengeService challengeService;
     private final ChallengeRepository challengeRepository;
 
     @Operation(summary = "전체 문제 요약 조회", description = "관리자 권한으로 전체 문제 목록에서 문제 번호, 제목, 포인트를 조회합니다.")
@@ -35,4 +36,12 @@ public class AdminChallengeController {
         }).collect(Collectors.toList());
         return ResponseEntity.ok(summaryList);
     }
+    @Operation(summary = "문제 상세 조회", description = "관리자 권한으로 특정 문제의 상세 정보를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{challengeId}")
+    public ResponseEntity<ChallengeDto.Detail> getChallengeDetail(@PathVariable Long challengeId) {
+        ChallengeDto.Detail detail = challengeService.getDetailChallenge(challengeId);
+        return ResponseEntity.ok(detail);
+    }
+
 }
