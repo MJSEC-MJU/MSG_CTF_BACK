@@ -18,29 +18,42 @@ import java.util.List;
 public class LeaderboardController {
     private final LeaderboardService leaderboardService;
 
-
-    // 이게 원래 없어도 떠야 되던데 페이지가 안떠서 GetMapping 추가해서 넣었습니다.
-    @GetMapping
-    public String showLeaderboard() {
-        return "leaderboard";
-    }
-
     @Autowired
     public LeaderboardController(LeaderboardService leaderboardService) {
         this.leaderboardService = leaderboardService;
     }
 
-    // stream 경로에서 json 데이터 확인 (글자 깨지는 경우가 종종 있음)
+    // 기존 /stream 엔드포인트 (SSE 통신)
     @CrossOrigin(origins = "*")
     @GetMapping("/stream")
     public SseEmitter stream() {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); //접속 중에는 sse 연결 timeout 제한 없음
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); // 타임아웃 제한 없음
         new Thread(() -> {
             try {
                 while (true) {
                     List<Leaderboard> leaderboardEntities = leaderboardService.getLeaderboard();
                     emitter.send(leaderboardEntities, MediaType.APPLICATION_JSON);
                     Thread.sleep(5000); //5초로 설정
+                }
+            } catch (IOException | InterruptedException e) {
+                emitter.completeWithError(e);
+            }
+        }).start();
+        return emitter;
+    }
+    
+    
+    @CrossOrigin(origins = "*")
+    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter sse() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); // 타임아웃 제한 없음
+        new Thread(() -> {
+            try {
+                while (true) {
+                    List<Leaderboard> leaderboardEntities = leaderboardService.getLeaderboard();
+                   
+                    emitter.send(SseEmitter.event().name("update").data(leaderboardEntities, MediaType.APPLICATION_JSON));
+                    Thread.sleep(5000); // 5초마다 업데이트
                 }
             } catch (IOException | InterruptedException e) {
                 emitter.completeWithError(e);
