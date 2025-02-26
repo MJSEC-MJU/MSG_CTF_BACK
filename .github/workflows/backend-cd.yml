@@ -22,25 +22,15 @@ jobs:
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
-      # GCP 서비스 계정 키 파일명은 Secret에 저장된 값 (예: extreme-world-450010-q0-7d448bb68c2e.json)
+      # GCP 서비스 계정 키 파일명 (예: extreme-world-450010-q0-7d448bb68c2e.json)
       GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Create GCP Service Account Key in resources
-        run: |
-          mkdir -p ./src/main/resources
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT }}" | base64 --decode > ./src/main/resources/${GCP_JSON_FILE}
-          ls -la ./src/main/resources
-        shell: bash
-
-      - name: Verify GCP Key File Exists
-        run: |
-          echo "Verifying file ./src/main/resources/${GCP_JSON_FILE}:"
-          ls -l ./src/main/resources/${GCP_JSON_FILE}
-        shell: bash
+      #- name: Create GCP Service Account Key in resources
+      #  >> 이 단계는 제거 (직접 서버에 JSON 파일을 넣으실 예정)
 
       - name: Create SSL files locally for nginx
         run: |
@@ -70,8 +60,8 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo mkdir -p /home/ubuntu/app
-            sudo mkdir -p /home/ubuntu/app/src/main/resources
             sudo mkdir -p /home/ubuntu/app/nginx
+            sudo mkdir -p /home/ubuntu/src
 
       - name: Remove old docker-compose and .env on server
         uses: appleboy/ssh-action@v0.1.5
@@ -102,14 +92,8 @@ jobs:
           script: |
             sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
 
-      - name: Upload GCP Service Account Key to server
-        uses: appleboy/scp-action@v0.1.1
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "./src/main/resources/${GCP_JSON_FILE}"
-          target: "/home/ubuntu/app/src/main/resources/"
+      #- name: Upload GCP Service Account Key to server
+      #  >> 이 단계도 제거합니다. (직접 /home/ubuntu/src에 JSON 파일을 넣으실 예정)
 
       - name: Upload nginx configuration file to server
         uses: appleboy/scp-action@v0.1.1
@@ -138,7 +122,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo bash -c 'cat > /home/ubuntu/app/docker-compose.yml/.env <<EOF
+            sudo bash -c "cat > /home/ubuntu/app/docker-compose.yml/.env  <<EOF
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -154,8 +138,8 @@ jobs:
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=classpath:${GCP_JSON_FILE}
-            EOF'
+            GOOGLE_APPLICATION_CREDENTIALS=file:/home/ubuntu/src/${{ env.GCP_JSON_FILE }}
+            EOF"
 
       - name: Deploy containers on server
         uses: appleboy/ssh-action@v0.1.5
