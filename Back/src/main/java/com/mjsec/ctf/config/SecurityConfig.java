@@ -92,13 +92,12 @@ public class SecurityConfig {
                         //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
                         .requestMatchers("/api/users/profile").authenticated()
-                        .requestMatchers("/api/users/profile").hasAnyRole("admin","user")
+                        .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
-                        .requestMatchers("/api/challenges/all").permitAll()
-                        .requestMatchers("/api/challenges/{challengeId}").permitAll()
-                        .requestMatchers("/api/leaderboard").permitAll()
-                        .requestMatchers("/api/leaderboard/stream").permitAll()
+                        .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/leaderboard").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/leaderboard/stream").hasAnyRole("USER", "ADMIN")
                 );
         //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
         http
