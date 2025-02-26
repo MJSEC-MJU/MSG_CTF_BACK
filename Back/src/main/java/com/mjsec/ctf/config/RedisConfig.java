@@ -12,8 +12,6 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
-    // private final RedisMessageListener redisMessageListener;
-
     @Value("${spring.redis.host}")
     private String host;
 

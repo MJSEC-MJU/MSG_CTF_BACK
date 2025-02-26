@@ -2,16 +2,21 @@ package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.SuccessResponse;
-import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.dto.ChallengeDto;
+import com.mjsec.ctf.dto.user.UserDTO;
+import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.stream.Collectors;
 import java.util.List;
 
@@ -22,21 +27,24 @@ import java.util.List;
 public class AdminController {
 
     private final UserService userService;
+    private final ChallengeService challengeService;
 
-    @Operation(summary = "회원정보 수정", description = "관리자 권한으로 특정 회원의 정보를 수정합니다. (비밀번호 변경 포함)")
+    @Operation(summary = "문제 생성", description = "관리자 권한으로 문제를 생성합니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/change/member/{userId}")
-    public ResponseEntity<SuccessResponse<Void>> updateMember(
-            @PathVariable Long userId,
-            @RequestBody @Valid UserDTO.Update updateDto) {
+    @PostMapping("/create/challenge")
+    public ResponseEntity<SuccessResponse<Void>> createChallenge(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("challenge") ChallengeDto challengeDto) throws IOException {
 
-        UserEntity updatedUser = userService.updateMember(userId, updateDto);
-        log.info("관리자에 의해 회원 {} 정보 수정 완료", userId);
-        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.UPDATE_SUCCESS));
+        challengeService.createChallenge(file, challengeDto);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.CREATE_CHALLENGE_SUCCESS
+                )
+        );
     }
-     // 관리자용 회원 삭제 API
-    @Operation(summary = "회원 삭제", description = "관리자 권한으로 특정 회원을 삭제합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+
     @DeleteMapping("/delete/member/{userId}")
     public ResponseEntity<SuccessResponse<Void>> deleteMember(@PathVariable Long userId) {
         userService.deleteMember(userId);

@@ -1,8 +1,7 @@
 package com.mjsec.ctf.jwt;
 
 import com.mjsec.ctf.domain.RefreshEntity;
-import com.mjsec.ctf.dto.USER.UserDTO;
-import com.mjsec.ctf.exception.RestApiException;
+import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;

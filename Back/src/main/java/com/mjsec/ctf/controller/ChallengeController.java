@@ -2,6 +2,7 @@ package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.SuccessResponse;
+import com.mjsec.ctf.dto.ChallengeDto.Simple;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,7 +29,7 @@ public class ChallengeController {
     @GetMapping("/all")
     public ResponseEntity<SuccessResponse<Page<ChallengeDto.Simple>>> getAllChallenges(Pageable pageable) {
 
-        Page<ChallengeDto.Simple> challenges = challengeService.getAllChallengesOrderedById(pageable);
+        Page<Simple> challenges = challengeService.getAllChallengesOrderedById(pageable);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(

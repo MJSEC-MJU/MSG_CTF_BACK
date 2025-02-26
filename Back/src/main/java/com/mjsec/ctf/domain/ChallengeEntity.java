@@ -8,7 +8,6 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,7 +23,7 @@ public class ChallengeEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long ChallengeId;
+    private Long challengeId;
 
     @Column(nullable = false)
     private String title;

@@ -2,7 +2,7 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
-import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
@@ -137,6 +137,7 @@ public class UserService {
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         userRepository.delete(user);
     }
+
     @Transactional
     public void adminSignUp(UserDTO.SignUp request) {
         if (userRepository.existsByLoginId(request.getLoginId())) {
