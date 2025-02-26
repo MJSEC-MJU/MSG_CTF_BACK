@@ -26,7 +26,7 @@ public class AdminUserInitializer {
                         .password(passwordEncoder.encode(adminPassword))
                         .email("admin@example.com") 
                         .univ("Admin Univ")       
-                        .roles("admin")
+                        .roles("ROLE_ADMIN")
                         .totalPoint(0)
                         .build();
                 userRepository.save(admin);
