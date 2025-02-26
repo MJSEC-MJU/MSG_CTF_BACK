@@ -79,9 +79,8 @@ public class SecurityConfig {
 
         //JWTFilter
         http
-                .addFilterAfter(new JwtFilter(jwtService,blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class);
-        http
                 .addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new JwtFilter(jwtService, blacklistedTokenRepository), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository,blacklistedTokenRepository), LogoutFilter.class);
 
         // 경로별 인가 작업
