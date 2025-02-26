@@ -96,8 +96,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/leaderboard").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/leaderboard/stream").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/leaderboard").permitAll()
+                        .requestMatchers("/api/leaderboard/stream").permitAll()
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN") // 모든 챌린지 관련 요청은 USER 또는 ADMIN 역할이 있어야 접근 허용
                 );
         //세션 설정 : STATELESS (JWT 기반 인증을 사용하는 경우, 서버는 클라이언트의 상태를 유지할 필요가 없음)
