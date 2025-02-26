@@ -109,5 +109,6 @@ public class ChallengeService {
     String fileId = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     
     return fileService.download(fileId);
+    }
 
 }
