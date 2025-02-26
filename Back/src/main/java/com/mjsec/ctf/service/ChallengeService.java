@@ -95,4 +95,19 @@ public class ChallengeService {
 
         challengeRepository.save(challenge);
     }
+    // 문제 파일 다운로드
+    public byte[] downloadChallengeFile(Long challengeId) throws IOException {
+    // 해당 challengeId로 ChallengeEntity를 조회합니다.
+    ChallengeEntity challenge = challengeRepository.findById(challengeId)
+            .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+    
+    // 파일 URL이 없으면 예외 처리
+    if (challenge.getFileUrl() == null) {
+        throw new RestApiException(ErrorCode.FILE_NOT_FOUND);
+    }
+    String fileUrl = challenge.getFileUrl();
+    String fileId = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+    
+    return fileService.download(fileId);
+
 }

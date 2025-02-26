@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/challenges")
@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ChallengeController {
     private final ChallengeService challengeService;
+    
 
     @Operation(summary = "모든 문제 조회", description = "모든 문제의 id와 points를 반환합니다.")
     @GetMapping("/all")
@@ -51,5 +52,23 @@ public class ChallengeController {
                         challengeDetail
                 )
         );
+    } 
+    
+    @Operation(summary = "문제 파일 다운로드", description = "사용자가 문제 파일을 다운로드 받을 수 있습니다.")
+    @GetMapping("/{challengeId}/download-file")
+    public ResponseEntity<ByteArrayResource> downloadChallengeFile(@PathVariable Long challengeId) throws IOException {
+       
+        byte[] data = challengeService.downloadChallengeFile(challengeId);
+        ByteArrayResource resource = new ByteArrayResource(data);
+        
+        // 파일 이름 형식
+        String fileName = "challenge-" + challengeId + ".zip"; 
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentLength(data.length)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
+    
 }
