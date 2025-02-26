@@ -22,7 +22,7 @@ jobs:
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
-      # GCP 서비스 계정 키 파일명은 Secret에 저장된 값(예: extreme-world-450010-q0-7d448bb68c2e.json)
+      # GCP 서비스 계정 키 파일명은 Secret에 저장된 값 (예: extreme-world-450010-q0-7d448bb68c2e.json)
       GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
 
     steps:
@@ -34,6 +34,12 @@ jobs:
           mkdir -p ./src/main/resources
           echo "${{ secrets.GCP_SERVICE_ACCOUNT }}" | base64 --decode > ./src/main/resources/${GCP_JSON_FILE}
           ls -la ./src/main/resources
+        shell: bash
+
+      - name: Verify GCP Key File Exists
+        run: |
+          echo "Verifying file ./src/main/resources/${GCP_JSON_FILE}:"
+          ls -l ./src/main/resources/${GCP_JSON_FILE}
         shell: bash
 
       - name: Create SSL files locally for nginx
