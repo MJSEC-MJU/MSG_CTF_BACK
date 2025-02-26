@@ -70,23 +70,24 @@ public class ChallengeService {
     }
 
     // 문제 수정
-    public void updateChallenge(MultipartFile file, ChallengeDto challengeDto) throws IOException {
+    public void updateChallenge(Long challengeId, MultipartFile file, ChallengeDto challengeDto) throws IOException {
 
-        if(challengeDto == null) {
-            throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        if(challengeDto != null) {
+            challenge = ChallengeEntity.builder()
+                    .title(challengeDto.getTitle())
+                    .description(challengeDto.getDescription())
+                    .flag(challengeDto.getFlag())
+                    .points(challengeDto.getPoints())
+                    .minPoints(challengeDto.getMinPoints())
+                    .initialPoints(challengeDto.getInitialPoints())
+                    .startTime(challengeDto.getStartTime())
+                    .endTime(challengeDto.getEndTime())
+                    .url(challengeDto.getUrl())
+                    .build();
         }
-
-        ChallengeEntity challenge = ChallengeEntity.builder()
-                .title(challengeDto.getTitle())
-                .description(challengeDto.getDescription())
-                .flag(challengeDto.getFlag())
-                .points(challengeDto.getPoints())
-                .minPoints(challengeDto.getMinPoints())
-                .initialPoints(challengeDto.getInitialPoints())
-                .startTime(challengeDto.getStartTime())
-                .endTime(challengeDto.getEndTime())
-                .url(challengeDto.getUrl())
-                .build();
 
         if(file != null) {
             String fileUrl = fileService.store(file);
@@ -95,6 +96,16 @@ public class ChallengeService {
 
         challengeRepository.save(challenge);
     }
+
+    // 문제 삭제
+    public void deleteChallenge(Long challengeId){
+
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        challengeRepository.delete(challenge);
+    }
+
     // 문제 파일 다운로드
     public byte[] downloadChallengeFile(Long challengeId) throws IOException {
     // 해당 challengeId로 ChallengeEntity를 조회합니다.
