@@ -36,8 +36,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // JWT 검증을 건너뛸 public 엔드포인트 설정
         if (request.getRequestURI().equals("/api/users/sign-up") ||
-            request.getRequestURI().equals("/api/leaderboard")||
-            request.getRequestURI().equals("/api/leaderboard/stream")) {
+                request.getRequestURI().equals("/api/leaderboard")||
+                request.getRequestURI().equals("/api/leaderboard/stream")) {
             log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;

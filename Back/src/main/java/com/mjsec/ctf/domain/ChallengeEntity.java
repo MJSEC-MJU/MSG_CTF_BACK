@@ -54,4 +54,7 @@ public class ChallengeEntity extends BaseEntity {
 
     @Column
     private String url;
+
+    @Column(nullable = false)
+    private int solvers =0;
 }
