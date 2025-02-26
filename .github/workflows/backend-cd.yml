@@ -107,9 +107,10 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          # 업로드할 때 디코딩한 파일명을 그대로 사용합니다.
+          # source 파일은 로컬에 생성된 GCP_JSON_FILE (예: gcp_service_account.json)
           source: ${{ secrets.GCP_JSON_FILE }}
-          target: "/home/ubuntu/app/gcp_service_account.json"
+          # target은 파일명이 아닌 디렉토리로 지정하여, 파일명이 그대로 유지되도록 합니다.
+          target: "/home/ubuntu/app/"
 
       - name: Upload nginx configuration file to server
         uses: appleboy/scp-action@v0.1.1
