@@ -2,7 +2,7 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
-import com.mjsec.ctf.dto.USER.UserDTO;
+import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
@@ -60,7 +60,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .roles("user")
+                .roles("ROLE_USER")
                 .totalPoint(0)
                 .build();
 
@@ -137,6 +137,7 @@ public class UserService {
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         userRepository.delete(user);
     }
+
     @Transactional
     public void adminSignUp(UserDTO.SignUp request) {
         if (userRepository.existsByLoginId(request.getLoginId())) {
@@ -155,7 +156,7 @@ public class UserService {
             // 예를 들어, 리스트의 첫번째 값을 사용합니다.
             role = request.getRoles().get(0).toLowerCase();
         } else {
-            role = "user";
+            role = "ROLE_USER";
         }
         
         UserEntity user = UserEntity.builder()
@@ -174,5 +175,11 @@ public class UserService {
     // **전체 사용자 목록 조회 **
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
+    }
+    // ** id로 한 명의 사용자 조회 **
+    @Transactional(readOnly = true)
+    public UserEntity getUserById(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
     }
 }

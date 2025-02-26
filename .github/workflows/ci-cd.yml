@@ -23,7 +23,11 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  # 추가
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}  # 추가
-
+      API_KEY: ${{ secrets.API_KEY }} #디스코드봇 요청 API키키
+      BUCKET : ${{ secrets.BUCKET}}
+      LOCATION : ${{ secrets.LOCATION}}
+      PROJECT_ID : ${{ secrets.PROJECT_ID}}
+      GCP_JSON_FILE :  ${{ secrets.GCP_JSON_FILE}}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -39,7 +43,12 @@ jobs:
           echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> .env
           echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}" >> .env  # 추가
           echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}" >> .env  # 추가
-
+          echo "API_KEY=${{ env.API_KEY }}" >> .env
+          echo "BUCKET=${{ env.BUCKET }}" >> .env
+          echo "LOCATION=${{ env.LOCATION }}" >> .env
+          echo "PROJECT_ID=${{ env.PROJECT_ID }}" >> .env
+          echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}" >> .env
+          
       - name: Create SSL files
         run: |
           mkdir -p ./nginx/ssl

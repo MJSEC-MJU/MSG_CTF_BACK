@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface ChallengeRepository extends JpaRepository<ChallengeEntity,Long> {
 
     //모든 문제 조회 (id 순)
-    @Query("SELECT c FROM ChallengeEntity c ORDER BY c.ChallengeId ASC")
+    @Query("SELECT c FROM ChallengeEntity c ORDER BY c.challengeId ASC")
     Page<ChallengeEntity> findAllByOrderByChallengeIdAsc(Pageable pageable);
 
     Optional<ChallengeEntity> findById(Long challengeId);

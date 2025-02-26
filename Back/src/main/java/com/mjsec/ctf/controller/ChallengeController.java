@@ -2,6 +2,7 @@ package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.SuccessResponse;
+import com.mjsec.ctf.dto.ChallengeDto.Simple;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,12 +11,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.core.io.ByteArrayResource;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/challenges")
@@ -28,7 +32,7 @@ public class ChallengeController {
     @GetMapping("/all")
     public ResponseEntity<SuccessResponse<Page<ChallengeDto.Simple>>> getAllChallenges(Pageable pageable) {
 
-        Page<ChallengeDto.Simple> challenges = challengeService.getAllChallengesOrderedById(pageable);
+        Page<Simple> challenges = challengeService.getAllChallengesOrderedById(pageable);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(
@@ -50,5 +54,23 @@ public class ChallengeController {
                         challengeDetail
                 )
         );
+    } 
+    
+    @Operation(summary = "문제 파일 다운로드", description = "사용자가 문제 파일을 다운로드 받을 수 있습니다.")
+    @GetMapping("/{challengeId}/download-file")
+    public ResponseEntity<ByteArrayResource> downloadChallengeFile(@PathVariable Long challengeId) throws IOException {
+       
+        byte[] data = challengeService.downloadChallengeFile(challengeId);
+        ByteArrayResource resource = new ByteArrayResource(data);
+        
+        // 파일 이름 형식
+        String fileName = "challenge-" + challengeId + ".zip"; 
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentLength(data.length)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
+    
 }

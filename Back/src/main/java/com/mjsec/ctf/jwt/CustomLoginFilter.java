@@ -1,8 +1,7 @@
 package com.mjsec.ctf.jwt;
 
 import com.mjsec.ctf.domain.RefreshEntity;
-import com.mjsec.ctf.dto.USER.UserDTO;
-import com.mjsec.ctf.exception.RestApiException;
+import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;
@@ -87,11 +86,8 @@ public class CustomLoginFilter extends GenericFilterBean {
         // JWT 토큰 발급
         final long ACCESS_TOKEN_EXPIRY = 3600000L; // 1시간
         final long REFRESH_TOKEN_EXPIRY = 43200000L; // 12시간
-        // 관리자인 경우, 역할에 "ROLE_" 접두사를 추가하여 저장
+       
         String role = user.getRoles();
-        if ("admin".equalsIgnoreCase(role)) {
-            role = "ROLE_ADMIN";
-        }
         String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(role), ACCESS_TOKEN_EXPIRY);
         String refreshToken = jwtService.createJwt("refreshToken", user.getLoginId(), List.of(role), REFRESH_TOKEN_EXPIRY);
 
