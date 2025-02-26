@@ -116,7 +116,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            sudo bash -c "cat > /home/ubuntu/app/docker-compose.yml/.env  <<EOF
+            sudo bash -c "cat > /home/ubuntu/app/docker-compose.yml/.env <<EOF
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -132,9 +132,19 @@ jobs:
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
-            # 컨테이너 내부에서 사용할 경로로 지정합니다.
+            GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
             GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
             EOF"
+
+      - name: Upload and decode GCP Service Account Key to server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # base64 디코딩 후 /home/ubuntu/src/에 저장 (파일명은 GCP_JSON_FILE 환경 변수에 설정된 값 사용)
+            echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 -d | sudo tee /home/ubuntu/src/${{ secrets.GCP_JSON_FILE }}
 
       - name: Deploy containers on server
         uses: appleboy/ssh-action@v0.1.5
