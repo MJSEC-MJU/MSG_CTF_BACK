@@ -19,6 +19,7 @@ jobs:
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       API_KEY: ${{ secrets.API_KEY }}
+      API_URL: ${{ secrets.API_URL }}
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -129,6 +130,7 @@ jobs:
             GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
             GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
             API_KEY=${{ secrets.API_KEY }}
+            API_URL= ${{ secrets.API_URL }}
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
