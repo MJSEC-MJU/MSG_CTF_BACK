@@ -44,7 +44,7 @@ public class LeaderboardController {
     
     
     @CrossOrigin(origins = "*")
-    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/graph", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter sse() {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); // 타임아웃 제한 없음
         new Thread(() -> {
