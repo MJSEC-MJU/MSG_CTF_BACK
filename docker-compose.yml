@@ -55,6 +55,7 @@ services:
       GMAIL_USERNAME: ${GMAIL_USERNAME}
       GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
       API_KEY: ${API_KEY}
+      API_URL: ${API_URL}
       BUCKET: ${BUCKET}
       LOCATION: file:/secrets/gcp_service_account.json
       PROJECT_ID: ${PROJECT_ID}

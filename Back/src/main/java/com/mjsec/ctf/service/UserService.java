@@ -189,6 +189,6 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserEntity getUserById(Long userId) {
         return userRepository.findById(userId)
-            .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
     }
 }

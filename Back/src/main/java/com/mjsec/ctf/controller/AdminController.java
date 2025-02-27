@@ -76,6 +76,8 @@ public class AdminController {
         );
     }
 
+    @Operation(summary = "회원 삭제제 (관리자)", description = "관리자 권한으로 회원 계정을 삭제제합니다. (관리자 계정도 삭제 가능)")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/member/{userId}")
     public ResponseEntity<SuccessResponse<Void>> deleteMember(@PathVariable Long userId) {
         userService.deleteMember(userId);

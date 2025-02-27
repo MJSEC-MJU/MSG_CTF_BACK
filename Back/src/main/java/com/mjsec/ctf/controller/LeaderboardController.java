@@ -1,6 +1,8 @@
 package com.mjsec.ctf.controller;
 
+import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.entity.Leaderboard;
+import com.mjsec.ctf.service.HistoryService;
 import com.mjsec.ctf.service.LeaderboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -17,10 +19,12 @@ import java.util.List;
 @RequestMapping("/api/leaderboard")
 public class LeaderboardController {
     private final LeaderboardService leaderboardService;
+    private final HistoryService historyService;
 
     @Autowired
-    public LeaderboardController(LeaderboardService leaderboardService) {
+    public LeaderboardController(LeaderboardService leaderboardService, HistoryService historyService) {
         this.leaderboardService = leaderboardService;
+        this.historyService = historyService;
     }
 
     // 기존 /stream 엔드포인트 (SSE 통신)
@@ -33,7 +37,7 @@ public class LeaderboardController {
                 while (true) {
                     List<Leaderboard> leaderboardEntities = leaderboardService.getLeaderboard();
                     emitter.send(leaderboardEntities, MediaType.APPLICATION_JSON);
-                    Thread.sleep(5000); //5초로 설정
+                    Thread.sleep(5000); // 5초마다 업데이트
                 }
             } catch (IOException | InterruptedException e) {
                 emitter.completeWithError(e);
@@ -42,17 +46,17 @@ public class LeaderboardController {
         return emitter;
     }
     
-    
+    // /graph 엔드포인트: HistoryDto 데이터를 SSE로 전송
     @CrossOrigin(origins = "*")
-    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/graph", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter sse() {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); // 타임아웃 제한 없음
         new Thread(() -> {
             try {
                 while (true) {
-                    List<Leaderboard> leaderboardEntities = leaderboardService.getLeaderboard();
-                   
-                    emitter.send(SseEmitter.event().name("update").data(leaderboardEntities, MediaType.APPLICATION_JSON));
+                    List<HistoryDto> historyDtos = historyService.getHistoryDtos();
+                    emitter.send(SseEmitter.event().name("update")
+                            .data(historyDtos, MediaType.APPLICATION_JSON));
                     Thread.sleep(5000); // 5초마다 업데이트
                 }
             } catch (IOException | InterruptedException e) {

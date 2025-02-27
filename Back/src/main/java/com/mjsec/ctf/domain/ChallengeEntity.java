@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @SuperBuilder
 @Inheritance(strategy = InheritanceType.JOINED)
-@SQLDelete(sql = "UPDATE post SET deleted_at = NOW() WHERE post_id = ?")
+@SQLDelete(sql = "UPDATE challenge_entity SET deleted_at = NOW() WHERE challenge_id = ?")
 @SQLRestriction("deleted_at is null")
 public class ChallengeEntity extends BaseEntity {
 
