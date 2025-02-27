@@ -99,6 +99,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
                         
                 );
+
         return http.build();
     }
 }

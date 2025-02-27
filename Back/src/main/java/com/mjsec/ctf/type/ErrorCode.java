@@ -27,6 +27,8 @@ public enum ErrorCode {
     REQUIRED_FIELD_NULL(HttpStatus.BAD_REQUEST, "필수값이 누락되어 있습니다."),
     CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND,"문제 ID를 찾을 수 없습니다."),
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."),
+
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다.")
     ;
 
     private final HttpStatus httpStatus;
