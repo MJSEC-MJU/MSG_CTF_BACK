@@ -12,11 +12,19 @@ import com.mjsec.ctf.type.ErrorCode;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -29,6 +37,12 @@ public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
     private final HistoryRepository historyRepository;
+
+    @Value("${api.key}")
+    private String apiKey;
+
+    @Value("${api.url}")
+    private String apiUrl;
     
     //모든 문제 조회
     public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
@@ -155,6 +169,12 @@ public class ChallengeService {
                     .build();
 
             historyRepository.save(history);
+
+            long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
+            if (solvedCount == 1) {
+                sendFirstBloodNotification(challenge, user);
+            }
+
             updateChallengeScore(challenge);
 
             return "Correct";
@@ -190,5 +210,29 @@ public class ChallengeService {
         challenge.setPoints((int)newPoints);
 
         challengeRepository.save(challenge);
+    }
+
+    // 퍼스트 블러드 Sender
+    private void sendFirstBloodNotification(ChallengeEntity challenge, UserEntity user) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        headers.set("X-API-Key", apiKey);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("first_blood_problem", challenge.getTitle());
+        body.put("first_blood_person", user.getLoginId());
+        body.put("first_blood_school", user.getUniv());
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
+
+        if (response.getStatusCode().is2xxSuccessful()) {
+            log.info("First blood notification sent successfully.");
+        } else {
+            log.error("Failed to send first blood notification.");
+        }
     }
 }
