@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -159,8 +160,7 @@ public class ChallengeService {
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
-        if(!flag.equals(challenge.getFlag())){
-
+        if(!Objects.equals(flag, challenge.getFlag())){
             return "Wrong";
         } else {
             if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
