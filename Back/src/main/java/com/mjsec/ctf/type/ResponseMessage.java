@@ -18,8 +18,4 @@ public enum ResponseMessage {
     DELETE_CHALLENGE_SUCCESS("문제 삭제 성공"),
     GET_ALL_CHALLENGE_SUCCESS("모든 문제 조회 성공"),
     GET_CHALLENGE_DETAIL_SUCCESS("특정 문제 상세 정보 조회 성공"),
-    SUBMIT_SUCCESS("문제 제출 성공"),
-    ;
-
-    private final String message;
-}
+    SUBMIT_SUCCESS("문제 제출 성공")

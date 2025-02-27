@@ -49,7 +49,7 @@ public class ChallengeController {
                 )
         );
     }
-    
+
     @Operation(summary = "특정 문제 상세 조회", description = "해당 문제 id를 가진 문제의 상세 정보를 반환합니다.")
     @GetMapping("/{challengeId}")
     public ResponseEntity<SuccessResponse<ChallengeDto.Detail>> getDetailChallenge(@PathVariable Long challengeId){
@@ -62,17 +62,17 @@ public class ChallengeController {
                         challengeDetail
                 )
         );
-    } 
-    
+    }
+
     @Operation(summary = "문제 파일 다운로드", description = "사용자가 문제 파일을 다운로드 받을 수 있습니다.")
     @GetMapping("/{challengeId}/download-file")
     public ResponseEntity<ByteArrayResource> downloadChallengeFile(@PathVariable Long challengeId) throws IOException {
-       
+
         byte[] data = challengeService.downloadChallengeFile(challengeId);
         ByteArrayResource resource = new ByteArrayResource(data);
-        
+
         // 파일 이름 형식
-        String fileName = "challenge-" + challengeId + ".zip"; 
+        String fileName = "challenge-" + challengeId + ".zip";
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
