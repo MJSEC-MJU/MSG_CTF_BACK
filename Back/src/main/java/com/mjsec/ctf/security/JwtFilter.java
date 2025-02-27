@@ -2,6 +2,7 @@ package com.mjsec.ctf.security;
 
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.service.JwtService;
+import com.mjsec.ctf.type.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,6 +78,7 @@ public class JwtFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+
         // 기존에는 유저의 이메일과 권한을 가져왔지만 loginId를 가져오도록 커스터마이징 가능
         // -> loginId와 권한을 가져오도록 일단 설정
 
@@ -84,7 +86,6 @@ public class JwtFilter extends OncePerRequestFilter {
         List<String> roles = jwtService.getRoles(accessToken);
 
         log.info("Token validated. loginId: {}, Roles: {}", loginId, roles);
-
 
         // 권한 문자열을 리스트로 변환
         List<SimpleGrantedAuthority> authorities = roles.stream()
