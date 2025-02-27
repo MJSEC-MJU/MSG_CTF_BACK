@@ -9,6 +9,7 @@ import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
+import io.micrometer.common.util.StringUtils;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -130,23 +131,27 @@ public class ChallengeService {
 
     // 문제 파일 다운로드
     public byte[] downloadChallengeFile(Long challengeId) throws IOException {
-    // 해당 challengeId로 ChallengeEntity를 조회합니다.
-    ChallengeEntity challenge = challengeRepository.findById(challengeId)
-            .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-    
-    // 파일 URL이 없으면 예외 처리
-    if (challenge.getFileUrl() == null) {
-        throw new RestApiException(ErrorCode.FILE_NOT_FOUND);
-    }
-    String fileUrl = challenge.getFileUrl();
-    String fileId = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-    
-    return fileService.download(fileId);
+        // 해당 challengeId로 ChallengeEntity를 조회합니다.
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        // 파일 URL이 없으면 예외 처리
+        if (challenge.getFileUrl() == null) {
+            throw new RestApiException(ErrorCode.FILE_NOT_FOUND);
+        }
+        String fileUrl = challenge.getFileUrl();
+        String fileId = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+
+        return fileService.download(fileId);
     }
 
     // 문제(플래그) 제출
     @Transactional
     public String submit(String loginId, Long challengeId, String flag) {
+
+        if (flag == null || StringUtils.isBlank(flag)) {
+            return "Flag cannot be null or empty";
+        }
 
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
@@ -236,3 +241,4 @@ public class ChallengeService {
         }
     }
 }
+    
