@@ -42,18 +42,21 @@ public class ChallengeDto {
     @AllArgsConstructor
     public static class Simple {
 
-        private Long ChallengeId;
+        private Long challengeId;
         private int points;
+        private int solvers;
+        private String title;
 
         public static Simple fromEntity(ChallengeEntity challenge) {
             return Simple.builder()
-                    .ChallengeId(challenge.getChallengeId())
+                    .challengeId(challenge.getChallengeId())
+                    .title(challenge.getTitle())
                     .points(challenge.getPoints())
+                    .solvers(challenge.getSolvers())
                     .build();
         }
     }
 
-    //각 문제 상세 정보 조회(API 명세내 solver 아직 구현 못함...)
     @Getter
     @Builder
     @NoArgsConstructor
