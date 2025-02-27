@@ -64,6 +64,7 @@ public class ChallengeDto {
     public static class Detail {
 
         private Long challengeId;
+        private String title;
         private String description;
         private String url;
         private int points;
@@ -72,6 +73,7 @@ public class ChallengeDto {
         public static Detail fromEntity(ChallengeEntity challenge) {
             return Detail.builder()
                     .challengeId(challenge.getChallengeId())
+                    .title(challenge.getTitle())
                     .description(challenge.getDescription())
                     .points(challenge.getPoints())
                     .url(challenge.getUrl())
