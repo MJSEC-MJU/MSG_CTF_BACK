@@ -32,7 +32,7 @@ public class UserController {
     private final AuthCodeService authCodeService;
     private final UserRepository userRepository;
 
-    private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@dankook.ac.kr", "@sju.ac.kr"};
+    private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
     @Operation(summary = "회원가입", description = "유저 등록")
     @PostMapping("/sign-up")

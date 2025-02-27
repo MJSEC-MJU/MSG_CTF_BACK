@@ -1,9 +1,11 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
+import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
@@ -34,6 +36,7 @@ public class UserService {
     private final JwtService jwtService;
     private final RefreshRepository refreshRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final HistoryRepository historyRepository;
 
     //회원가입 로직
     public void signUp(UserDTO.SignUp request) {
@@ -100,6 +103,9 @@ public class UserService {
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST));
 
+        // 유저가 푼 문제 리스트 조회
+        List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
+
         // 프로필 정보 반환
         Map<String, Object> response = new HashMap<>();
         Map<String, Object> userProfile = new HashMap<>();
@@ -111,6 +117,9 @@ public class UserService {
         userProfile.put("total_point", user.getTotalPoint());
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
+
+        //유저가 푼 문제 추가 (임시)
+        response.put("history", historyEntities);
 
         response.put("user", userProfile);
 
