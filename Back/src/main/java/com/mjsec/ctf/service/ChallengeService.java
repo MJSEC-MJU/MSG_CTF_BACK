@@ -9,6 +9,7 @@ import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
+import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -130,7 +131,8 @@ public class ChallengeService {
     }
 
     // 문제(플래그) 제출
-    public boolean submit(String loginId, Long challengeId, String flag) {
+    @Transactional
+    public String submit(String loginId, Long challengeId, String flag) {
 
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
@@ -140,8 +142,12 @@ public class ChallengeService {
 
         if(!flag.equals(challenge.getFlag())){
 
-            return false;
+            return "Wrong";
         } else {
+            if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
+                return "Already submitted";
+            }
+
             HistoryEntity history = HistoryEntity.builder()
                     .userId(user.getLoginId())
                     .challengeId(challenge.getChallengeId())
@@ -151,7 +157,7 @@ public class ChallengeService {
             historyRepository.save(history);
             updateChallengeScore(challenge);
 
-            return true;
+            return "Correct";
         }
     }
 

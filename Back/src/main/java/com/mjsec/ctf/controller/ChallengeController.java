@@ -83,7 +83,7 @@ public class ChallengeController {
 
     @Operation(summary = "문제 제출", description = "사용자가 플래그를 제출합니다.")
     @PostMapping("/{challengeId}/submit")
-    public ResponseEntity<SuccessResponse<Boolean>> submitChallenge(
+    public ResponseEntity<SuccessResponse<String>> submitChallenge(
             @PathVariable Long challengeId,
             @RequestBody FlagDto flagDto,
             @RequestHeader("Authorization") String authorizationHeader) {
@@ -93,7 +93,7 @@ public class ChallengeController {
 
         String flag = flagDto.getSubmitFlag();
 
-        boolean result = challengeService.submit(loginId, challengeId, flag);
+        String result = challengeService.submit(loginId, challengeId, flag);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(
