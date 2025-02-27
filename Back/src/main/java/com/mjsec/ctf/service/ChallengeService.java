@@ -1,13 +1,16 @@
 package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
+import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
+import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,6 +27,7 @@ public class ChallengeService {
     private final FileService fileService;
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
+    private final HistoryRepository historyRepository;
     
     //모든 문제 조회
     public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
@@ -125,6 +129,7 @@ public class ChallengeService {
     return fileService.download(fileId);
     }
 
+    // 문제(플래그) 제출
     public boolean submit(String loginId, Long challengeId, String flag) {
 
         UserEntity user = userRepository.findByLoginId(loginId)
@@ -134,12 +139,23 @@ public class ChallengeService {
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
         if(!flag.equals(challenge.getFlag())){
+
             return false;
         } else {
+            HistoryEntity history = HistoryEntity.builder()
+                    .userId(user.getLoginId())
+                    .challengeId(challenge.getChallengeId())
+                    .solvedTime(LocalDateTime.now())
+                    .build();
 
+            historyRepository.save(history);
+            updateChallengeScore(challenge);
+
+            return true;
         }
     }
 
+    // 문제 점수 계산기
     public void updateChallengeScore(ChallengeEntity challenge) {
 
         // 현재 챌린지를 해결한 사용자 수를 계산
