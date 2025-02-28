@@ -101,8 +101,8 @@ public class UserService {
     }
 
     private void validatePassword(String password) {
-        // 공백 포함 여부 확인
-        if (Pattern.matches("\\s", password)) {
+        // 공백 포함 여부 확인 (문자열 내부나 앞뒤에 공백 포함 불가)
+        if (password.contains(" ")) {
             throw new RestApiException(ErrorCode.INVALID_PASSWORD_WHITESPACE);
         }
 
@@ -129,7 +129,7 @@ public class UserService {
 
     public void validateLoginId(String loginId) {
         // 공백 포함 불가
-        if (Pattern.matches("\\s", loginId)) {
+        if (loginId.contains(" ")) {
             throw new RestApiException(ErrorCode.INVALID_ID_WHITESPACE);
         }
 
