@@ -101,6 +101,11 @@ public class UserService {
     }
 
     private void validatePassword(String password) {
+        // 공백 포함 여부 확인
+        if (Pattern.matches("\\s", password)) {
+            throw new RestApiException(ErrorCode.INVALID_PASSWORD_WHITESPACE);
+        }
+
         // 최소 길이 검사 (8자 이상)
         if (password.length() < 8) {
             throw new RestApiException(ErrorCode.INVALID_PASSWORD_LENGTH_MIN);
@@ -109,11 +114,6 @@ public class UserService {
         // 최대 길이 검사 (32자 이하)
         if (password.length() > 32) {
             throw new RestApiException(ErrorCode.INVALID_PASSWORD_LENGTH_MAX);
-        }
-
-        // 공백 포함 여부 확인
-        if (Pattern.matches("\\s", password)) {
-            throw new RestApiException(ErrorCode.INVALID_PASSWORD_WHITESPACE);
         }
 
         // 소문자, 대문자, 숫자 및 특수문자 포함 여부 확인
@@ -128,6 +128,10 @@ public class UserService {
     }
 
     public void validateLoginId(String loginId) {
+        // 공백 포함 불가
+        if (Pattern.matches("\\s", loginId)) {
+            throw new RestApiException(ErrorCode.INVALID_ID_WHITESPACE);
+        }
 
         // 길이 검사 (4~20자)
         if (loginId.length() < 4 ) {
@@ -140,11 +144,6 @@ public class UserService {
         // 영문 + 숫자만 허용
         if (!Pattern.matches("^[a-zA-Z0-9]+$", loginId)) {
             throw new RestApiException(ErrorCode.INVALID_ID_CHARACTERS);
-        }
-
-        // 공백 포함 불가
-        if (Pattern.matches("\\s", loginId)) {
-            throw new RestApiException(ErrorCode.INVALID_ID_WHITESPACE);
         }
     }
 
