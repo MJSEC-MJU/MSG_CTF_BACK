@@ -32,12 +32,11 @@ public class UserController {
     private final AuthCodeService authCodeService;
     private final UserRepository userRepository;
 
-    private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
     @Operation(summary = "회원가입", description = "유저 등록")
     @PostMapping("/sign-up")
     public ResponseEntity<SuccessResponse<Void>> signUp(@RequestBody @Valid UserDTO.SignUp request) {
-        if (!isAllowedDomain(request.getEmail())) {
+        if (!userService.isAllowedDomain(request.getEmail())) {
             throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
         }
 
@@ -47,7 +46,8 @@ public class UserController {
 
     @Operation(summary = "ID 확인", description = "해당 ID 사용 여부 확인 API")
     @GetMapping("/check-id")
-    public ResponseEntity<?> checkLoginId(@RequestParam String loginId) {
+    public ResponseEntity<Map<String, String>> checkLoginId(@RequestParam String loginId) {
+        userService.validateLoginId(loginId);
         boolean exists = userService.isLoginIdExists(loginId);
         if (exists) {
             throw new RestApiException(ErrorCode.DUPLICATE_ID);
@@ -57,10 +57,15 @@ public class UserController {
 
     @Operation(summary = "이메일 확인", description = "해당 이메일 사용 여부 확인 API")
     @GetMapping("/check-email")
-    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+    public ResponseEntity<Map<String, String>> checkEmail(@RequestParam String email) {
         if (!userService.isValidEmail(email)) {
             throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
+
+        if(!userService.isAllowedDomain(email)){
+            throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
+        }
+
         boolean exists = userService.isEmailExists(email);
         if (exists) {
             throw new RestApiException(ErrorCode.DUPLICATE_EMAIL);
@@ -88,23 +93,17 @@ public class UserController {
     @Operation(summary = "유저 이메일 인증 코드 보내기", description = "해당하는 학교 이메일만 인증 코드 보내기")
     @PostMapping("/send-code")
     public ResponseEntity<String> sendAuthCode(@RequestParam String email) {
-        if (!isAllowedDomain(email)) {
+        if (!userService.isValidEmail(email)) {
+            throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
+        }
+
+        if (!userService.isAllowedDomain(email)) {
             throw new RestApiException(ErrorCode.UNAUTHORIZED_EMAIL);
         }
 
         String code = authCodeService.generateAndStoreCode(email);
         emailService.sendVerificationEmail(email, code);
         return ResponseEntity.ok("인증 코드가 전송되었습니다.");
-    }
-
-    // 허용된 도메인인지 검증
-    private boolean isAllowedDomain(String email) {
-        for (String domain : ALLOWED_DOMAINS) {
-            if (email.endsWith(domain)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // 인증 코드 검증 API
