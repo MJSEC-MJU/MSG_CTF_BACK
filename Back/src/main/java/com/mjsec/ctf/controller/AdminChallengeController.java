@@ -22,7 +22,7 @@ public class AdminChallengeController {
     private final ChallengeService challengeService;
     private final ChallengeRepository challengeRepository;
 
-    @Operation(summary = "전체 문제 요약 조회", description = "관리자 권한으로 전체 문제 목록에서 문제 번호, 제목, 포인트를 조회합니다.")
+    @Operation(summary = "전체 문제 요약 조회", description = "관리자 권한으로 전체 문제 목록에서 문제 번호, 제목, 포인트, 카테고리를 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/summary")
     public ResponseEntity<List<Map<String, Object>>> getChallengeSummary() {
@@ -32,6 +32,7 @@ public class AdminChallengeController {
             map.put("challengeId", challenge.getChallengeId());
             map.put("title", challenge.getTitle());
             map.put("points", challenge.getPoints());
+            map.put("category", challenge.getCategory().toString());
             return map;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(summaryList);
