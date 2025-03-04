@@ -35,6 +35,8 @@ public class ChallengeDto {
 
     private String url;
 
+    private String category;
+
     //모든 문제 조회용
     @Getter
     @Builder
@@ -46,6 +48,7 @@ public class ChallengeDto {
         private int points;
         private int solvers;
         private String title;
+        private String category;
 
         public static Simple fromEntity(ChallengeEntity challenge) {
             return Simple.builder()
@@ -53,6 +56,7 @@ public class ChallengeDto {
                     .title(challenge.getTitle())
                     .points(challenge.getPoints())
                     .solvers(challenge.getSolvers())
+                    .category(challenge.getCategory().toString())
                     .build();
         }
     }
@@ -69,6 +73,7 @@ public class ChallengeDto {
         private String url;
         private int points;
         private int solvers;
+        private String category;
 
         public static Detail fromEntity(ChallengeEntity challenge) {
             return Detail.builder()
@@ -78,6 +83,7 @@ public class ChallengeDto {
                     .points(challenge.getPoints())
                     .url(challenge.getUrl())
                     .solvers(challenge.getSolvers())
+                    .category(challenge.getCategory().toString())
                     .build();
         }
     }

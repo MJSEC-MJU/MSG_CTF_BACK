@@ -57,4 +57,9 @@ public class ChallengeEntity extends BaseEntity {
 
     @Column(nullable = false)
     private int solvers =0;
+
+    // 문제 카테고리 추가 (enum 타입)
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ChallengeCategory category;
 }
