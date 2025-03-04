@@ -33,8 +33,8 @@ public class UserDTO {
 
         @NotBlank(message = "학교명을 입력해주세요.")
         private String univ;
-
-        private List<String> roles; //user 또는 admin
+        //"ROLE_USER" 또는 "ROLE_ADMIN"
+        private String roles; 
 
     }
     //어드민으로 계정 변경시
@@ -53,6 +53,9 @@ public class UserDTO {
         
         // 비밀번호 업데이트 (관리자에 의한 변경)
         private String password;
+        
+        // 역할 업데이트
+        private String roles;
     }
     @Data
     @AllArgsConstructor

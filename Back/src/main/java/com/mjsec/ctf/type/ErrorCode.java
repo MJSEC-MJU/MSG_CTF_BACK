@@ -47,7 +47,8 @@ public enum ErrorCode {
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."),
     
     //유저
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다.")
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
+    INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다.");
     ;
 
     private final HttpStatus httpStatus;

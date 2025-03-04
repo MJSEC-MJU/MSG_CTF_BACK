@@ -75,6 +75,26 @@ public class AdminController {
                 )
         );
     }
+    @Operation(summary = "회원 정보 변경 (관리자)", description = "관리자 권한으로 특정 회원의 정보를 수정합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/change/member/{userId}")
+    public ResponseEntity<SuccessResponse<UserDTO.Response>> changeMember(
+            @PathVariable Long userId,
+            @RequestBody @Valid UserDTO.Update updateDto) {
+
+        UserEntity updatedUser = userService.updateMember(userId, updateDto);
+        UserDTO.Response responseDto = new UserDTO.Response(
+                updatedUser.getUserId(),
+                updatedUser.getEmail(),
+                updatedUser.getLoginId(),
+                updatedUser.getRoles(),
+                updatedUser.getTotalPoint(),
+                updatedUser.getUniv(),
+                updatedUser.getCreatedAt(),
+                updatedUser.getUpdatedAt()
+        );
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.UPDATE_SUCCESS, responseDto));
+    }
 
     @Operation(summary = "회원 삭제제 (관리자)", description = "관리자 권한으로 회원 계정을 삭제제합니다. (관리자 계정도 삭제 가능)")
     @PreAuthorize("hasRole('ADMIN')")
