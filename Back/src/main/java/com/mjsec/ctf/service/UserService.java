@@ -200,17 +200,25 @@ public class UserService {
     }
      // 관리자용 회원정보 수정 메서드
     @Transactional
-    public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
-        user.setEmail(updateDto.getEmail());
-        user.setUniv(updateDto.getUniv());
-        if (updateDto.getLoginId() != null && !updateDto.getLoginId().isBlank()) {
-            user.setLoginId(updateDto.getLoginId());
+public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
+    UserEntity user = userRepository.findById(userId)
+            .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다.")); 
+    user.setEmail(updateDto.getEmail());
+    user.setUniv(updateDto.getUniv());
+    if (updateDto.getLoginId() != null && !updateDto.getLoginId().isBlank()) {
+        user.setLoginId(updateDto.getLoginId());
+    }
+    if (updateDto.getPassword() != null && !updateDto.getPassword().isBlank()) {
+        String encodedPassword = passwordEncoder.encode(updateDto.getPassword());
+        user.setPassword(encodedPassword);
+    }
+    // 역할 수정 로직 추가
+    if (updateDto.getRoles() != null && !updateDto.getRoles().isEmpty()) {
+        String inputRole = updateDto.getRoles().get(0).toUpperCase();
+        if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
+            throw new RestApiException(ErrorCode.INVALID_ROLE);
         }
-        if (updateDto.getPassword() != null && !updateDto.getPassword().isBlank()) {
-            String encodedPassword = passwordEncoder.encode(updateDto.getPassword());
-            user.setPassword(encodedPassword);
+        user.setRoles(inputRole);
         }
         return userRepository.save(user);
     }
