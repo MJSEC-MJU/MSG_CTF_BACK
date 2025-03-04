@@ -50,7 +50,7 @@ public class AdminController {
     @PutMapping("/update/challenge/{challengeId}")
     public ResponseEntity<SuccessResponse<Void>> updateChallenge(
             @PathVariable Long challengeId,
-            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "file", required = false) MultipartFile file,
             @RequestPart("challenge") ChallengeDto challengeDto) throws IOException {
 
         challengeService.updateChallenge(challengeId, file, challengeDto);
@@ -61,6 +61,7 @@ public class AdminController {
                 )
         );
     }
+
 
     @Operation(summary = "문제 삭제", description = "관리자 권한으로 문제를 삭제합니다.")
     @PreAuthorize("hasRole('ADMIN')")
