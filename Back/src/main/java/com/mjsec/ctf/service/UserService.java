@@ -202,7 +202,7 @@ public class UserService {
     @Transactional
     public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다.")); 
+                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         user.setEmail(updateDto.getEmail());
         user.setUniv(updateDto.getUniv());
         if (updateDto.getLoginId() != null && !updateDto.getLoginId().isBlank()) {
@@ -222,6 +222,8 @@ public class UserService {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
         }
+        return userRepository.save(user); // 수정된 user 반환
+    }
     public void deleteMember(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
