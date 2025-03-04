@@ -214,13 +214,13 @@ public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
     }
     // 역할 수정 로직 추가
     if (updateDto.getRoles() != null && !updateDto.getRoles().isEmpty()) {
-        String inputRole = updateDto.getRoles().get(0).toUpperCase();
-        if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
+        String roleStr = updateDto.getRoles().get(0).toUpperCase();
+        try {
+            UserRole role = UserRole.valueOf(roleStr);
+            user.setRoles(role.toString());
+        } catch (IllegalArgumentException e) {
             throw new RestApiException(ErrorCode.INVALID_ROLE);
         }
-        user.setRoles(inputRole);
-        }
-        return userRepository.save(user);
     }
     public void deleteMember(Long userId) {
         UserEntity user = userRepository.findById(userId)
