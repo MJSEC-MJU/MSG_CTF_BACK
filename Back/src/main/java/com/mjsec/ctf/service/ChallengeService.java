@@ -46,34 +46,33 @@ public class ChallengeService {
     @Value("${api.url}")
     private String apiUrl;
     
-    //모든 문제 조회
+    // 모든 문제 조회 (ID 오름차순)
     public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
         log.info("Getting all challenges ordered by Id ASC!!");
 
         Page<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(pageable);
-
         return challenges.map(ChallengeDto.Simple::fromEntity);
     }
 
-    //특정 문제 상세 조회 (문제 설명, 문제 id, point)
+    // 특정 문제 상세 조회 (문제 설명, 문제 id, point 등)
     public ChallengeDto.Detail getDetailChallenge(Long challengeId){
         log.info("Fetching details for challengeId: {}", challengeId);
 
-        // 해당 challengeId를 가진 엔티티 조회
+         // 해당 challengeId를 가진 엔티티 조회
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-
         return ChallengeDto.Detail.fromEntity(challenge);
     }
 
     // 문제 생성
     public void createChallenge(MultipartFile file, ChallengeDto challengeDto) throws IOException {
-
+        
         if(challengeDto == null) {
             throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
         }
-
-        ChallengeEntity challenge = ChallengeEntity.builder()
+        
+        // 빌더 객체 생성
+        ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()
                 .title(challengeDto.getTitle())
                 .description(challengeDto.getDescription())
                 .flag(challengeDto.getFlag())
@@ -82,25 +81,40 @@ public class ChallengeService {
                 .initialPoints(challengeDto.getInitialPoints())
                 .startTime(challengeDto.getStartTime())
                 .endTime(challengeDto.getEndTime())
-                .url(challengeDto.getUrl())
-                .build();
+                .url(challengeDto.getUrl());
 
+        // 카테고리 설정: challengeDto.getCategory()가 제공된 경우 처리
+        if (challengeDto.getCategory() != null && !challengeDto.getCategory().isBlank()) {
+            try {
+                builder.category(com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RestApiException(ErrorCode.BAD_REQUEST, "유효하지 않은 카테고리입니다.");
+            }
+        } else {
+            // 기본값 설정 (예: MISC)
+            builder.category(com.mjsec.ctf.type.ChallengeCategory.MISC);
+        }
+        
+        ChallengeEntity challenge = builder.build();
+    
         if(file != null) {
             String fileUrl = fileService.store(file);
             challenge.setFileUrl(fileUrl);
         }
-
+    
         challengeRepository.save(challenge);
     }
 
     // 문제 수정
     public void updateChallenge(Long challengeId, MultipartFile file, ChallengeDto challengeDto) throws IOException {
-
+        
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-
+    
         if(challengeDto != null) {
-            challenge = ChallengeEntity.builder()
+            // 새 빌더를 이용해 수정된 엔티티 생성 (ID는 유지)
+            ChallengeEntity updatedChallenge = ChallengeEntity.builder()
+                    .challengeId(challenge.getChallengeId())
                     .title(challengeDto.getTitle())
                     .description(challengeDto.getDescription())
                     .flag(challengeDto.getFlag())
@@ -111,13 +125,27 @@ public class ChallengeService {
                     .endTime(challengeDto.getEndTime())
                     .url(challengeDto.getUrl())
                     .build();
+            // 카테고리 설정
+            if (challengeDto.getCategory() != null && !challengeDto.getCategory().isBlank()) {
+                try {
+                    updatedChallenge.setCategory(com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    throw new RestApiException(ErrorCode.BAD_REQUEST, "유효하지 않은 카테고리입니다.");
+                }
+            } else {
+                updatedChallenge.setCategory(challenge.getCategory());
+            }
+    
+            // 기존 파일 URL 유지
+            updatedChallenge.setFileUrl(challenge.getFileUrl());
+            challenge = updatedChallenge;
         }
-
+    
         if(file != null) {
             String fileUrl = fileService.store(file);
             challenge.setFileUrl(fileUrl);
         }
-
+    
         challengeRepository.save(challenge);
     }
 
@@ -126,7 +154,7 @@ public class ChallengeService {
 
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-
+        
         challengeRepository.delete(challenge);
     }
 
@@ -135,66 +163,66 @@ public class ChallengeService {
         // 해당 challengeId로 ChallengeEntity를 조회합니다.
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-
+    
         // 파일 URL이 없으면 예외 처리
         if (challenge.getFileUrl() == null) {
             throw new RestApiException(ErrorCode.FILE_NOT_FOUND);
         }
         String fileUrl = challenge.getFileUrl();
         String fileId = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-
+    
         return fileService.download(fileId);
     }
 
     // 문제(플래그) 제출
     @Transactional
     public String submit(String loginId, Long challengeId, String flag) {
-
+        
         if (flag == null || StringUtils.isBlank(flag)) {
             return "Flag cannot be null or empty";
         }
-
+    
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
-
+    
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-
+    
         if(!Objects.equals(flag, challenge.getFlag())){
             return "Wrong";
         } else {
             if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
                 return "Already submitted";
             }
-
+    
             HistoryEntity history = HistoryEntity.builder()
                     .userId(user.getLoginId())
                     .challengeId(challenge.getChallengeId())
                     .solvedTime(LocalDateTime.now())
                     .build();
-
+    
             historyRepository.save(history);
-
+    
             long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
             if (solvedCount == 1) {
                 sendFirstBloodNotification(challenge, user);
             }
-
+    
             updateChallengeScore(challenge);
-
+    
             return "Correct";
         }
     }
 
     // 문제 점수 계산기
     public void updateChallengeScore(ChallengeEntity challenge) {
-
+        
         // 현재 챌린지를 해결한 사용자 수를 계산
         long solvedCount = historyRepository.countDistinctByChallengeId(challenge.getChallengeId());
-
+        
         // 전체 참가자 수를 계산
         long totalParticipants = userRepository.count();
-
+    
         double maxDecrementFactor = 0.9;
 
         double newPoints;
@@ -202,38 +230,38 @@ public class ChallengeService {
             // 점수 감소 비율 계산
             double decrementFactor = maxDecrementFactor * (solvedCount - 1) / (totalParticipants - 1);
             decrementFactor = Math.min(decrementFactor, maxDecrementFactor);
-
+    
             // 초기 점수에서 점수를 감소시킴
             newPoints = challenge.getInitialPoints() * (1 - decrementFactor);
-            // 최소 점수 이하로 떨어지지 않도록 함
+           // 최소 점수 이하로 떨어지지 않도록 함
             newPoints = Math.max(newPoints, challenge.getMinPoints());
         } else {
             newPoints = challenge.getInitialPoints();  // 참가자가 1명 이하인 경우 초기 점수 유지
         }
-
+    
         newPoints = Math.floor(newPoints);
         challenge.setPoints((int)newPoints);
-
+    
         challengeRepository.save(challenge);
     }
 
     // 퍼스트 블러드 Sender
     private void sendFirstBloodNotification(ChallengeEntity challenge, UserEntity user) {
         RestTemplate restTemplate = new RestTemplate();
-
+    
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         headers.set("X-API-Key", apiKey);
-
+    
         Map<String, Object> body = new HashMap<>();
         body.put("first_blood_problem", challenge.getTitle());
         body.put("first_blood_person", user.getLoginId());
         body.put("first_blood_school", user.getUniv());
-
+    
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
+    
         ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
-
+    
         if (response.getStatusCode().is2xxSuccessful()) {
             log.info("First blood notification sent successfully.");
         } else {
