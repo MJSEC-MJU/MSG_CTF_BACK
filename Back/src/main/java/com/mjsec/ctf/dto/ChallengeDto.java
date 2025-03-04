@@ -56,7 +56,7 @@ public class ChallengeDto {
                     .title(challenge.getTitle())
                     .points(challenge.getPoints())
                     .solvers(challenge.getSolvers())
-                    .category(challenge.getCategory().toString())
+                    .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
                     .build();
         }
     }
@@ -83,7 +83,7 @@ public class ChallengeDto {
                     .points(challenge.getPoints())
                     .url(challenge.getUrl())
                     .solvers(challenge.getSolvers())
-                    .category(challenge.getCategory().toString())
+                    .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
                     .build();
         }
     }
