@@ -213,8 +213,8 @@ public class UserService {
             user.setPassword(encodedPassword);
         }
         // 역할 수정 로직 추가
-        if (updateDto.getRoles() != null && !updateDto.getRoles().isEmpty()) {
-            String roleStr = updateDto.getRoles().get(0).toUpperCase();
+        if (updateDto.getRoles() != null && !updateDto.getRoles().isBlank()) {
+            String roleStr = updateDto.getRoles().toUpperCase();
             try {
                 UserRole role = UserRole.valueOf(roleStr);
                 user.setRoles(role.toString());
@@ -244,9 +244,9 @@ public class UserService {
         
         // roles 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
         String role;
-        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+        if (request.getRoles() != null && !request.getRoles().isBlank()) {
             // 입력값을 대문자로 변환하여 표준 형식으로 맞춥니다.
-            String inputRole = request.getRoles().get(0).toUpperCase();
+            String inputRole = request.getRoles().toUpperCase();
             if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
@@ -254,6 +254,7 @@ public class UserService {
         } else {
             role = "ROLE_USER";
         }
+
         
         UserEntity user = UserEntity.builder()
                 .loginId(request.getLoginId())

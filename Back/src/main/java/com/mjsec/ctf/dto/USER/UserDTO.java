@@ -33,8 +33,8 @@ public class UserDTO {
 
         @NotBlank(message = "학교명을 입력해주세요.")
         private String univ;
-
-        private List<String> roles; //user 또는 admin
+        //"ROLE_USER" 또는 "ROLE_ADMIN"
+        private String roles; 
 
     }
     //어드민으로 계정 변경시
@@ -55,7 +55,7 @@ public class UserDTO {
         private String password;
         
         // 역할 업데이트
-        private List<String> roles;
+        private String roles;
     }
     @Data
     @AllArgsConstructor
@@ -64,7 +64,7 @@ public class UserDTO {
         private Long userId;
         private String email;
         private String loginId;
-        private List<String> roles;
+        private String roles;
         private Integer totalPoint;
         private String univ;
         private LocalDateTime createdAt;
