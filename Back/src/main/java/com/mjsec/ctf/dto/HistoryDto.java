@@ -12,4 +12,6 @@ public class HistoryDto {
     private String challengeId;
     private LocalDateTime solvedTime;
     private int currentScore;
+
+    private String univ;
 }

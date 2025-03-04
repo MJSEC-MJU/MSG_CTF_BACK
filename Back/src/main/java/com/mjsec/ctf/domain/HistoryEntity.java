@@ -29,4 +29,7 @@ public class HistoryEntity {
     
  
     private LocalDateTime solvedTime;
+
+
+    private String univ; //univ 추가
 }
