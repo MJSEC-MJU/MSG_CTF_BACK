@@ -23,6 +23,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,8 +39,19 @@ public class UserService {
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final HistoryRepository historyRepository;
 
+    private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
+
     //회원가입 로직
     public void signUp(UserDTO.SignUp request) {
+        //입력 모두 들어갔는지 확인
+        validateSignUp(request);
+
+        //아이디 유효성 검사
+        validateLoginId(request.getLoginId());
+
+        //비밀번호 유효성 검사
+        validatePassword(request.getPassword());
+
         if (userRepository.existsByLoginId(request.getLoginId())) {
             throw new RestApiException(ErrorCode.DUPLICATE_ID);
         }
@@ -70,8 +82,69 @@ public class UserService {
         userRepository.save(user);
     }
 
+    private void validateSignUp(UserDTO.SignUp request){
+        if (request.getLoginId() == null || request.getLoginId().trim().isEmpty()) {
+            throw new RestApiException(ErrorCode.EMPTY_LOGIN_ID);
+        }
+
+        if(request.getUniv() == null || request.getUniv().trim().isEmpty()){
+            throw new RestApiException(ErrorCode.EMPTY_UNIV);
+        }
+
+        if(request.getEmail() == null || request.getEmail().trim().isEmpty()){
+            throw new RestApiException(ErrorCode.EMPTY_EMAIL);
+        }
+
+        if(request.getPassword() == null || request.getPassword() .trim().isEmpty()){
+            throw new RestApiException(ErrorCode.EMPTY_PASSWORD);
+        }
+    }
+
+    private void validatePassword(String password) {
+        // 공백 포함 여부 확인 (문자열 내부나 앞뒤에 공백 포함 불가)
+        if (password.contains(" ")) {
+            throw new RestApiException(ErrorCode.INVALID_PASSWORD_WHITESPACE);
+        }
+
+        // 최소 길이 검사 (8자 이상)
+        if (password.length() < 8) {
+            throw new RestApiException(ErrorCode.INVALID_PASSWORD_LENGTH_MIN);
+        }
+
+        // 최대 길이 검사 (32자 이하)
+        if (password.length() > 32) {
+            throw new RestApiException(ErrorCode.INVALID_PASSWORD_LENGTH_MAX);
+        }
+
+        // 소문자, 대문자, 숫자 및 특수문자 포함 여부 확인
+        String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*]).{8,32}$";
+        if (!Pattern.matches(passwordPattern, password)) {
+            throw new RestApiException(ErrorCode.INVALID_PASSWORD_FORMAT);
+        }
+    }
+
     public boolean isLoginIdExists(String loginId) {
         return userRepository.existsByLoginId(loginId);
+    }
+
+    public void validateLoginId(String loginId) {
+        // 공백 포함 불가
+        if (loginId.contains(" ")) {
+            throw new RestApiException(ErrorCode.INVALID_ID_WHITESPACE);
+        }
+
+        // 길이 검사 (4~20자)
+        if (loginId.length() < 4 ) {
+            throw new RestApiException(ErrorCode.INVALID_ID_LENGTH_MIN);
+        }
+        if(loginId.length() > 20){
+            throw new RestApiException(ErrorCode.INVALID_ID_LENGTH_MAX);
+        }
+
+        // 영문 + 숫자만 허용
+        if (!Pattern.matches("^[a-zA-Z0-9]+$", loginId)) {
+            throw new RestApiException(ErrorCode.INVALID_ID_CHARACTERS);
+        }
     }
 
     public boolean isEmailExists(String email) {
@@ -190,5 +263,15 @@ public class UserService {
     public UserEntity getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+    }
+
+    // 허용된 도메인인지 검증
+    public boolean isAllowedDomain(String email) {
+        for (String domain : ALLOWED_DOMAINS) {
+            if (email.endsWith(domain)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
