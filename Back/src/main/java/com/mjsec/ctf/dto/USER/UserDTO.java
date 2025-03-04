@@ -55,7 +55,7 @@ public class UserDTO {
         private String password;
         
         // 역할 업데이트
-        private String roles;
+        private List<String> roles;
     }
     @Data
     @AllArgsConstructor
@@ -64,7 +64,7 @@ public class UserDTO {
         private Long userId;
         private String email;
         private String loginId;
-        private String roles;
+        private List<String> roles;
         private Integer totalPoint;
         private String univ;
         private LocalDateTime createdAt;
