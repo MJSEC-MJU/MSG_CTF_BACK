@@ -235,8 +235,12 @@ public class UserService {
         // roles 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
         String role;
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
-            // 예를 들어, 리스트의 첫번째 값을 사용합니다.
-            role = request.getRoles().get(0).toLowerCase();
+            // 입력값을 대문자로 변환하여 표준 형식으로 맞춥니다.
+            String inputRole = request.getRoles().get(0).toUpperCase();
+            if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
+                throw new RestApiException(ErrorCode.INVALID_ROLE);
+            }
+            role= inputRole;
         } else {
             role = "ROLE_USER";
         }
