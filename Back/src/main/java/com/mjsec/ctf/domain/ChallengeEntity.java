@@ -1,5 +1,6 @@
 package com.mjsec.ctf.domain;
 
+import com.mjsec.ctf.type.ChallengeCategory;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
