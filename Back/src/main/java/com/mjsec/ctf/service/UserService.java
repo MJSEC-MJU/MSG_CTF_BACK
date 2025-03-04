@@ -240,7 +240,7 @@ public class UserService {
             if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
-            role= inputRole;
+            role = inputRole;
         } else {
             role = "ROLE_USER";
         }
