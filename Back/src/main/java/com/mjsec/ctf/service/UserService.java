@@ -1,10 +1,13 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
+import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
@@ -38,6 +41,7 @@ public class UserService {
     private final RefreshRepository refreshRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final HistoryRepository historyRepository;
+    private final ChallengeRepository challengeRepository;
 
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
@@ -176,13 +180,8 @@ public class UserService {
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST));
 
-        // 유저가 푼 문제 리스트 조회
-        List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
-
         // 프로필 정보 반환
-        Map<String, Object> response = new HashMap<>();
         Map<String, Object> userProfile = new HashMap<>();
-
         userProfile.put("user_id", user.getUserId());
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
@@ -191,13 +190,9 @@ public class UserService {
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
 
-        //유저가 푼 문제 추가 (임시)
-        response.put("history", historyEntities);
-
-        response.put("user", userProfile);
-
-        return response;
+        return userProfile;
     }
+
      // 관리자용 회원정보 수정 메서드
     @Transactional
     public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
@@ -288,5 +283,35 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    public List<HistoryDto> getChallengeHistory(String accessToken){
+
+        String loginId = jwtService.getLoginId(accessToken);
+
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+        List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
+
+        if(historyEntities == null){
+            return Collections.emptyList();
+        }
+
+        return historyEntities.stream()
+                .map(historyEntity -> {
+                    ChallengeEntity challenge = challengeRepository.findById(historyEntity.getChallengeId())
+                            .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+                    return new HistoryDto(
+                            historyEntity.getUserId(),
+                            loginId,
+                            challenge.getTitle(),
+                            historyEntity.getSolvedTime(),
+                            challenge.getPoints(),
+                            historyEntity.getUniv()
+                    );
+                })
+                .collect(Collectors.toList());
     }
 }

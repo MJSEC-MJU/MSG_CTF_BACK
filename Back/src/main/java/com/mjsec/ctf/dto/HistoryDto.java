@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class HistoryDto {
     private String userId;
     private String challengeId;
+    private String title;
     private LocalDateTime solvedTime;
     private int currentScore;
 
