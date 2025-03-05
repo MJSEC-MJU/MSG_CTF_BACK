@@ -1,6 +1,7 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.exception.RestApiException;
@@ -11,8 +12,10 @@ import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ErrorCode;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -115,5 +118,28 @@ public class UserController {
         } else {
             throw new RestApiException(ErrorCode.FAILED_VERIFICATION);
         }
+    }
+
+    @Operation(summary = "히스토리 리스트", description = "유저별 푼 문제 리스트 확인")
+    @GetMapping("/challenges")
+    public ResponseEntity<SuccessResponse<List<HistoryDto>>> getChallengeHistory(
+            @RequestHeader(value = "Authorization") String token) {
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            log.error("Authorization header is missing or invalid: {}", token);
+            throw new RestApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        String accessToken = token.substring(7);
+        log.info("Extracted Access Token for profile: {}", accessToken);
+
+        List<HistoryDto> history = userService.getChallengeHistory(accessToken);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.GET_HISTORY_SUCCESS,
+                        history
+                )
+        );
     }
 }

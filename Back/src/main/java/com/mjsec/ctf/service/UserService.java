@@ -1,10 +1,13 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.dto.user.UserDTO;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
+import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
@@ -38,6 +41,7 @@ public class UserService {
     private final RefreshRepository refreshRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final HistoryRepository historyRepository;
+    private final ChallengeRepository challengeRepository;
 
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
@@ -283,5 +287,35 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    public List<HistoryDto> getChallengeHistory(String accessToken){
+
+        String loginId = jwtService.getLoginId(accessToken);
+
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+        List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
+
+        if(historyEntities == null){
+            return Collections.emptyList();
+        }
+
+        return historyEntities.stream()
+                .map(historyEntity -> {
+                    ChallengeEntity challenge = challengeRepository.findById(historyEntity.getChallengeId())
+                            .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+                    return new HistoryDto(
+                            historyEntity.getUserId(),
+                            loginId,
+                            challenge.getTitle(),
+                            historyEntity.getSolvedTime(),
+                            challenge.getPoints(),
+                            historyEntity.getUniv()
+                    );
+                })
+                .collect(Collectors.toList());
     }
 }
