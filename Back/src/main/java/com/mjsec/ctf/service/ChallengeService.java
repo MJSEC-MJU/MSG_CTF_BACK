@@ -209,6 +209,9 @@ public class ChallengeService {
             }
     
             updateChallengeScore(challenge);
+
+            challenge.setSolvers(challenge.getSolvers() + 1);
+            challengeRepository.save(challenge);
     
             return "Correct";
         }
