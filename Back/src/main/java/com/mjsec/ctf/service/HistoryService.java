@@ -30,12 +30,17 @@ public class HistoryService {
             ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())
                     .orElse(null);
             int dynamicScore = (challenge != null) ? challenge.getPoints() : 0;
+
+            //univ 추가
+            String univ = history.getUniv(); //엔티티에서 메서드 호출
+
             // HistoryDto의 challengeId 타입이 String인 경우 문자열로 변환합니다.
             return new HistoryDto(
                     history.getUserId(),
                     String.valueOf(history.getChallengeId()),
                     history.getSolvedTime(),
-                    dynamicScore
+                    dynamicScore,
+                    univ //univ 포함
             );
         }).collect(Collectors.toList());
     }
