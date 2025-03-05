@@ -180,12 +180,8 @@ public class UserService {
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST));
 
-        // 유저가 푼 문제 리스트 조회
-        List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
-
         // 프로필 정보 반환
         Map<String, Object> userProfile = new HashMap<>();
-
         userProfile.put("user_id", user.getUserId());
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
