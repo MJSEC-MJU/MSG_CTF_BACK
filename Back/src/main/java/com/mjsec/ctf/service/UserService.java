@@ -180,7 +180,6 @@ public class UserService {
         List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
 
         // 프로필 정보 반환
-        Map<String, Object> response = new HashMap<>();
         Map<String, Object> userProfile = new HashMap<>();
 
         userProfile.put("user_id", user.getUserId());
@@ -191,13 +190,9 @@ public class UserService {
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
 
-        //유저가 푼 문제 추가 (임시)
-        response.put("history", historyEntities);
-
-        response.put("user", userProfile);
-
-        return response;
+        return userProfile;
     }
+
      // 관리자용 회원정보 수정 메서드
     @Transactional
     public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {

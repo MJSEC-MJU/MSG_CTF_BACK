@@ -38,6 +38,7 @@ public class HistoryService {
             return new HistoryDto(
                     history.getUserId(),
                     String.valueOf(history.getChallengeId()),
+                    challenge.getTitle(),
                     history.getSolvedTime(),
                     dynamicScore,
                     univ //univ 포함
