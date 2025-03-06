@@ -30,6 +30,6 @@ public class HistoryEntity {
  
     private LocalDateTime solvedTime;
 
-
+    @Column(name = "univ")
     private String univ; //univ 추가
 }
