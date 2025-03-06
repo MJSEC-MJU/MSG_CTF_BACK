@@ -199,6 +199,7 @@ public class ChallengeService {
                     .userId(user.getLoginId())
                     .challengeId(challenge.getChallengeId())
                     .solvedTime(LocalDateTime.now())
+                    .univ(user.getUniv())
                     .build();
     
             historyRepository.save(history);
