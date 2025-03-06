@@ -19,4 +19,7 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
 
     @Query("SELECT COUNT(h) > 0 FROM HistoryEntity h WHERE h.userId = :userId AND h.challengeId = :challengeId")
     boolean existsByUserIdAndChallengeId(@Param("userId") String userId, @Param("challengeId") Long challengeId);
+
+    @Query("SELECT DISTINCT h.userId FROM HistoryEntity h")
+    List<String> findDistinctUserIds();
 }
