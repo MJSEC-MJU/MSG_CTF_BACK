@@ -1,6 +1,5 @@
 package com.mjsec.ctf.domain;
 
-import com.mjsec.ctf.domain.listener.HistoryEntityListener;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @SuperBuilder
 @Table(name = "history")
-@EntityListeners(HistoryEntityListener.class)
 public class HistoryEntity {
 
     @Id

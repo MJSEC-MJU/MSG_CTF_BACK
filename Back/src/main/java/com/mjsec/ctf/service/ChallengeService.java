@@ -10,10 +10,13 @@ import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import io.micrometer.common.util.StringUtils;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -212,6 +215,8 @@ public class ChallengeService {
 
             challenge.setSolvers(challenge.getSolvers() + 1);
             challengeRepository.save(challenge);
+
+            afterSubmit();
     
             return "Correct";
         }
@@ -269,6 +274,35 @@ public class ChallengeService {
             log.info("First blood notification sent successfully.");
         } else {
             log.error("Failed to send first blood notification.");
+        }
+    }
+
+    public void afterSubmit() {
+
+        List<String> userIds = historyRepository.findDistinctUserIds();
+
+        for (String userId : userIds) {
+            List<HistoryEntity> userHistoryList = historyRepository.findByUserId(userId);
+
+            List<Long> challengeIds = userHistoryList.stream()
+                    .map(HistoryEntity::getChallengeId)
+                    .toList();
+
+            int totalPoints = 0;
+            for (Long challengeId : challengeIds) {
+                ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                        .orElse(null);
+
+                if (challenge != null) {
+                    totalPoints += challenge.getPoints();
+                }
+            }
+
+            UserEntity user = userRepository.findByLoginId(userId)
+                    .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+            user.setTotalPoint(totalPoints);
+            userRepository.save(user);
         }
     }
 }
