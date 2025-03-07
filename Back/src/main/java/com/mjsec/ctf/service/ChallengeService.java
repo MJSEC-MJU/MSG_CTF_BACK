@@ -8,6 +8,7 @@ import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
+import com.mjsec.ctf.repository.LeaderboardRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.EntityManager;

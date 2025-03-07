@@ -10,6 +10,7 @@ import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
+import com.mjsec.ctf.repository.LeaderboardRepository;
 import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
@@ -43,7 +44,7 @@ public class UserService {
     private final HistoryRepository historyRepository;
     private final ChallengeRepository challengeRepository;
     private final LeaderboardRepository leaderboardRepository;
-    
+
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
     //회원가입 로직
