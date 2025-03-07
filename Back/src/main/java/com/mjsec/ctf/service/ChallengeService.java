@@ -222,7 +222,8 @@ public class ChallengeService {
         }
     }
 
-    // 문제 점수 계산기
+    // 문제 점수 계산기 ver.1
+    /*
     public void updateChallengeScore(ChallengeEntity challenge) {
         
         // 현재 챌린지를 해결한 사용자 수를 계산
@@ -250,6 +251,26 @@ public class ChallengeService {
         newPoints = Math.floor(newPoints);
         challenge.setPoints((int)newPoints);
     
+        challengeRepository.save(challenge);
+    }
+     */
+
+    // 문제 점수 계산기 ver.2
+    public void updateChallengeScore(ChallengeEntity challenge) {
+
+        long solvedCount = historyRepository.countDistinctByChallengeId(challenge.getChallengeId());
+
+        int initialPoints = challenge.getInitialPoints();
+        int minPoints = challenge.getMinPoints();
+        int decay = 50;
+
+        double newPoints = (((double)(minPoints - initialPoints) / (decay * decay)) * (solvedCount * solvedCount)) + initialPoints;
+
+        newPoints = Math.max(newPoints, minPoints);
+
+        newPoints = Math.ceil(newPoints);
+        challenge.setPoints((int)newPoints);
+
         challengeRepository.save(challenge);
     }
 
