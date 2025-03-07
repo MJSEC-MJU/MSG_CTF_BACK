@@ -42,7 +42,8 @@ public class UserService {
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final HistoryRepository historyRepository;
     private final ChallengeRepository challengeRepository;
-
+    private final LeaderboardRepository leaderboardRepository;
+    
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
     //회원가입 로직
@@ -222,6 +223,9 @@ public class UserService {
     public void deleteMember(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+        
+        leaderboardRepository.findByUserid(user.getLoginId())
+            .ifPresent(leaderboardRepository::delete);
         userRepository.delete(user);
     }
 
