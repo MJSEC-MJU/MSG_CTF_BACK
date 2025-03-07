@@ -11,4 +11,7 @@ public interface LeaderboardRepository extends JpaRepository<Leaderboard, Long> 
 
     // 정렬 방법 변경했습니다
     List<Leaderboard> findAllByOrderByTotalPointDescLastSolvedTimeAsc();
+    
+    // 특정 회원의 Leaderboard 정보를 조회하는 메서드 추가
+    Optional<Leaderboard> findByUserid(String userid);
 }
