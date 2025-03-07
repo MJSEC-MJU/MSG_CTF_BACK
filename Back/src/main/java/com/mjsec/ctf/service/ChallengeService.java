@@ -10,10 +10,13 @@ import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import io.micrometer.common.util.StringUtils;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -213,12 +216,15 @@ public class ChallengeService {
 
             challenge.setSolvers(challenge.getSolvers() + 1);
             challengeRepository.save(challenge);
+
+            afterSubmit();
     
             return "Correct";
         }
     }
 
-    // 문제 점수 계산기
+    // 문제 점수 계산기 ver.1
+    /*
     public void updateChallengeScore(ChallengeEntity challenge) {
         
         // 현재 챌린지를 해결한 사용자 수를 계산
@@ -248,6 +254,26 @@ public class ChallengeService {
     
         challengeRepository.save(challenge);
     }
+     */
+
+    // 문제 점수 계산기 ver.2
+    public void updateChallengeScore(ChallengeEntity challenge) {
+
+        long solvedCount = historyRepository.countDistinctByChallengeId(challenge.getChallengeId());
+
+        int initialPoints = challenge.getInitialPoints();
+        int minPoints = challenge.getMinPoints();
+        int decay = 50;
+
+        double newPoints = (((double)(minPoints - initialPoints) / (decay * decay)) * (solvedCount * solvedCount)) + initialPoints;
+
+        newPoints = Math.max(newPoints, minPoints);
+
+        newPoints = Math.ceil(newPoints);
+        challenge.setPoints((int)newPoints);
+
+        challengeRepository.save(challenge);
+    }
 
     // 퍼스트 블러드 Sender
     private void sendFirstBloodNotification(ChallengeEntity challenge, UserEntity user) {
@@ -270,6 +296,35 @@ public class ChallengeService {
             log.info("First blood notification sent successfully.");
         } else {
             log.error("Failed to send first blood notification.");
+        }
+    }
+
+    public void afterSubmit() {
+
+        List<String> userIds = historyRepository.findDistinctUserIds();
+
+        for (String userId : userIds) {
+            List<HistoryEntity> userHistoryList = historyRepository.findByUserId(userId);
+
+            List<Long> challengeIds = userHistoryList.stream()
+                    .map(HistoryEntity::getChallengeId)
+                    .toList();
+
+            int totalPoints = 0;
+            for (Long challengeId : challengeIds) {
+                ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                        .orElse(null);
+
+                if (challenge != null) {
+                    totalPoints += challenge.getPoints();
+                }
+            }
+
+            UserEntity user = userRepository.findByLoginId(userId)
+                    .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+            user.setTotalPoint(totalPoints);
+            userRepository.save(user);
         }
     }
 }

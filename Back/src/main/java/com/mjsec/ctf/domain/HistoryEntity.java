@@ -21,13 +21,10 @@ public class HistoryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     private String userId;
-    
 
     private Long challengeId;
-    
- 
+
     private LocalDateTime solvedTime;
 
     @Column(name = "univ")
