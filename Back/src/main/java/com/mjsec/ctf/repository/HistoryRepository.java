@@ -23,4 +23,10 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
 
     @Query("SELECT DISTINCT h.userId FROM HistoryEntity h")
     List<String> findDistinctUserIds();
+
+     // challengeId에 해당하는 HistoryEntity를 삭제하는 메서드
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM HistoryEntity h WHERE h.challengeId = :challengeId")
+    void deleteByChallengeId(@Param("challengeId") Long challengeId);
 }
