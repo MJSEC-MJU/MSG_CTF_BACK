@@ -10,6 +10,7 @@ import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
+import com.mjsec.ctf.repository.LeaderboardRepository;
 import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
@@ -42,6 +43,7 @@ public class UserService {
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final HistoryRepository historyRepository;
     private final ChallengeRepository challengeRepository;
+    private final LeaderboardRepository leaderboardRepository;
 
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
@@ -223,8 +225,12 @@ public class UserService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         
+        leaderboardRepository.findByUserid(user.getLoginId())
+            .ifPresent(leaderboardRepository::delete);
+      
         // 회원의 로그인 ID를 기준으로 히스토리 삭제
         historyRepository.deleteByUserId(user.getLoginId());
+      
         userRepository.delete(user);
     }
 

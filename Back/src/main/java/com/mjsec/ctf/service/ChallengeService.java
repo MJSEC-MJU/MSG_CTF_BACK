@@ -8,6 +8,7 @@ import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
+import com.mjsec.ctf.repository.LeaderboardRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.EntityManager;
@@ -42,6 +43,7 @@ public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
     private final HistoryRepository historyRepository;
+    private final LeaderboardRepository leaderboardRepository;
 
     @Value("${api.key}")
     private String apiKey;
@@ -220,11 +222,31 @@ public class ChallengeService {
             challengeRepository.save(challenge);
 
             afterSubmit();
-    
+
+            // Leaderboard 업데이트: 사용자의 총 포인트와 마지막 제출 시간을 갱신
+            updateLeaderboard(user, history.getSolvedTime());
             return "Correct";
         }
     }
-
+    // Leaderboard 업데이트 메서드
+    private void updateLeaderboard(UserEntity user, LocalDateTime solvedTime) {
+        // 이미 존재하는 Leaderboard 레코드를 조회
+        var optionalLeaderboard = leaderboardRepository.findByUserid(user.getLoginId());
+        com.mjsec.ctf.entity.Leaderboard leaderboard;
+        if (optionalLeaderboard.isPresent()) {
+            leaderboard = optionalLeaderboard.get();
+        } else {
+            leaderboard = new com.mjsec.ctf.entity.Leaderboard();
+            leaderboard.setUserid(user.getLoginId());
+        }
+        
+        // 사용자의 TotalPoint 와 LastSolvedTIme, Univ
+        leaderboard.setTotalPoint(user.getTotalPoint());
+        leaderboard.setLastSolvedTime(solvedTime);
+        leaderboard.setUniv(user.getUniv());
+        
+        leaderboardRepository.save(leaderboard);
+    }
     // 문제 점수 계산기 ver.1
     /*
     public void updateChallengeScore(ChallengeEntity challenge) {
