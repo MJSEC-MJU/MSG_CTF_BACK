@@ -28,6 +28,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,13 +49,28 @@ public class ChallengeService {
 
     @Value("${api.url}")
     private String apiUrl;
+
+    // 현재 사용자 ID를 반환
+    public String currentUserId(){
+
+        log.info("Getting user id from security context holder");
+        String loginId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        log.info("Successfully returned login id from security context holder : {}", loginId);
+
+        return loginId;
+    }
     
     // 모든 문제 조회 (ID 오름차순)
     public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
         log.info("Getting all challenges ordered by Id ASC!!");
 
         Page<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(pageable);
-        return challenges.map(ChallengeDto.Simple::fromEntity);
+
+        return challenges.map(challenge -> {
+            boolean solved = historyRepository.existsByUserIdAndChallengeId(currentUserId(), challenge.getChallengeId());
+            return ChallengeDto.Simple.fromEntity(challenge, solved);
+        });
     }
 
     // 특정 문제 상세 조회 (문제 설명, 문제 id, point 등)

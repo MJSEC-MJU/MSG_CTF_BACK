@@ -49,14 +49,16 @@ public class ChallengeDto {
         private int solvers;
         private String title;
         private String category;
+        private boolean solved;
 
-        public static Simple fromEntity(ChallengeEntity challenge) {
+        public static Simple fromEntity(ChallengeEntity challenge, boolean solved) {
             return Simple.builder()
                     .challengeId(challenge.getChallengeId())
                     .title(challenge.getTitle())
                     .points(challenge.getPoints())
                     .solvers(challenge.getSolvers())
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
+                    .solved(solved)
                     .build();
         }
     }
