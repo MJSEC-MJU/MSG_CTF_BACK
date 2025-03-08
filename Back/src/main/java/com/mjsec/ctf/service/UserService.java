@@ -227,6 +227,10 @@ public class UserService {
         
         leaderboardRepository.findByUserid(user.getLoginId())
             .ifPresent(leaderboardRepository::delete);
+      
+        // 회원의 로그인 ID를 기준으로 히스토리 삭제
+        historyRepository.deleteByUserId(user.getLoginId());
+      
         userRepository.delete(user);
     }
 
