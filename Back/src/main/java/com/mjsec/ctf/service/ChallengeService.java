@@ -157,6 +157,8 @@ public class ChallengeService {
 
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+        // 해당 challenge_id에 해당하는 history 레코드를 먼저 삭제
+        historyRepository.deleteByChallengeId(challengeId);
         
         challengeRepository.delete(challenge);
     }

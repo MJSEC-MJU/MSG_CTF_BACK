@@ -222,6 +222,9 @@ public class UserService {
     public void deleteMember(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+        
+        // 회원의 로그인 ID를 기준으로 히스토리 삭제
+        historyRepository.deleteByUserId(user.getLoginId());
         userRepository.delete(user);
     }
 

@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.jpa.repository.Modifying;
 
 @Repository
 public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
@@ -23,4 +25,16 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
 
     @Query("SELECT DISTINCT h.userId FROM HistoryEntity h")
     List<String> findDistinctUserIds();
+
+     // challengeId에 해당하는 HistoryEntity를 삭제하는 메서드
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM HistoryEntity h WHERE h.challengeId = :challengeId")
+    void deleteByChallengeId(@Param("challengeId") Long challengeId);
+
+    // userId에 해당하는 HistoryEntity를 삭제하는 메서드
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM HistoryEntity h WHERE h.userId = :userId")
+    void deleteByUserId(@Param("userId") String userId);
 }
