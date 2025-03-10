@@ -314,7 +314,7 @@ public class UserService {
 
                     return new HistoryDto(
                             historyEntity.getUserId(),
-                            loginId,
+                            historyEntity.getChallengeId().toString(),
                             challenge.getTitle(),
                             historyEntity.getSolvedTime(),
                             challenge.getPoints(),
