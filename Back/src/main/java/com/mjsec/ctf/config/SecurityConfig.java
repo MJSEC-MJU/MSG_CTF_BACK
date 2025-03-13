@@ -1,22 +1,19 @@
 package com.mjsec.ctf.config;
 
-import com.mjsec.ctf.jwt.CustomLoginFilter;
-import com.mjsec.ctf.jwt.CustomLogoutFilter;
+import com.mjsec.ctf.filter.CustomLoginFilter;
+import com.mjsec.ctf.filter.CustomLogoutFilter;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
-import com.mjsec.ctf.security.JwtFilter;
+import com.mjsec.ctf.filter.JwtFilter;
 import com.mjsec.ctf.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
-import java.util.Collections;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
