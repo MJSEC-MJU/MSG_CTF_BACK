@@ -250,7 +250,7 @@ public class ChallengeService {
             leaderboard = optionalLeaderboard.get();
         } else {
             leaderboard = new com.mjsec.ctf.entity.Leaderboard();
-            leaderboard.setUserid(user.getLoginId());
+            leaderboard.setUserId(user.getLoginId());
         }
         
         // 사용자의 TotalPoint 와 LastSolvedTIme, Univ
