@@ -36,6 +36,7 @@ public class AccessControlFilter implements Filter {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Seoul"));
         String requestURI = httpRequest.getRequestURI();
 
+        /* 개발 기간 중에는 주석처리
         if(now.isBefore(startTime) && !allowedBeforeStartPattern.matcher(requestURI).matches()){
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
             httpResponse.getWriter().write("This site is not available until " + startTime);
@@ -46,7 +47,7 @@ public class AccessControlFilter implements Filter {
             httpResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             httpResponse.getWriter().write("Submit is not allowed after " + endTime);
             return;
-        }
+        */
 
         chain.doFilter(request, response);
     }
