@@ -183,6 +183,7 @@ public class UserService {
         // 프로필 정보 반환
         Map<String, Object> userProfile = new HashMap<>();
         userProfile.put("user_id", user.getUserId());
+        userProfile.put("loginId", user.getLoginId())
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
         userProfile.put("roles", user.getRoles());
