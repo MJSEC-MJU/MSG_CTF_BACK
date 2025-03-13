@@ -184,7 +184,7 @@ public class UserService {
 
         // 프로필 정보 반환
         Map<String, Object> userProfile = new HashMap<>();
-        userProfile.put("user_id", user.getUserId());
+        userProfile.put("userId", user.getUserId());
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
         userProfile.put("roles", user.getRoles());
@@ -225,7 +225,7 @@ public class UserService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         
-        leaderboardRepository.findByUserid(user.getLoginId())
+        leaderboardRepository.findByUserId(user.getLoginId())
             .ifPresent(leaderboardRepository::delete);
       
         // 회원의 로그인 ID를 기준으로 히스토리 삭제
