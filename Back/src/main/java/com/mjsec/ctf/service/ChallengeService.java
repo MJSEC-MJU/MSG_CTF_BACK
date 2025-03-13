@@ -244,13 +244,13 @@ public class ChallengeService {
     // Leaderboard 업데이트 메서드
     private void updateLeaderboard(UserEntity user, LocalDateTime solvedTime) {
         // 이미 존재하는 Leaderboard 레코드를 조회
-        var optionalLeaderboard = leaderboardRepository.findByUserid(user.getLoginId());
+        var optionalLeaderboard = leaderboardRepository.findByUserId(user.getLoginId());
         com.mjsec.ctf.entity.Leaderboard leaderboard;
         if (optionalLeaderboard.isPresent()) {
             leaderboard = optionalLeaderboard.get();
         } else {
             leaderboard = new com.mjsec.ctf.entity.Leaderboard();
-            leaderboard.setUserid(user.getLoginId());
+            leaderboard.setUserId(user.getLoginId());
         }
         
         // 사용자의 TotalPoint 와 LastSolvedTIme, Univ

@@ -19,8 +19,8 @@ public class Leaderboard {
     @Column(name = "id")  // DB 컬럼명 매칭
     private Long id;
 
-    @Column(name = "user_id")  // user_id 컬럼 매핑
-    private String userid;
+    @Column(name = "userId")  // userId// 컬럼 매핑
+    private String userId;
 
     @Column(name = "total_point")  // total_point 컬럼 매핑
     private int totalPoint;
