@@ -1,4 +1,4 @@
-package com.mjsec.ctf.security;
+package com.mjsec.ctf.filter;
 
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.service.JwtService;

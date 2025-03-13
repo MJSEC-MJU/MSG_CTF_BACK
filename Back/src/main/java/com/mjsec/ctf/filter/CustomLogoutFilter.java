@@ -1,4 +1,4 @@
-package com.mjsec.ctf.jwt;
+package com.mjsec.ctf.filter;
 
 import com.mjsec.ctf.domain.BlacklistedTokenEntity;
 import com.mjsec.ctf.domain.BlacklistedTokenEntity;
