@@ -1,12 +1,16 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.domain.RefreshEntity;
+import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.type.UserRole;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class JwtService {
 
     private SecretKey secretKey;
+    private RefreshRepository refreshRepository;
 
     @Autowired
     public JwtService(@Value("${spring.jwt.secret}") String secret){
@@ -90,5 +95,48 @@ public class JwtService {
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public Map<String, String> reissueTokens(String refreshToken) {
+
+        if(isExpired(refreshToken)){
+            throw new IllegalArgumentException("refresh token expired");
+        }
+
+        String tokenType = getTokenType(refreshToken);
+        if(!tokenType.equals("refreshToken")) {
+            throw new IllegalArgumentException("invalid refresh token");
+        }
+
+        if(!refreshRepository.existsByRefresh(refreshToken)){
+            throw new IllegalArgumentException("invalid refresh token");
+        }
+
+        String loginId = getLoginId(refreshToken);
+        List<String> roles = getRoles(refreshToken);
+
+        String newAccessToken = createJwt("accessToken", loginId, roles, 3600000L);
+        String newRefreshToken = createJwt("refreshToken", loginId, roles, 43200000L);
+
+        refreshRepository.deleteByRefresh(refreshToken);
+        addRefreshEntity(loginId, newRefreshToken, 43200000L);
+
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", newAccessToken);
+        tokens.put("refreshToken", newRefreshToken);
+
+        return tokens;
+    }
+
+    private void addRefreshEntity(String loginId, String refresh, Long expiredMs){
+
+        Date date = new Date(System.currentTimeMillis() + expiredMs);
+
+        RefreshEntity refreshEntity = new RefreshEntity();
+        refreshEntity.setLoginId(loginId);
+        refreshEntity.setRefresh(refresh);
+        refreshEntity.setExpiration(date.toString());
+
+        refreshRepository.save(refreshEntity);
     }
 }

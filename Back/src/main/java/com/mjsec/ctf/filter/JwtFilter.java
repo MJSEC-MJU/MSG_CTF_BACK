@@ -5,10 +5,12 @@ import com.mjsec.ctf.service.JwtService;
 import com.mjsec.ctf.type.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,7 @@ public class JwtFilter extends OncePerRequestFilter {
         // JWT 검증을 건너뛸 public 엔드포인트 설정
         if (request.getRequestURI().equals("/api/users/sign-up") ||
                 request.getRequestURI().equals("/api/leaderboard")||
+                request.getRequestURI().equals("/api/leaderboard/graph")||
                 request.getRequestURI().equals("/api/leaderboard/stream")) {
             log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
@@ -64,10 +67,32 @@ public class JwtFilter extends OncePerRequestFilter {
 
         //토큰 만료인지 확인
         if (jwtService.isExpired(accessToken)) {
-            log.info("Access token is expired, rejecting the request.");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Access token expired");
-            return;
+            log.info("Access token is expired, attempting to reissue using refresh token.");
+
+            String refreshToken = getRefreshTokenFromCookies(request);
+            if(refreshToken != null && !jwtService.isExpired(refreshToken)){
+                try {
+                    Map<String, String> tokens = jwtService.reissueTokens(refreshToken);
+                    String newAccessToken = tokens.get("accessToken");
+                    String newRefreshToken = tokens.get("refreshToken");
+
+                    response.setHeader("Authorization", "Bearer " + newAccessToken);
+                    response.addCookie(createCookie("refreshToken", newRefreshToken));
+
+                    accessToken = newAccessToken;
+                } catch (Exception e) {
+                    log.warn("Failed to reissue access token: {}", e.getMessage());
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Failed to reissue access token");
+
+                    return;
+                }
+            } else {
+                log.warn("Refresh token is invalid or expired");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Refresh token is invalid or expired");
+                return;
+            }
         }
 
         //토큰 검증
@@ -99,5 +124,28 @@ public class JwtFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
         log.info("Completed JWTFilter for request: {}", request.getRequestURI());
+    }
+
+    private String getRefreshTokenFromCookies(HttpServletRequest request){
+
+        Cookie[] cookies = request.getCookies();
+        if(cookies != null) {
+            for(Cookie cookie : cookies){
+                if(cookie.getName().equals("refreshToken")){
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private Cookie createCookie(String key, String value) {
+
+        Cookie cookie = new Cookie(key, value);
+        cookie.setMaxAge(24 * 60 * 60);
+        cookie.setHttpOnly(true);
+
+        return cookie;
     }
 }
