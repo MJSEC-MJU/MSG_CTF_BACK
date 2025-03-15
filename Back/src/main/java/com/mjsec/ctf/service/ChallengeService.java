@@ -2,11 +2,13 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
+import com.mjsec.ctf.domain.SubmissionEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
+import com.mjsec.ctf.repository.SubmissionRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.repository.LeaderboardRepository;
 import com.mjsec.ctf.type.ErrorCode;
@@ -14,6 +16,7 @@ import io.micrometer.common.util.StringUtils;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,7 @@ public class ChallengeService {
     private final UserRepository userRepository;
     private final HistoryRepository historyRepository;
     private final LeaderboardRepository leaderboardRepository;
+    private final SubmissionRepository submissionRepository;
 
     @Value("${api.key}")
     private String apiKey;
@@ -208,12 +212,33 @@ public class ChallengeService {
     
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-    
+
+        SubmissionEntity submission = submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId)
+                .orElseGet(() -> {
+                    SubmissionEntity newSubmission = SubmissionEntity.builder()
+                            .loginId(loginId)
+                            .challengeId(challengeId)
+                            .attemptCount(0)
+                            .lastAttemptTime(LocalDateTime.now())
+                            .build();
+                    return newSubmission;
+                });
+
+        long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
+
+        if(submission.getAttemptCount() >= 3 && secondsSinceLastAttempt < 30){
+            return "Wait";
+        }
+
         if(!Objects.equals(flag, challenge.getFlag())){
+            submission.setAttemptCount(submission.getAttemptCount() + 1);
+            submission.setLastAttemptTime(LocalDateTime.now());
+            submissionRepository.save(submission);
+
             return "Wrong";
         } else {
             if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
-                return "Already submitted";
+                return "Submitted";
             }
     
             HistoryEntity history = HistoryEntity.builder()
@@ -236,6 +261,8 @@ public class ChallengeService {
             challengeRepository.save(challenge);
 
             afterSubmit();
+
+            submissionRepository.delete(submission);
 
             return "Correct";
         }

@@ -18,7 +18,10 @@ public enum ResponseMessage {
     DELETE_CHALLENGE_SUCCESS("문제 삭제 성공"),
     GET_ALL_CHALLENGE_SUCCESS("모든 문제 조회 성공"),
     GET_CHALLENGE_DETAIL_SUCCESS("특정 문제 상세 정보 조회 성공"),
-    SUBMIT_SUCCESS("문제 제출 성공"),
+    SUBMIT_SUCCESS("정답"),
+    SUBMIT_FAILED_WRONG("오답"),
+    SUBMIT_FAILED_WAIT("브루트포스 금지"),
+    ALREADY_SUBMITTED("이미 정답처리 된 문제"),
     GET_HISTORY_SUCCESS("히스토리 조회 성공"),
     ;
 

@@ -94,11 +94,34 @@ public class ChallengeController {
 
         String result = challengeService.submit(loginId, challengeId, flag);
 
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.SUBMIT_SUCCESS,
-                        result
-                )
-        );
+        if(result.equals("Correct")) {
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    SuccessResponse.of(
+                            ResponseMessage.SUBMIT_SUCCESS,
+                            result
+                    )
+            );
+        } else if (result.equals("Submitted")) {
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    SuccessResponse.of(
+                            ResponseMessage.ALREADY_SUBMITTED,
+                            result
+                    )
+            );
+        } else if (result.equals("Wait")) {
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    SuccessResponse.of(
+                            ResponseMessage.SUBMIT_FAILED_WAIT,
+                            result
+                    )
+            );
+        } else {
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    SuccessResponse.of(
+                            ResponseMessage.SUBMIT_FAILED_WRONG,
+                            result
+                    )
+            );
+        }
     }
 }
