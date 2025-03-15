@@ -227,7 +227,7 @@ public class ChallengeService {
         long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
 
         if(submission.getAttemptCount() >= 3 && secondsSinceLastAttempt < 30){
-            return "You must wait " + (30 - secondsSinceLastAttempt) + " seconds before trying again.";
+            return "Wait";
         }
 
         if(!Objects.equals(flag, challenge.getFlag())){
@@ -238,7 +238,7 @@ public class ChallengeService {
             return "Wrong";
         } else {
             if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
-                return "Already submitted";
+                return "Submitted";
             }
     
             HistoryEntity history = HistoryEntity.builder()
