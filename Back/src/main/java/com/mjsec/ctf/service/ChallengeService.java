@@ -181,6 +181,8 @@ public class ChallengeService {
         historyRepository.deleteByChallengeId(challengeId);
         
         challengeRepository.delete(challenge);
+
+        updateTotalPoints();
     }
 
     // 문제 파일 다운로드
@@ -260,7 +262,7 @@ public class ChallengeService {
             challenge.setSolvers(challenge.getSolvers() + 1);
             challengeRepository.save(challenge);
 
-            afterSubmit();
+            updateTotalPoints();
 
             submissionRepository.delete(submission);
 
@@ -364,7 +366,7 @@ public class ChallengeService {
         }
     }
 
-    public void afterSubmit() {
+    public void updateTotalPoints () {
 
         List<String> userIds = historyRepository.findDistinctUserIds();
 
