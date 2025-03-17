@@ -385,8 +385,11 @@ public class ChallengeService {
                         .orElseThrow(() -> new RestApiException(ErrorCode.LEADERBOARD_NOT_FOUND));
 
                 leaderboard.setTotalPoint(0);
+                leaderboard.setLastSolvedTime(null);
                 leaderboardRepository.save(leaderboard);
             }
+
+            return;
         }
 
         for (String userId : userIds) {
