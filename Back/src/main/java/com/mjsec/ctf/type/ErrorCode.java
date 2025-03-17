@@ -48,7 +48,8 @@ public enum ErrorCode {
     
     //유저
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
-    INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다.");
+    INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다."),
+    LEADERBOARD_NOT_FOUND(HttpStatus.NOT_FOUND, "유저에 대한 리더보드를 찾을 수 없습니다.")
     ;
 
     private final HttpStatus httpStatus;
