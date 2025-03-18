@@ -5,6 +5,7 @@ import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.SubmissionEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
+import com.mjsec.ctf.entity.Leaderboard;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
@@ -181,6 +182,8 @@ public class ChallengeService {
         historyRepository.deleteByChallengeId(challengeId);
         
         challengeRepository.delete(challenge);
+
+        updateTotalPoints();
     }
 
     // 문제 파일 다운로드
@@ -260,7 +263,7 @@ public class ChallengeService {
             challenge.setSolvers(challenge.getSolvers() + 1);
             challengeRepository.save(challenge);
 
-            afterSubmit();
+            updateTotalPoints();
 
             submissionRepository.delete(submission);
 
@@ -364,9 +367,30 @@ public class ChallengeService {
         }
     }
 
-    public void afterSubmit() {
+    public void updateTotalPoints () {
 
         List<String> userIds = historyRepository.findDistinctUserIds();
+
+        if(userIds.isEmpty()){
+            List<String> userLoginIds = userRepository.findAllUserLoginIds();
+
+            for(String loginId : userLoginIds){
+                UserEntity user = userRepository.findByLoginId(loginId)
+                        .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+                user.setTotalPoint(0);
+                userRepository.save(user);
+
+                Leaderboard leaderboard = leaderboardRepository.findByUserId(user.getLoginId())
+                        .orElseThrow(() -> new RestApiException(ErrorCode.LEADERBOARD_NOT_FOUND));
+
+                leaderboard.setTotalPoint(0);
+                leaderboard.setLastSolvedTime(null);
+                leaderboardRepository.save(leaderboard);
+            }
+
+            return;
+        }
 
         for (String userId : userIds) {
             List<HistoryEntity> userHistoryList = historyRepository.findByUserId(userId);
