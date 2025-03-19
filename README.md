@@ -71,7 +71,7 @@ cd discord-bot
             </a>
           </td>
           <td style="border: 1px solid #ddd; padding: 6px;">PM/DevOps</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">Proj. Mgmt, DevOps</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">Admin API, Sys Arch</td>
         </tr>
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px;" align="center">
@@ -80,8 +80,8 @@ cd discord-bot
               <sub>minsoo0506</sub>
             </a>
           </td>
-          <td style="border: 1px solid #ddd; padding: 6px;">Backend</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">Backend, DB</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">Maintainer</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">Maintenance</td>
         </tr>
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px;" align="center">
@@ -91,7 +91,7 @@ cd discord-bot
             </a>
           </td>
           <td style="border: 1px solid #ddd; padding: 6px;">Backend</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">Ranking</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">Ranking API</td>
         </tr>
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px;" align="center">
@@ -101,11 +101,12 @@ cd discord-bot
             </a>
           </td>
           <td style="border: 1px solid #ddd; padding: 6px;">Backend</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">User Logic</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">User API</td>
         </tr>
       </table>
     </td>
 
+    
   <td style="vertical-align: top; width:33%;">
       <h3 align="center">Frontend Team</h3>
       <table align="center" style="border-collapse: collapse;">
@@ -122,17 +123,7 @@ cd discord-bot
             </a>
           </td>
           <td style="border: 1px solid #ddd; padding: 6px;">Frontend</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">FE Dev</td>
-        </tr>
-        <tr>
-          <td style="border: 1px solid #ddd; padding: 6px;" align="center">
-            <a href="https://github.com/jenn2i">
-              <img src="https://github.com/jenn2i.png" width="50" height="50" alt="jenn2i"><br>
-              <sub>jenn2i</sub>
-            </a>
-          </td>
-          <td style="border: 1px solid #ddd; padding: 6px;">Frontend</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">FE Dev</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">Design &amp; UI/UX</td>
         </tr>
         <tr>
           <td style="border: 1px solid #ddd; padding: 6px;" align="center">
@@ -142,12 +133,23 @@ cd discord-bot
             </a>
           </td>
           <td style="border: 1px solid #ddd; padding: 6px;">Frontend</td>
-          <td style="border: 1px solid #ddd; padding: 6px;">FE Dev</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">UI/UX</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 6px;" align="center">
+            <a href="https://github.com/jenn2i">
+              <img src="https://github.com/jenn2i.png" width="50" height="50" alt="jenn2i"><br>
+              <sub>jenn2i</sub>
+            </a>
+          </td>
+          <td style="border: 1px solid #ddd; padding: 6px;">Frontend</td>
+          <td style="border: 1px solid #ddd; padding: 6px;">User API</td>
         </tr>
       </table>
     </td>
 
-  <td style="vertical-align: top; width:33%;">
+ 
+   <td style="vertical-align: top; width:33%;">
       <h3 align="center">Discord Bot Team</h3>
       <table align="center" style="border-collapse: collapse;">
         <tr>
@@ -194,6 +196,7 @@ cd discord-bot
     </td>
   </tr>
 </table>
+
 
 ---
 
