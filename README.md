@@ -65,5 +65,29 @@ cd discord-bot
 
 ---
 
-## 시스템-아키텍처
+## 시스템 아키텍처
 ![MJSECCTF drawio](https://github.com/user-attachments/assets/1257fdac-4325-4c3a-a94f-27f323842ab4)
+
+---
+
+## 기술 스택
+
+### Environment
+
+---
+
+## 협업 방식
+
+---
+
+## 개발 기간
+
+
+---
+
+## ERD
+<img width="1251" alt="Image" src="https://github.com/user-attachments/assets/5d644a6d-3d45-4fb8-8a08-78fb70319fa0" />
+
+---
+
+## 
