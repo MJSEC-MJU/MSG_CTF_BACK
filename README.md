@@ -38,15 +38,15 @@
 
 ```bash
 # 백엔드 저장소 복제
-git clone https://github.com/MJSEC-CTF/backend.git
+git clone https://github.com/MJSEC-MJU/MSG_CTF_BACK.git
 cd backend
 
 # 프론트엔드 저장소 복제
-git clone https://github.com/MJSEC-CTF/frontend.git
+git clone https://github.com/MJSEC-MJU/MSG_CTF_WEB.git
 cd frontend
 
 # 디스코드 봇 저장소 복제
-git clone https://github.com/MJSEC-CTF/discord-bot.git
+git clone https://github.com/MJSEC-MJU/MSG_DISCORDBOT.git
 cd discord-bot
 ```
 ---
