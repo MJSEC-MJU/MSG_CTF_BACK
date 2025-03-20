@@ -1,7 +1,7 @@
 # 🔐 MJSEC_CTF PROJECT
 
 이 프로젝트는 MJSEC_CTF(Capture The Flag) 대회를 위한 웹 사이트로, CTFd를 사용하지 않고 직접 개발되었습니다. 
-이 문서는 프로젝트의 설치 방법, 기여자 정보, 시스템 아키텍처, 기술 스택, 협업 방식, 개발 기간, ERD, 그리고 구현된 기능을 설명합니다.
+이 문서는 프로젝트의 설치 방법, 기여자 정보, 기술 스택, 협업 방식, 개발 기간, 시스템 아키텍처, ERD, 구현된 기능, 그리고 화면 구성을 설명합니다.
 ## Technology Stack
 ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat-square&logo=springboot&logoColor=white)
@@ -29,6 +29,7 @@
 
 ---
 
+<a id="서버-설치-방법"></a>
 ## 📌 서버 설치 방법
 
 아래 단계를 따라 서버를 설치하고 실행할 수 있습니다.
@@ -50,6 +51,8 @@ git clone https://github.com/MJSEC-MJU/MSG_DISCORDBOT.git
 cd discord-bot
 ```
 ---
+
+<a id="기여자-표"></a>
 ## 🙌 기여자 표
 
 <table style="width:100%;">
@@ -200,6 +203,7 @@ cd discord-bot
 
 ---
 
+<a id="협업-방식"></a>
 ## 🔥 협업 방식
 
 | 플랫폼                                                                                                      | 사용 방식                   |
@@ -212,6 +216,7 @@ cd discord-bot
 
 ---
 
+<a id="개발-기간"></a>
 ## 📆 개발 기간
 - 2024.12.28 ~ 2025.01.04 : 팀 규칙 및 코딩 컨벤션 의논, 기능 정의</br>
 - 2025.01.04 ~ 2025.01.18 : API 명세서 작성, ERD 설계</br>
@@ -225,17 +230,19 @@ cd discord-bot
 - 2025.03.08 ~            : 테스트 및 코드 리펙토링
 
 ---
-
+<a id="시스템-아키텍처"></a>
 ## 🛠️ 시스템 아키텍처
 ![MJSECCTF drawio](https://github.com/user-attachments/assets/1257fdac-4325-4c3a-a94f-27f323842ab4)
 
 ---
 
+<a id="erd"></a>
 ## 📝 ERD
 <img width="1251" alt="Image" src="https://github.com/user-attachments/assets/5d644a6d-3d45-4fb8-8a08-78fb70319fa0" />
 
 ---
 
+<a id="구현된-기능"></a>
 ## ⚙️ 구현된 기능
 
 ### ⭐️ USER
@@ -268,6 +275,7 @@ cd discord-bot
 
 ---
 
+<a id="화면-구성"></a>
 ## 🖥️ 화면 구성
 
 | **메인 페이지** | **로그인 페이지** |
