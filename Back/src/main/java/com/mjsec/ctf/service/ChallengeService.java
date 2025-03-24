@@ -48,6 +48,7 @@ public class ChallengeService {
     private final HistoryRepository historyRepository;
     private final LeaderboardRepository leaderboardRepository;
     private final SubmissionRepository submissionRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Value("${api.key}")
     private String apiKey;
@@ -99,7 +100,7 @@ public class ChallengeService {
         ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()
                 .title(challengeDto.getTitle())
                 .description(challengeDto.getDescription())
-                .flag(challengeDto.getFlag())
+                .flag(passwordEncoder.encode(challengeDto.getFlag()))
                 .points(challengeDto.getPoints())
                 .minPoints(challengeDto.getMinPoints())
                 .initialPoints(challengeDto.getInitialPoints())
@@ -141,7 +142,7 @@ public class ChallengeService {
                     .challengeId(challenge.getChallengeId())
                     .title(challengeDto.getTitle())
                     .description(challengeDto.getDescription())
-                    .flag(challengeDto.getFlag())
+                    .flag(passwordEncoder.encode(challengeDto.getFlag()))
                     .points(challengeDto.getPoints())
                     .minPoints(challengeDto.getMinPoints())
                     .initialPoints(challengeDto.getInitialPoints())
@@ -233,7 +234,7 @@ public class ChallengeService {
             return "Wait";
         }
 
-        if(!Objects.equals(flag, challenge.getFlag())){
+        if(!passwordEncoder.mathces(flag, challenge.getFlag())){
             submission.setAttemptCount(submission.getAttemptCount() + 1);
             submission.setLastAttemptTime(LocalDateTime.now());
             submissionRepository.save(submission);
