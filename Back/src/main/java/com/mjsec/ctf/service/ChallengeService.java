@@ -235,7 +235,7 @@ public class ChallengeService {
             return "Wait";
         }
 
-        if(!passwordEncoder.mathces(flag, challenge.getFlag())){
+        if(!passwordEncoder.matches(flag, challenge.getFlag())){
             submission.setAttemptCount(submission.getAttemptCount() + 1);
             submission.setLastAttemptTime(LocalDateTime.now());
             submissionRepository.save(submission);
