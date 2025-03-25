@@ -1,12 +1,11 @@
 package com.mjsec.ctf.filter;
 
 import com.mjsec.ctf.domain.BlacklistedTokenEntity;
-import com.mjsec.ctf.domain.BlacklistedTokenEntity;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.service.JwtService;
-import io.jsonwebtoken.ExpiredJwtException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -16,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.GenericFilterBean;
+
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,12 +23,13 @@ import java.util.Map;
 
 @Slf4j
 public class CustomLogoutFilter extends GenericFilterBean {
+
     private final JwtService jwtService;
     private final RefreshRepository refreshRepository;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
     private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 변환용
 
-    public CustomLogoutFilter(JwtService jwtService, RefreshRepository refreshRepository,BlacklistedTokenRepository blacklistedTokenRepository) {
+    public CustomLogoutFilter(JwtService jwtService, RefreshRepository refreshRepository, BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtService = jwtService;
         this.refreshRepository = refreshRepository;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
@@ -47,9 +48,8 @@ public class CustomLogoutFilter extends GenericFilterBean {
         }
 
         String authorizationHeader = request.getHeader("Authorization");
-        if(authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")){
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("error: Missing or invalid Authorization header");
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "error: Missing or invalid Authorization header");
             return;
         }
 
@@ -59,8 +59,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
         try {
             jwtService.isExpired(accessToken);
         } catch (ExpiredJwtException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\": \"Access token has expired\"}");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "{\"error\": \"Access token has expired\"}");
             return;
         }
 
@@ -71,7 +70,6 @@ public class CustomLogoutFilter extends GenericFilterBean {
         Date expirationDate = jwtService.getExpirationDate(accessToken);
         log.info("Blacklisting Token: {} | Expiration Time: {}", accessToken, expirationDate);
         blacklistedTokenRepository.save(blacklistedToken);
-
         log.info("Access token added to blacklist: {}", accessToken);
 
         // Refresh Token 가져오기
@@ -88,8 +86,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
         // Refresh Token이 없으면 오류 반환
         if (refresh == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\": \"Refresh token is missing\"}");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "{\"error\": \"Refresh token is missing\"}");
             return;
         }
 
@@ -97,27 +94,24 @@ public class CustomLogoutFilter extends GenericFilterBean {
         try {
             jwtService.isExpired(refresh);
         } catch (ExpiredJwtException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\": \"Refresh token has expired\"}");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "{\"error\": \"Refresh token has expired\"}");
             return;
         }
 
         // Refresh Token인지 확인
         String tokenType = jwtService.getTokenType(refresh);
         if (!"refreshToken".equals(tokenType)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\": \"Invalid refresh token\"}");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "{\"error\": \"Invalid refresh token\"}");
             return;
         }
 
         // DB에서 Refresh Token이 존재하는지 확인
         if (!refreshRepository.existsByRefresh(refresh)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\": \"Refresh token not found in DB\"}");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "{\"error\": \"Refresh token not found in DB\"}");
             return;
         }
 
-        // Refresh Token DB에서 삭제
+        // DB에서 Refresh Token 삭제
         refreshRepository.deleteByRefresh(refresh);
 
         // Refresh Token 쿠키 제거
@@ -128,7 +122,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
         cookie.setMaxAge(0);
         response.addCookie(cookie);
 
-        //로그아웃 성공 메시지 반환
+        // 로그아웃 성공 메시지 반환
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
