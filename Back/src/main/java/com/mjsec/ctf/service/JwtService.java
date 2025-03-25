@@ -115,8 +115,8 @@ public class JwtService {
         String loginId = getLoginId(refreshToken);
         List<String> roles = getRoles(refreshToken);
 
-        String newAccessToken = createJwt("accessToken", loginId, roles, 3600000L);
-        String newRefreshToken = createJwt("refreshToken", loginId, roles, 43200000L);
+        String newAccessToken = createJwt("accessToken", loginId, roles, 600_000L); // 10분
+        String newRefreshToken = createJwt("refreshToken", loginId, roles, 86_400_000L); // 24시간
 
         refreshRepository.deleteByRefresh(refreshToken);
         addRefreshEntity(loginId, newRefreshToken, 43200000L);
