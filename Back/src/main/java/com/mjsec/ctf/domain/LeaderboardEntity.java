@@ -1,4 +1,4 @@
-package com.mjsec.ctf.entity;
+package com.mjsec.ctf.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -11,8 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
-@Table(name = "leaderboard")  // 테이블 이름 명시
-public class Leaderboard {
+public class LeaderboardEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)  // id 자동 증가
