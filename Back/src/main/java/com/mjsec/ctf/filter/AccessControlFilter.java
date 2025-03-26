@@ -22,8 +22,10 @@ public class AccessControlFilter implements Filter {
     public AccessControlFilter(ZonedDateTime startTime, ZonedDateTime endTime) {
         this.startTime = startTime;
         this.endTime = endTime;
-        this.allowedBeforeStartPattern = Pattern.compile("^/api/users/(sign-in|sign-up)$");
-        this.submitPattern = Pattern.compile("^/api/challenges/\\d+/submit$");
+        this.allowedBeforeStartPattern = Pattern
+                .compile("^/api/users/(sign-in|sign-up|logout|check-id|check-email|send-code|verify-code)$");
+        this.submitPattern = Pattern
+                .compile("^/api/challenges/\\d+/submit$");
     }
 
     @Override

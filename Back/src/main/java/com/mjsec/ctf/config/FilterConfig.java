@@ -17,12 +17,12 @@ public class FilterConfig {
         FilterRegistrationBean<AccessControlFilter> registrationBean = new FilterRegistrationBean<>();
 
         ZonedDateTime startTime = ZonedDateTime.of(
-                LocalDateTime.of(2025, 3, 27, 0, 5),
+                LocalDateTime.of(2025, 3, 29, 10, 0),
                 ZoneId.of("Asia/Seoul")
         );
 
         ZonedDateTime endTime = ZonedDateTime.of(
-                LocalDateTime.of(2025, 3, 27, 0, 7),
+                LocalDateTime.of(2025, 3, 29, 22, 0),
                 ZoneId.of("Asia/Seoul")
         );
 
