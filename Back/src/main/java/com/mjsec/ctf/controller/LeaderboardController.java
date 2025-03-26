@@ -10,8 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.List;
@@ -67,20 +67,14 @@ public class LeaderboardController {
 
         scheduleSseTask(emitter, () -> {
             try {
-                List<Leaderboard> leaderboardEntities = leaderboardService.getLeaderboard();
+                List<LeaderboardEntity> leaderboardEntities = leaderboardService.getLeaderboard();
                 emitter.send(leaderboardEntities, MediaType.APPLICATION_JSON);
             } catch (IOException ex) {
                 logger.error("Error sending leaderboard SSE event", ex);
                 emitter.complete();
             } catch (Exception ex) {
                 logger.error("Unexpected error during leaderboard SSE event", ex);
-                while (true) {
-                    List<LeaderboardEntity> leaderboardEntityEntities = leaderboardService.getLeaderboard();
-                    emitter.send(leaderboardEntityEntities, MediaType.APPLICATION_JSON);
-                    Thread.sleep(5000); // 5초마다 업데이트
-                }
-            } catch (IOException | InterruptedException e) {
-                emitter.completeWithError(e);
+                emitter.completeWithError(ex);
             }
         });
         return emitter;
@@ -104,6 +98,7 @@ public class LeaderboardController {
                 emitter.complete();
             } catch (Exception ex) {
                 logger.error("Unexpected error during history SSE event", ex);
+                emitter.completeWithError(ex);
             }
         });
         return emitter;
