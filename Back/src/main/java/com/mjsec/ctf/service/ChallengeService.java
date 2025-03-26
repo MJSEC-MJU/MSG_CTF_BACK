@@ -217,7 +217,7 @@ public class ChallengeService {
         boolean locked = false;
 
         try {
-            locked = globalLock.tryLock(10, 10, TimeUnit.SECONDS);
+            locked = globalLock.tryLock(10, 10, TimeUnit.SECONDS); // 락을 얻기 위해 기다리는 최대 시간, 락 유지 시간
             if (!locked) {
                 return "Try again later";
             }
