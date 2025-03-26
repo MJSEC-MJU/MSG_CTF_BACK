@@ -211,53 +211,48 @@ public class ChallengeService {
     // 문제(플래그) 제출
     @Transactional
     public String submit(String loginId, Long challengeId, String flag) {
-        
-        if (flag == null || StringUtils.isBlank(flag)) {
-            return "Flag cannot be null or empty";
-        }
-    
-        UserEntity user = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
-    
-        ChallengeEntity challenge = challengeRepository.findById(challengeId)
-                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
-        SubmissionEntity submission = submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId)
-                .orElseGet(() -> {
-                    SubmissionEntity newSubmission = SubmissionEntity.builder()
+        String lockKey = "challengeLock:" + challengeId;
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean locked = false;
+
+        try {
+            locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                return "Try again later";
+            }
+
+            if (flag == null || StringUtils.isBlank(flag)) {
+                return "Flag cannot be null or empty";
+            }
+
+            UserEntity user = userRepository.findByLoginId(loginId)
+                    .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+            ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                    .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+            SubmissionEntity submission = submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId)
+                    .orElseGet(() -> SubmissionEntity.builder()
                             .loginId(loginId)
                             .challengeId(challengeId)
                             .attemptCount(0)
                             .lastAttemptTime(LocalDateTime.now())
-                            .build();
-                    return newSubmission;
-                });
+                            .build());
 
-        long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
-
-        if(submission.getAttemptCount() >= 3 && secondsSinceLastAttempt < 30){
-            return "Wait";
-        }
-
-        if(!passwordEncoder.matches(flag, challenge.getFlag())){
-            submission.setAttemptCount(submission.getAttemptCount() + 1);
-            submission.setLastAttemptTime(LocalDateTime.now());
-            submissionRepository.save(submission);
-
-            return "Wrong";
-        } else {
-            if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
-                return "Submitted";
+            long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
+            if (submission.getAttemptCount() >= 3 && secondsSinceLastAttempt < 30) {
+                return "Wait";
             }
 
-            String lockKey = "firstBloodLock:" + challengeId;
-            RLock lock = redissonClient.getLock(lockKey);
-            boolean locked = false;
-
-            try {
-                locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
-                if (!locked) {
-                    return "Try again later";
+            if (!passwordEncoder.matches(flag, challenge.getFlag())) {
+                submission.setAttemptCount(submission.getAttemptCount() + 1);
+                submission.setLastAttemptTime(LocalDateTime.now());
+                submissionRepository.save(submission);
+                return "Wrong";
+            } else {
+                if (historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)) {
+                    return "Submitted";
                 }
 
                 HistoryEntity history = HistoryEntity.builder()
@@ -266,7 +261,6 @@ public class ChallengeService {
                         .solvedTime(LocalDateTime.now())
                         .univ(user.getUniv())
                         .build();
-
                 historyRepository.save(history);
 
                 long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
@@ -277,18 +271,17 @@ public class ChallengeService {
                 updateChallengeScore(challenge);
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
-
                 updateTotalPoints();
-
                 submissionRepository.delete(submission);
 
                 return "Correct";
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } finally {
-                if (locked) {
-                    lock.unlock();
-                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "Error while processing";
+        } finally {
+            if (locked) {
+                lock.unlock();
             }
         }
     }
