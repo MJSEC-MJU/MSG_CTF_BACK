@@ -208,7 +208,6 @@ public class ChallengeService {
         return fileService.download(fileId);
     }
 
-    // 문제(플래그) 제출
     @Transactional
     public String submit(String loginId, Long challengeId, String flag) {
 
@@ -232,6 +231,10 @@ public class ChallengeService {
             ChallengeEntity challenge = challengeRepository.findById(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
+            if (historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)) {
+                return "Submitted";
+            }
+
             SubmissionEntity submission = submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId)
                     .orElseGet(() -> SubmissionEntity.builder()
                             .loginId(loginId)
@@ -251,10 +254,6 @@ public class ChallengeService {
                 submissionRepository.save(submission);
                 return "Wrong";
             } else {
-                if (historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)) {
-                    return "Submitted";
-                }
-
                 HistoryEntity history = HistoryEntity.builder()
                         .userId(user.getLoginId())
                         .challengeId(challenge.getChallengeId())
@@ -263,9 +262,22 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
-                long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
-                if (solvedCount == 1) {
-                    sendFirstBloodNotification(challenge, user);
+                String firstBloodLockKey = "firstBloodLock:" + challengeId;
+                RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
+                boolean firstBloodLocked = false;
+
+                try {
+                    firstBloodLocked = firstBloodLock.tryLock(5, 5, TimeUnit.SECONDS);
+                    if (firstBloodLocked) {
+                        long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
+                        if (solvedCount == 1) {
+                            sendFirstBloodNotification(challenge, user);
+                        }
+                    }
+                } finally {
+                    if (firstBloodLocked) {
+                        firstBloodLock.unlock();
+                    }
                 }
 
                 updateChallengeScore(challenge);
