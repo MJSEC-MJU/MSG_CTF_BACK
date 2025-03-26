@@ -1,7 +1,7 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.HistoryDto;
-import com.mjsec.ctf.entity.Leaderboard;
+import com.mjsec.ctf.domain.LeaderboardEntity;
 import com.mjsec.ctf.service.HistoryService;
 import com.mjsec.ctf.service.LeaderboardService;
 import org.slf4j.Logger;
@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -74,6 +73,13 @@ public class LeaderboardController {
                 emitter.complete();
             } catch (Exception ex) {
                 logger.error("Unexpected error during leaderboard SSE event", ex);
+                while (true) {
+                    List<LeaderboardEntity> leaderboardEntityEntities = leaderboardService.getLeaderboard();
+                    emitter.send(leaderboardEntityEntities, MediaType.APPLICATION_JSON);
+                    Thread.sleep(5000); // 5초마다 업데이트
+                }
+            } catch (IOException | InterruptedException e) {
+                emitter.completeWithError(e);
             }
         });
         return emitter;

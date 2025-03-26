@@ -1,5 +1,6 @@
 package com.mjsec.ctf.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -8,6 +9,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -74,8 +76,20 @@ public class JwtFilter extends OncePerRequestFilter {
                     String newAccessToken = tokens.get("accessToken");
                     String newRefreshToken = tokens.get("refreshToken");
 
+                    /* 프론트에 json 형태로 토큰 전달하기 때문에 주석 처리
                     response.setHeader("Authorization", "Bearer " + newAccessToken);
-                    response.addCookie(createCookie("refreshToken", newRefreshToken));
+                    response.addCookie(createCookie("refreshToken", newRefreshToken);
+                    */
+
+                    // JSON 응답으로 새로운 토큰 반환
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+
+                    Map<String, String> tokenResponse = new HashMap<>();
+                    tokenResponse.put("accessToken", newAccessToken);
+                    tokenResponse.put("refreshToken", newRefreshToken);
+
+                    response.getWriter().write(new ObjectMapper().writeValueAsString(tokenResponse));
 
                     accessToken = newAccessToken;
                 } catch (Exception e) {
