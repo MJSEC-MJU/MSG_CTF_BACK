@@ -212,12 +212,12 @@ public class ChallengeService {
     @Transactional
     public String submit(String loginId, Long challengeId, String flag) {
 
-        String globalLockKey = "challengeLock:" + challengeId;
-        RLock globalLock = redissonClient.getLock(globalLockKey);
+        String lockKey = "challengeLock:" + challengeId;
+        RLock lock = redissonClient.getLock(lockKey);
         boolean locked = false;
 
         try {
-            locked = globalLock.tryLock(10, 10, TimeUnit.SECONDS); // 락을 얻기 위해 기다리는 최대 시간, 락 유지 시간
+            locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
             if (!locked) {
                 return "Try again later";
             }
@@ -281,7 +281,7 @@ public class ChallengeService {
             return "Error while processing";
         } finally {
             if (locked) {
-                globalLock.unlock();
+                lock.unlock();
             }
         }
     }
