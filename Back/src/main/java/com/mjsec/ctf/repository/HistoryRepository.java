@@ -1,7 +1,10 @@
 package com.mjsec.ctf.repository;
 
 import com.mjsec.ctf.domain.HistoryEntity;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -37,4 +40,9 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
     @Modifying
     @Query("DELETE FROM HistoryEntity h WHERE h.userId = :userId")
     void deleteByUserId(@Param("userId") String userId);
+
+    // 비관적 락을 적용하여 조회
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT h FROM HistoryEntity h WHERE h.userId = :userId AND h.challengeId = :challengeId")
+    Optional<HistoryEntity> findWithLockByUserIdAndChallengeId(@Param("userId") String userId, @Param("challengeId") Long challengeId);
 }

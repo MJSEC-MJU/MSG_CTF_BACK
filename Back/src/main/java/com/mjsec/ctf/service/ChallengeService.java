@@ -231,7 +231,7 @@ public class ChallengeService {
             ChallengeEntity challenge = challengeRepository.findById(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
-            if (historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)) {
+            if (historyRepository.findWithLockByUserIdAndChallengeId(user.getLoginId(), challengeId).isPresent()) {
                 return "Submitted";
             }
 
@@ -244,7 +244,7 @@ public class ChallengeService {
                             .build());
 
             long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
-            if (submission.getAttemptCount() >= 3 && secondsSinceLastAttempt < 30) {
+            if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
                 return "Wait";
             }
 
