@@ -22,8 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +53,7 @@ public class ChallengeService {
     private final LeaderboardRepository leaderboardRepository;
     private final SubmissionRepository submissionRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final RedissonClient redissonClient;
 
     @Value("${api.key}")
     private String apiKey;
@@ -245,31 +249,47 @@ public class ChallengeService {
             if(historyRepository.existsByUserIdAndChallengeId(user.getLoginId(), challengeId)){
                 return "Submitted";
             }
-    
-            HistoryEntity history = HistoryEntity.builder()
-                    .userId(user.getLoginId())
-                    .challengeId(challenge.getChallengeId())
-                    .solvedTime(LocalDateTime.now())
-                    .univ(user.getUniv())
-                    .build();
-    
-            historyRepository.save(history);
-    
-            long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
-            if (solvedCount == 1) {
-                sendFirstBloodNotification(challenge, user);
+
+            String lockKey = "firstBloodLock:" + challengeId;
+            RLock lock = redissonClient.getLock(lockKey);
+            boolean locked = false;
+
+            try {
+                locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
+                if (!locked) {
+                    return "Try again later";
+                }
+
+                HistoryEntity history = HistoryEntity.builder()
+                        .userId(user.getLoginId())
+                        .challengeId(challenge.getChallengeId())
+                        .solvedTime(LocalDateTime.now())
+                        .univ(user.getUniv())
+                        .build();
+
+                historyRepository.save(history);
+
+                long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
+                if (solvedCount == 1) {
+                    sendFirstBloodNotification(challenge, user);
+                }
+
+                updateChallengeScore(challenge);
+                challenge.setSolvers(challenge.getSolvers() + 1);
+                challengeRepository.save(challenge);
+
+                updateTotalPoints();
+
+                submissionRepository.delete(submission);
+
+                return "Correct";
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (locked) {
+                    lock.unlock();
+                }
             }
-    
-            updateChallengeScore(challenge);
-
-            challenge.setSolvers(challenge.getSolvers() + 1);
-            challengeRepository.save(challenge);
-
-            updateTotalPoints();
-
-            submissionRepository.delete(submission);
-
-            return "Correct";
         }
     }
 

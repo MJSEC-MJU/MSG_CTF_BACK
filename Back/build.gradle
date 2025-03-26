@@ -35,6 +35,8 @@ dependencies {
 	// Google Cloud Platform Storage(GCP Storage)
 	implementation group: 'org.springframework.cloud', name: 'spring-cloud-gcp-starter', version: '1.2.5.RELEASE'
 	implementation group: 'org.springframework.cloud', name: 'spring-cloud-gcp-storage', version: '1.2.5.RELEASE'
+	// Redisson
+	implementation 'org.redisson:redisson-spring-boot-starter:3.27.0'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
