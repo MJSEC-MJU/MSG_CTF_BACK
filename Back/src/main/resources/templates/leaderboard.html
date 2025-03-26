@@ -17,7 +17,7 @@
 </head>
 <body>
 <h1>개인별 점수</h1>
-<table id="leaderboard">
+<table id="leaderboardEntity">
   <thead>
   <tr>
     <th>이름</th>
@@ -25,8 +25,8 @@
     <th>점수</th>
   </tr>
   </thead>
-  <tbody id="leaderboard-body">
-  <!-- leaderboard data will be dynamically inserted here -->
+  <tbody id="leaderboardEntity-body">
+  <!-- leaderboardEntity data will be dynamically inserted here -->
   </tbody>
 </table>
 
@@ -45,11 +45,11 @@
 
 <script>
   // SSE 연결 설정
-  const eventSource = new EventSource('/leaderboard/stream');
+  const eventSource = new EventSource('/leaderboardEntity/stream');
 
   eventSource.onmessage = function(event) {
-    const leaderboard = JSON.parse(event.data);
-    const leaderboardBody = document.getElementById('leaderboard-body');
+    const leaderboardEntity = JSON.parse(event.data);
+    const leaderboardBody = document.getElementById('leaderboardEntity-body');
     const schoolScoresBody = document.getElementById('school-scores-body');
 
     leaderboardBody.innerHTML = '';  // 기존 내용 지우기
@@ -60,7 +60,7 @@
     // 학교별 점수 합산 계산
     const schoolScores = {};
 
-    leaderboard.forEach(item => {
+    leaderboardEntity.forEach(item => {
       // 리더보드에 항목 추가
       const row = document.createElement('tr');
       row.innerHTML = `

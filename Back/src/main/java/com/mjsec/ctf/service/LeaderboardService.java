@@ -1,6 +1,6 @@
 package com.mjsec.ctf.service;
 
-import com.mjsec.ctf.entity.Leaderboard;
+import com.mjsec.ctf.domain.LeaderboardEntity;
 import com.mjsec.ctf.repository.LeaderboardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class LeaderboardService {
     }
 
     // 모든 유저의 userid, total_poing, univ 데이터를 가져오는 메서드
-    public List<Leaderboard> getLeaderboard() {
+    public List<LeaderboardEntity> getLeaderboard() {
         return leaderboardRepository.findAllByOrderByTotalPointDescLastSolvedTimeAsc(); // 모든 데이터를 total_point 기준 내림차순으로 가져오기
     }
     // 여기서 한 부분이 달라졌는데 본래 updatedAt 으로 정렬하던것을 LastSolvedTime 으로 정렬하게 바꿨습니다

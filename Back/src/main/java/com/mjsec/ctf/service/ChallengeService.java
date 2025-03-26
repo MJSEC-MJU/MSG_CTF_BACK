@@ -5,7 +5,7 @@ import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.SubmissionEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
-import com.mjsec.ctf.entity.Leaderboard;
+import com.mjsec.ctf.domain.LeaderboardEntity;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
@@ -277,20 +277,20 @@ public class ChallengeService {
     private void updateLeaderboard(UserEntity user, LocalDateTime solvedTime) {
         // 이미 존재하는 Leaderboard 레코드를 조회
         var optionalLeaderboard = leaderboardRepository.findByUserId(user.getLoginId());
-        com.mjsec.ctf.entity.Leaderboard leaderboard;
+        LeaderboardEntity leaderboardEntity;
         if (optionalLeaderboard.isPresent()) {
-            leaderboard = optionalLeaderboard.get();
+            leaderboardEntity = optionalLeaderboard.get();
         } else {
-            leaderboard = new com.mjsec.ctf.entity.Leaderboard();
-            leaderboard.setUserId(user.getLoginId());
+            leaderboardEntity = new LeaderboardEntity();
+            leaderboardEntity.setUserId(user.getLoginId());
         }
         
         // 사용자의 TotalPoint 와 LastSolvedTIme, Univ
-        leaderboard.setTotalPoint(user.getTotalPoint());
-        leaderboard.setLastSolvedTime(solvedTime);
-        leaderboard.setUniv(user.getUniv());
+        leaderboardEntity.setTotalPoint(user.getTotalPoint());
+        leaderboardEntity.setLastSolvedTime(solvedTime);
+        leaderboardEntity.setUniv(user.getUniv());
         
-        leaderboardRepository.save(leaderboard);
+        leaderboardRepository.save(leaderboardEntity);
     }
 
     // 문제 점수 계산기 ver.1
@@ -383,12 +383,12 @@ public class ChallengeService {
                 user.setTotalPoint(0);
                 userRepository.save(user);
 
-                Leaderboard leaderboard = leaderboardRepository.findByUserId(user.getLoginId())
+                LeaderboardEntity leaderboardEntity = leaderboardRepository.findByUserId(user.getLoginId())
                         .orElseThrow(() -> new RestApiException(ErrorCode.LEADERBOARD_NOT_FOUND));
 
-                leaderboard.setTotalPoint(0);
-                leaderboard.setLastSolvedTime(null);
-                leaderboardRepository.save(leaderboard);
+                leaderboardEntity.setTotalPoint(0);
+                leaderboardEntity.setLastSolvedTime(null);
+                leaderboardRepository.save(leaderboardEntity);
             }
 
             return;
