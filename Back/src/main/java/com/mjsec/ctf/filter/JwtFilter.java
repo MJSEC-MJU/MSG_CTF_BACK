@@ -3,7 +3,6 @@ package com.mjsec.ctf.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.service.JwtService;
-import com.mjsec.ctf.type.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -41,8 +40,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // JWT 검증을 건너뛸 public 엔드포인트 설정
         if (request.getRequestURI().equals("/api/users/sign-up") ||
-                request.getRequestURI().equals("/api/leaderboard")||
-                request.getRequestURI().equals("/api/leaderboard/graph")||
+                request.getRequestURI().equals("/api/leaderboard") ||
+                request.getRequestURI().equals("/api/leaderboard/graph") ||
                 request.getRequestURI().equals("/api/leaderboard/stream")) {
             log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
@@ -60,19 +59,18 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String accessToken = authorizationHeader.substring(7); // "Bearer " 이후 토큰 추출
 
-        if(blacklistedTokenRepository.existsByToken(accessToken)){
+        if (blacklistedTokenRepository.existsByToken(accessToken)) {
             log.warn("Access token is blacklisted: {}", accessToken);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Access token is blacklisted");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access token is blacklisted");
             return;
         }
 
-        //토큰 만료인지 확인
+        // 토큰 만료 확인 및 재발급 시도
         if (jwtService.isExpired(accessToken)) {
             log.info("Access token is expired, attempting to reissue using refresh token.");
 
             String refreshToken = getRefreshTokenFromCookies(request);
-            if(refreshToken != null && !jwtService.isExpired(refreshToken)){
+            if (refreshToken != null && !jwtService.isExpired(refreshToken)) {
                 try {
                     Map<String, String> tokens = jwtService.reissueTokens(refreshToken);
                     String newAccessToken = tokens.get("accessToken");
@@ -96,43 +94,35 @@ public class JwtFilter extends OncePerRequestFilter {
                     accessToken = newAccessToken;
                 } catch (Exception e) {
                     log.warn("Failed to reissue access token: {}", e.getMessage());
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("Failed to reissue access token");
-
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Failed to reissue access token");
                     return;
                 }
             } else {
                 log.warn("Refresh token is invalid or expired");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Refresh token is invalid or expired");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is invalid or expired");
                 return;
             }
         }
 
-        //토큰 검증
+        // 토큰 타입 검증
         String tokenType = jwtService.getTokenType(accessToken);
-        if (!tokenType.equals("accessToken")) {
+        if (!"accessToken".equals(tokenType)) {
             log.info("Invalid token type, rejecting the request.");
-            response.getWriter().write("Invalid access token");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid access token");
             return;
         }
 
-        // 기존에는 유저의 이메일과 권한을 가져왔지만 loginId를 가져오도록 커스터마이징 가능
-        // -> loginId와 권한을 가져오도록 일단 설정
-
+        // 사용자 정보 추출 및 SecurityContext에 설정
         String loginId = jwtService.getLoginId(accessToken);
         List<String> roles = jwtService.getRoles(accessToken);
 
         log.info("Token validated. loginId: {}, Roles: {}", loginId, roles);
 
-        // 권한 문자열을 리스트로 변환
         List<SimpleGrantedAuthority> authorities = roles.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
 
         Authentication authToken = new UsernamePasswordAuthenticationToken(loginId, null, authorities);
-
         SecurityContextHolder.getContext().setAuthentication(authToken);
         log.info("User authenticated and set in SecurityContext: {}", loginId);
 
@@ -140,26 +130,22 @@ public class JwtFilter extends OncePerRequestFilter {
         log.info("Completed JWTFilter for request: {}", request.getRequestURI());
     }
 
-    private String getRefreshTokenFromCookies(HttpServletRequest request){
-
+    private String getRefreshTokenFromCookies(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        if(cookies != null) {
-            for(Cookie cookie : cookies){
-                if(cookie.getName().equals("refreshToken")){
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("refreshToken".equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }
         }
-
         return null;
     }
 
     private Cookie createCookie(String key, String value) {
-
         Cookie cookie = new Cookie(key, value);
         cookie.setMaxAge(24 * 60 * 60);
         cookie.setHttpOnly(true);
-
         return cookie;
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -51,7 +52,8 @@ public class CustomLoginFilter extends GenericFilterBean {
             throws IOException, ServletException {
 
         // 로그인 요청이 아닐 경우, 다음 필터로 넘김
-        if (!request.getServletPath().equalsIgnoreCase("/api/users/sign-in") || !"POST".equalsIgnoreCase(request.getMethod())) {
+        if (!request.getServletPath().equalsIgnoreCase("/api/users/sign-in") ||
+            !"POST".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -69,7 +71,6 @@ public class CustomLoginFilter extends GenericFilterBean {
 
         // 아이디 검증 (아이디가 존재하지 않는 경우)
         var user = userRepository.findByLoginId(loginRequest.getLoginId()).orElse(null);
-
         if (user == null) {
             log.warn("Invalid login attempt with non-existing ID: {}", loginRequest.getLoginId());
             sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.INVALID_LOGIN_ID);
@@ -88,27 +89,26 @@ public class CustomLoginFilter extends GenericFilterBean {
         final long REFRESH_TOKEN_EXPIRY = 43200000L; // 12시간
 
         String role = user.getRoles();
-
+        // 다중 Role 지원 시, 적절하게 List로 변환 필요
         String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(role), ACCESS_TOKEN_EXPIRY);
         String refreshToken = jwtService.createJwt("refreshToken", user.getLoginId(), List.of(role), REFRESH_TOKEN_EXPIRY);
 
         // Refresh Token 저장
-        addRefreshEntity(user.getLoginId(),refreshToken,REFRESH_TOKEN_EXPIRY);
+        addRefreshEntity(user.getLoginId(), refreshToken, REFRESH_TOKEN_EXPIRY);
 
-        // Refresh Token 쿠키 설정
+        // Refresh Token 쿠키 설정 (개발/운영 환경에 맞게 Secure 설정 조정)
         Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
         refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
+        refreshCookie.setSecure(true);  // HTTPS 환경에서만 쿠키 전송
         refreshCookie.setPath("/");
-        refreshCookie.setMaxAge((int) REFRESH_TOKEN_EXPIRY / 1000);
+        refreshCookie.setMaxAge((int) (REFRESH_TOKEN_EXPIRY / 1000));
         response.addCookie(refreshCookie);
 
         // Access Token을 헤더에 추가
-        //response.setHeader("accessToken", accessToken);
         response.setHeader("Authorization", "Bearer " + accessToken);
 
-
         // 성공 응답 JSON 반환
+        response.setStatus(HttpServletResponse.SC_OK); // 상태 코드를 먼저 설정
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -118,19 +118,19 @@ public class CustomLoginFilter extends GenericFilterBean {
         message.put("refreshToken", refreshToken);
 
         objectMapper.writeValue(response.getWriter(), message);
-        response.setStatus(HttpServletResponse.SC_OK);
 
         log.info("User '{}' logged in successfully", user.getLoginId());
     }
 
     private void addRefreshEntity(String loginId, String refresh, Long expiredMs) {
-
-        Date date = new Date(System.currentTimeMillis() + expiredMs);
+        Date expirationDate = new Date(System.currentTimeMillis() + expiredMs);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+        String formattedDate = sdf.format(expirationDate);
 
         RefreshEntity refreshEntity = new RefreshEntity();
         refreshEntity.setLoginId(loginId);
         refreshEntity.setRefresh(refresh);
-        refreshEntity.setExpiration(date.toString());
+        refreshEntity.setExpiration(formattedDate);
 
         refreshRepository.save(refreshEntity);
     }
@@ -141,8 +141,8 @@ public class CustomLoginFilter extends GenericFilterBean {
         response.setCharacterEncoding("UTF-8");
 
         Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("code", errorCode.name());  // 예: "INVALID_LOGIN_ID"
-        errorResponse.put("message", errorCode.getDescription());  // 예: "아이디를 잘못 입력하셨습니다."
+        errorResponse.put("code", errorCode.name());
+        errorResponse.put("message", errorCode.getDescription());
 
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
