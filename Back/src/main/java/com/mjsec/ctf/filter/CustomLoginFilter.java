@@ -85,7 +85,7 @@ public class CustomLoginFilter extends GenericFilterBean {
         }
 
         // JWT 토큰 발급
-        final long ACCESS_TOKEN_EXPIRY = 300_000L; // 5분
+        final long ACCESS_TOKEN_EXPIRY = 60_000L; // 1분
         final long REFRESH_TOKEN_EXPIRY = 43_200_000L; // 12시간
 
         String role = user.getRoles();
