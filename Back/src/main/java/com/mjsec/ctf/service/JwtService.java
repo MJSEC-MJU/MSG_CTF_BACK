@@ -1,16 +1,11 @@
 package com.mjsec.ctf.service;
 
-import com.mjsec.ctf.domain.RefreshEntity;
-import com.mjsec.ctf.repository.RefreshRepository;
-import com.mjsec.ctf.type.UserRole;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -25,17 +20,11 @@ import org.springframework.stereotype.Component;
 public class JwtService {
 
     private SecretKey secretKey;
-    private RefreshRepository refreshRepository;
 
     @Autowired
     public JwtService(@Value("${spring.jwt.secret}") String secret){
 
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SIG.HS256.key().build().getAlgorithm());
-    }
-
-    public String getEmail(String token){
-
-        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("email", String.class);
     }
 
     public List<String> getRoles(String token) {
@@ -95,48 +84,5 @@ public class JwtService {
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
                 .compact();
-    }
-
-    public Map<String, String> reissueTokens(String refreshToken) {
-
-        if(isExpired(refreshToken)){
-            throw new IllegalArgumentException("refresh token expired");
-        }
-
-        String tokenType = getTokenType(refreshToken);
-        if(!tokenType.equals("refreshToken")) {
-            throw new IllegalArgumentException("invalid refresh token");
-        }
-
-        if(!refreshRepository.existsByRefresh(refreshToken)){
-            throw new IllegalArgumentException("invalid refresh token");
-        }
-
-        String loginId = getLoginId(refreshToken);
-        List<String> roles = getRoles(refreshToken);
-
-        String newAccessToken = createJwt("accessToken", loginId, roles, 3_600_000L); // 1시간
-        String newRefreshToken = createJwt("refreshToken", loginId, roles, 86_400_000L); // 24시간
-
-        refreshRepository.deleteByRefresh(refreshToken);
-        addRefreshEntity(loginId, newRefreshToken, 43200000L);
-
-        Map<String, String> tokens = new HashMap<>();
-        tokens.put("accessToken", newAccessToken);
-        tokens.put("refreshToken", newRefreshToken);
-
-        return tokens;
-    }
-
-    private void addRefreshEntity(String loginId, String refresh, Long expiredMs){
-
-        Date date = new Date(System.currentTimeMillis() + expiredMs);
-
-        RefreshEntity refreshEntity = new RefreshEntity();
-        refreshEntity.setLoginId(loginId);
-        refreshEntity.setRefresh(refresh);
-        refreshEntity.setExpiration(date.toString());
-
-        refreshRepository.save(refreshEntity);
     }
 }
