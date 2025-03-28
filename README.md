@@ -282,17 +282,17 @@ cd discord-bot
 |---------------|----------------|
 | <img width="1470" src="https://github.com/user-attachments/assets/b151d400-0beb-4741-bbcb-cc2ee466bd6c" /> | <img width="1470" src="https://github.com/user-attachments/assets/d849c353-0cb1-46f8-aedd-d52425363bb6" /> |
 
-| **회원가입 페이지** | **문제 목록 조회 페이지** |
-|-----------------|-------------------|
-| <img width="1470" src="https://github.com/user-attachments/assets/454f4ff1-dd1c-4b09-88c0-ca021d7fe709" /> | <img width="1470" src="https://github.com/user-attachments/assets/89f46fb7-626c-4d30-bc73-e016782ed0b4" /> |
+| **회원가입 페이지** | **문제 목록 조회 페이지**                                                                                            |
+|-----------------|-------------------------------------------------------------------------------------------------------------|
+| <img width="1470" src="https://github.com/user-attachments/assets/454f4ff1-dd1c-4b09-88c0-ca021d7fe709" /> | <img width="1399" src="https://private-user-images.githubusercontent.com/68321360/427839371-8c2f4640-6f0c-4db0-abfc-709a7787ea63.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDMxMzYxMjQsIm5iZiI6MTc0MzEzNTgyNCwicGF0aCI6Ii82ODMyMTM2MC80Mjc4MzkzNzEtOGMyZjQ2NDAtNmYwYy00ZGIwLWFiZmMtNzA5YTc3ODdlYTYzLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAzMjglMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMzI4VDA0MjM0NFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWYzMzk3NWZlNDQ4NmVkMGRlZjE2N2NiYjVmYTgyMWE3MDUyODUwODY1NDY0MTk5MmFiOGQ5YjM3ZTNiMzhkODkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.uGtI4mDnuHL4F1ztbMIutdSniu-wAYQofrPCNKj3lb4" /> |
 
-| **문제 상세 조회 페이지** | **스코어보드 페이지 1** |
-|------------------|----------------|
-| <img width="1470" src="https://github.com/user-attachments/assets/651fe656-967f-4b81-8255-7111ddc2310d" /> | <img width="1470" src="https://github.com/user-attachments/assets/73983471-44cd-4530-a778-cc31d1e7c255" /> |
+| **문제 상세 조회 페이지**                                                                                           | **스코어보드 페이지 1** |
+|------------------------------------------------------------------------------------------------------------|----------------|
+| <img width="1470" src="https://private-user-images.githubusercontent.com/68321360/427840877-855d41f2-b93a-4f19-9d6c-6b99984e2f37.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDMxMzYyMjAsIm5iZiI6MTc0MzEzNTkyMCwicGF0aCI6Ii82ODMyMTM2MC80Mjc4NDA4NzctODU1ZDQxZjItYjkzYS00ZjE5LTlkNmMtNmI5OTk4NGUyZjM3LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAzMjglMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMzI4VDA0MjUyMFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTgxZWIzNDY5ZTQ4MGEzNThjODU2YTM0MzcwMTE1YTkzMWYxMTIyOGNkMzkxOGY1YWExOWFmNzYwNDAwOGJjMjYmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.6ou0Drrj1WKyeEL6lGQi0fO8VT0-IBmm9D1debQc6Dw" /> | <img width="1470" src="https://private-user-images.githubusercontent.com/68321360/427841112-c28dd396-baae-4afb-981f-7e02b830aed7.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDMxMzYyODIsIm5iZiI6MTc0MzEzNTk4MiwicGF0aCI6Ii82ODMyMTM2MC80Mjc4NDExMTItYzI4ZGQzOTYtYmFhZS00YWZiLTk4MWYtN2UwMmI4MzBhZWQ3LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAzMjglMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMzI4VDA0MjYyMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWFkNWM5NjM2OGJmMjBjOGY4OWM2NGJkZTBmNDNjZDAwODhhNDJmMTZmMWJjN2Y1ZWE2MjZiOWQ4YzI3Yjc4ZDUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.xF0KB7hJxK5SG3BeVxdlDgmZB-UB25mteZ12Ej9Hse8" /> |
 
 | **스코어보드 페이지 2** | **랭킹 페이지** |
 |-----------------|-------------|
-| <img width="1470" src="https://github.com/user-attachments/assets/1bee8f4e-9408-48cc-8b62-76552bcacb49" /> | <img width="1470" src="https://github.com/user-attachments/assets/8d870145-d623-4e1d-a5cc-7871894b049a" /> |
+| <img width="1470" src="https://private-user-images.githubusercontent.com/68321360/427841118-8003f84d-4bc1-460e-888d-1ae64c5e44c6.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDMxMzYyODIsIm5iZiI6MTc0MzEzNTk4MiwicGF0aCI6Ii82ODMyMTM2MC80Mjc4NDExMTgtODAwM2Y4NGQtNGJjMS00NjBlLTg4OGQtMWFlNjRjNWU0NGM2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTAzMjglMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwMzI4VDA0MjYyMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTgxN2MyYWE5MDEyOGNkN2M2ZGE3ZjBjMWEyZDJkZTU4NTY2MjViMTY0ZDRkYzMyZmU4ZDRlOTFiZjc4YWUwNzUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.WiTiJyXZMM8un8zcnJnnIn8V9omaesdoblvKffG3N5Y" /> | <img width="1470" src="https://github.com/user-attachments/assets/8d870145-d623-4e1d-a5cc-7871894b049a" /> |
 
 | **유저 프로필 페이지** | **관리자 로그인 페이지** |
 |----------------|-----------------|
@@ -301,3 +301,4 @@ cd discord-bot
 | **회원 관리 페이지** | **문제 관리 페이지** |
 |----------------|--------------|
 | <img width="1470" src="https://github.com/user-attachments/assets/8aae8bb7-4eb6-4aab-b5a4-f1f373ca1490" /> | <img width="1470" src="https://github.com/user-attachments/assets/96f3abae-b99e-4691-9739-1d470050f134" /> |
+
