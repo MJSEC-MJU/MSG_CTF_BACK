@@ -24,6 +24,7 @@ public class FileService {
     private String bucketName;
 
     public String store(MultipartFile multipartFile) throws IOException {
+
         InputStream keyFile = ResourceUtils.getURL(keyFileName).openStream();
 
         String uuid = UUID.randomUUID().toString();
@@ -47,6 +48,7 @@ public class FileService {
 
         return imgUrl;
     }
+
     // 파일 다운로드 기능
     public byte[] download(String fileId) throws IOException {
         

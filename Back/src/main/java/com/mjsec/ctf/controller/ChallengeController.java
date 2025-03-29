@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.core.io.ByteArrayResource;
 import java.io.IOException;
 
+// 일반 User 권한으로 문제 조회, 상세 조회, 문제 파일 다운로드, 문제 제출
 @RestController
 @RequestMapping("/api/challenges")
 @RequiredArgsConstructor

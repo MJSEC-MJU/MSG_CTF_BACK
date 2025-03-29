@@ -21,9 +21,10 @@ import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-    @Configuration
-    @EnableWebSecurity
-    public class SecurityConfig {
+// Spring Security 설정
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
 
     private final JwtService jwtService;
     private final RefreshRepository refreshRepository;
@@ -39,24 +40,20 @@ import org.springframework.web.cors.CorsConfigurationSource;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-            http
-                    .cors(corsCustomizer -> corsCustomizer.configurationSource(new CorsConfigurationSource() {
-                        @Override
-                        public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+        // cors 설정
+        http
+            .cors(corsCustomizer -> corsCustomizer.configurationSource(new CorsConfigurationSource() {
+                @Override
+                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
 
-                            CorsConfiguration configuration = new CorsConfiguration();
+                        CorsConfiguration configuration = new CorsConfiguration();
 
-                            /*configuration.setAllowedOrigins(
-                                    Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
-                             */
                         configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msg.mjsec.kr"));
-                        //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                         configuration.setAllowCredentials(true);
-                        //configuration.setAllowedHeaders(Collections.singletonList("*")); //테스트로 잠시 비활성화
                         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie", "X-Requested-With", "Accept"));
                         configuration.setMaxAge(3600L); // 브라우저가 CORS 관련 정보를 캐시할 시간을 설정
                         configuration.setExposedHeaders(Arrays.asList("Authorization", "access", "X-Custom-Header"));
@@ -84,10 +81,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
         http
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
+                        .requestMatchers("/api/users/**").permitAll()
                         //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                         .requestMatchers("/api/leaderboard/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/users/profile").authenticated()
                         .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성

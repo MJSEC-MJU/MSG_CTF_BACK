@@ -7,10 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -21,10 +19,12 @@ public class AuthCodeService {
 
     //@RequiredArgsConstructor 로 대체 가능
     public AuthCodeService(StringRedisTemplate redisTemplate) {
+
         this.redisTemplate = redisTemplate;
     }
 
     public String generateAndStoreCode(String email) {
+
         String code = generateNumericCode(6);
 
         // Redis에 저장 (5분 동안 유효)
@@ -35,6 +35,7 @@ public class AuthCodeService {
     }
 
     public boolean verifyCode(String email, String code) {
+
         String key = "authCode:" + email;
         String storedCode = redisTemplate.opsForValue().get(key);
         String attemptKey = "attempts:" + email;
@@ -69,12 +70,15 @@ public class AuthCodeService {
 
     // 이메일 인증 여부 확인
     public boolean isEmailVerified(String email) {
+
         String verified = redisTemplate.opsForValue().get("verified:" + email);
+
         return "true".equals(verified);
     }
 
     // 6자리 숫자 코드 생성 메서드
     private String generateNumericCode(int length) {
+
         Random random = new Random();
         StringBuilder code = new StringBuilder();
 

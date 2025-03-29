@@ -7,9 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.Date;
-
 
 @Repository
 public interface BlacklistedTokenRepository extends JpaRepository<BlacklistedTokenEntity,Long> {

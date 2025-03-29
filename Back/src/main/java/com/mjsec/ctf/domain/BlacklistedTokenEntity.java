@@ -10,6 +10,7 @@ import java.util.Date;
 @Getter
 @Setter
 public class BlacklistedTokenEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

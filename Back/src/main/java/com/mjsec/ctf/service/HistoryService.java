@@ -25,6 +25,7 @@ public class HistoryService {
      * @return List of HistoryDto sorted by solvedTime ascending.
      */
     public List<HistoryDto> getHistoryDtos() {
+
         List<HistoryEntity> histories = historyRepository.findAllByOrderBySolvedTimeAsc();
         return histories.stream().map(history -> {
             ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())

@@ -2,10 +2,9 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
-import com.mjsec.ctf.domain.RefreshEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.HistoryDto;
-import com.mjsec.ctf.dto.user.UserDTO;
+import com.mjsec.ctf.dto.user.UserDto;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
@@ -15,15 +14,10 @@ import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -48,7 +42,7 @@ public class UserService {
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
     //회원가입 로직
-    public void signUp(UserDTO.SignUp request) {
+    public void signUp(UserDto.SignUp request) {
         //입력 모두 들어갔는지 확인
         validateSignUp(request);
 
@@ -88,7 +82,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    private void validateSignUp(UserDTO.SignUp request){
+    private void validateSignUp(UserDto.SignUp request){
         if (request.getLoginId() == null || request.getLoginId().trim().isEmpty()) {
             throw new RestApiException(ErrorCode.EMPTY_LOGIN_ID);
         }
@@ -198,7 +192,8 @@ public class UserService {
 
      // 관리자용 회원정보 수정 메서드
     @Transactional
-    public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
+    public UserEntity updateMember(Long userId, UserDto.Update updateDto) {
+
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         user.setEmail(updateDto.getEmail());
@@ -222,7 +217,9 @@ public class UserService {
         }
         return userRepository.save(user); // 수정된 user 반환
     }
+
     public void deleteMember(Long userId) {
+
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         
@@ -236,7 +233,8 @@ public class UserService {
     }
 
     @Transactional
-    public void adminSignUp(UserDTO.SignUp request) {
+    public void adminSignUp(UserDto.SignUp request) {
+
         if (userRepository.existsByLoginId(request.getLoginId())) {
             throw new RestApiException(ErrorCode.DUPLICATE_ID);
         }
@@ -278,15 +276,18 @@ public class UserService {
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
     }
+
     // ** id로 한 명의 사용자 조회 **
     @Transactional(readOnly = true)
     public UserEntity getUserById(Long userId) {
+
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
     }
 
     // 허용된 도메인인지 검증
     public boolean isAllowedDomain(String email) {
+
         for (String domain : ALLOWED_DOMAINS) {
             if (email.endsWith(domain)) {
                 return true;

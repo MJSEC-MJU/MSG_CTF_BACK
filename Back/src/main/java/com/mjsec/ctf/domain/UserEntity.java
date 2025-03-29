@@ -1,13 +1,7 @@
 package com.mjsec.ctf.domain;
 
-import com.mjsec.ctf.type.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Getter

@@ -5,6 +5,7 @@ import com.google.cloud.storage.StorageOptions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+// Google Cloud Storage 설정
 @Configuration
 public class GCSConfig {
 

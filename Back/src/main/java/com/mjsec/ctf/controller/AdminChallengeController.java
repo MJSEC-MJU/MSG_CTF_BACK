@@ -15,10 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+// 관리자 권한으로 Challenge 조회
 @RestController
 @RequestMapping("/api/admin/challenge")
 @RequiredArgsConstructor
 public class AdminChallengeController {
+
     private final ChallengeService challengeService;
     private final ChallengeRepository challengeRepository;
 
@@ -26,7 +28,9 @@ public class AdminChallengeController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/summary")
     public ResponseEntity<List<Map<String, Object>>> getChallengeSummary() {
+
         List<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(Pageable.unpaged()).getContent();
+
         List<Map<String, Object>> summaryList = challenges.stream().map(challenge -> {
             Map<String, Object> map = new HashMap<>();
             map.put("challengeId", challenge.getChallengeId());
@@ -35,12 +39,15 @@ public class AdminChallengeController {
             map.put("category", challenge.getCategory().toString());
             return map;
         }).collect(Collectors.toList());
+
         return ResponseEntity.ok(summaryList);
     }
+
     @Operation(summary = "문제 상세 조회", description = "관리자 권한으로 특정 문제의 상세 정보를 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{challengeId}")
     public ResponseEntity<ChallengeDto.Detail> getChallengeDetail(@PathVariable Long challengeId) {
+
         ChallengeDto.Detail detail = challengeService.getDetailChallenge(challengeId);
         return ResponseEntity.ok(detail);
     }

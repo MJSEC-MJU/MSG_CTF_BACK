@@ -7,13 +7,14 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+// CORS 설정
 @Configuration
 public class GlobalCorsConfig {
 
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        // 허용할 출처를 명시합니다.
+        // 허용할 출처를 명시
         config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "https://msg.mjsec.kr"));
         config.setAllowCredentials(true);
         config.addAllowedHeader("*");

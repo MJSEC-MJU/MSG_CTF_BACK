@@ -5,14 +5,15 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+// API DOC 설정
 @Configuration
 public class SwaggerConfig {
 
     @Bean
     public OpenAPI api() {
         return new OpenAPI().info(new Info()
-                .title("게시판 API")
-                .description("스프링부트 기반 게시판 API")
+                .title("MSG CTF API")
+                .description("Spring Boot 기반 CTF API")
         );
     }
 }

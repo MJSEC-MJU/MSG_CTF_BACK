@@ -20,6 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+// sse를 통해 실시간 리더보드 업데이트
 @RestController
 @RequestMapping("/api/leaderboard")
 public class LeaderboardController {
@@ -32,6 +33,7 @@ public class LeaderboardController {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
 
     public LeaderboardController(LeaderboardService leaderboardService, HistoryService historyService) {
+
         this.leaderboardService = leaderboardService;
         this.historyService = historyService;
     }
@@ -44,6 +46,7 @@ public class LeaderboardController {
      * @return 등록된 emitter
      */
     private SseEmitter scheduleSseTask(SseEmitter emitter, Runnable task) {
+
         final ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(task, 0, 5, TimeUnit.SECONDS);
 
         emitter.onCompletion(() -> {
@@ -62,6 +65,7 @@ public class LeaderboardController {
     @CrossOrigin(origins = "*")
     @GetMapping("/stream")
     public SseEmitter stream() {
+
         // 1시간(3600000ms) 타임아웃 설정
         SseEmitter emitter = new SseEmitter(3600000L);
 
@@ -77,12 +81,14 @@ public class LeaderboardController {
                 emitter.completeWithError(ex);
             }
         });
+
         return emitter;
     }
 
     @CrossOrigin(origins = "*")
     @GetMapping(value = "/graph", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter graph() {
+
         SseEmitter emitter = new SseEmitter(3600000L);
 
         scheduleSseTask(emitter, () -> {
@@ -101,6 +107,7 @@ public class LeaderboardController {
                 emitter.completeWithError(ex);
             }
         });
+
         return emitter;
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+// Redis 관련 설정 모음
 @Configuration
 public class RedisConfig {
 
@@ -40,6 +41,7 @@ public class RedisConfig {
         return redisTemplate;
     }
 
+    // Lock에 사용되는 Redisson 설정
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config = new Config();

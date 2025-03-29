@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import org.springframework.web.bind.annotation.RestController;
 
+// 토큰 재발급을 담당하는 컨트롤러
 @RestController
 @ResponseBody
 public class ReissueController {
