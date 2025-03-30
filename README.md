@@ -302,3 +302,11 @@ cd discord-bot
 |----------------|--------------|
 | <img width="1470" src="https://github.com/user-attachments/assets/8aae8bb7-4eb6-4aab-b5a4-f1f373ca1490" /> | <img width="1470" src="https://github.com/user-attachments/assets/96f3abae-b99e-4691-9739-1d470050f134" /> |
 
+## 🤖 DISCORD BOT
+
+| **BOT 이름** | **이미지**                                                                                            |
+|-------------|----------------------------------------------------------------------------------------------------|
+| **🎟️ Ticket BOT** | ![Image](https://github.com/user-attachments/assets/602eb1c4-d33d-4f6f-88aa-cb525b1454b0)      |
+| **🎭 Role BOT** | ![Image](https://github.com/user-attachments/assets/f86d8c02-a617-48a5-8763-51ca60c97140)       |
+| **🩸 First-Blood BOT** | ![Image](https://github.com/user-attachments/assets/3b7c3e0b-7d91-45e3-a756-8bc891acc037) |
+| **🎵 DJ BOT** | ![Image](https://github.com/user-attachments/assets/de5e2942-082f-40ed-b91c-5344fa5513ad)         |
