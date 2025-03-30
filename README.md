@@ -304,9 +304,21 @@ cd discord-bot
 
 ## 🤖 DISCORD BOT
 
-| **BOT 이름** | **이미지**                                                                                            |
-|-------------|----------------------------------------------------------------------------------------------------|
-| **🎟️ Ticket BOT** | ![Image](https://github.com/user-attachments/assets/602eb1c4-d33d-4f6f-88aa-cb525b1454b0)      |
-| **🎭 Role BOT** | ![Image](https://github.com/user-attachments/assets/f86d8c02-a617-48a5-8763-51ca60c97140)       |
-| **🩸 First-Blood BOT** | ![Image](https://github.com/user-attachments/assets/3b7c3e0b-7d91-45e3-a756-8bc891acc037) |
-| **🎵 DJ BOT** | ![Image](https://github.com/user-attachments/assets/de5e2942-082f-40ed-b91c-5344fa5513ad)         |
+<table>
+  <tr>
+    <td align="center"><b>🎟️ Ticket BOT</b></td>
+    <td align="center"><b>🎭 Role BOT</b></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/602eb1c4-d33d-4f6f-88aa-cb525b1454b0" width="1470px"></td>
+    <td><img src="https://github.com/user-attachments/assets/f86d8c02-a617-48a5-8763-51ca60c97140" width="1470px"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>🩸 First-Blood BOT</b></td>
+    <td align="center"><b>🎵 DJ BOT</b></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/3b7c3e0b-7d91-45e3-a756-8bc891acc037" width="1470px"></td>
+    <td><img src="https://github.com/user-attachments/assets/de5e2942-082f-40ed-b91c-5344fa5513ad" width="1470px"></td>
+  </tr>
+</table>
