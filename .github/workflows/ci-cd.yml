@@ -1,72 +1,92 @@
-name: CI/CD Pipeline
+name: Docker Compose CI
 
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
     branches:
-      - main
+      - dev
 
 jobs:
-  build:
-   
+  build-and-run:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-         
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          MYSQL_DATABASE: ${{ secrets.DB_NAME }}
-          MYSQL_USER: ${{ secrets.DB_USERNAME }}
-          MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     env:
-      
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_HOST: localhost
       DB_PORT: 3306
-
+      SPRING_SECURITY_USER_NAME: ${{ secrets.SPRING_SECURITY_USER_NAME }}
+      SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  # 추가
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}  # 추가
+      API_KEY: ${{ secrets.API_KEY }} #디스코드봇 요청 API키키
+      BUCKET : ${{ secrets.BUCKET}}
+      LOCATION : ${{ secrets.LOCATION}}
+      PROJECT_ID : ${{ secrets.PROJECT_ID}}
+      GCP_JSON_FILE :  ${{ secrets.GCP_JSON_FILE}}
     steps:
-     
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-     
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+      - name: Create .env file
+        run: |
+          echo "DB_NAME=${{ env.DB_NAME }}" > .env
+          echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
+          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
+          echo "DB_PORT=${{ env.DB_PORT }}" >> .env
+          echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}" >> .env
+          echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}" >> .env
+          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> .env
+          echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}" >> .env  # 추가
+          echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}" >> .env  # 추가
+          echo "API_KEY=${{ env.API_KEY }}" >> .env
+          echo "BUCKET=${{ env.BUCKET }}" >> .env
+          echo "LOCATION=${{ env.LOCATION }}" >> .env
+          echo "PROJECT_ID=${{ env.PROJECT_ID }}" >> .env
+          echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}" >> .env
+          
+      - name: Create SSL files
+        run: |
+          mkdir -p ./nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
 
-     
-      - name: Wait for MySQL service to be ready
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Docker Compose Build and Up
+        run: docker-compose up --build -d
+
+      - name: Wait for MySQL
         run: |
           for i in {1..30}; do
-            mysqladmin ping -h localhost -P 3306 --silent && break
+            docker-compose exec -T db mysqladmin ping -h localhost --silent && break
             echo "Waiting for MySQL..."
-            sleep 1
+            sleep 2
           done
 
-    
-      - name: Build with Gradle
-        working-directory: ./Back
-        run: |
-          ./gradlew clean build -Dspring.profiles.active=local --stacktrace
+      - name: Run Gradle Tests in Docker
+        run: docker-compose run --rm test
 
-    
-      - name: Test with Gradle
-        working-directory: ./Back
-        run: |
-          ./gradlew test -Dspring.profiles.active=local --stacktrace
+      - name: Start Backend Container
+        run: docker-compose up -d backend
+
+      - name: Check Backend Container Logs
+        run: docker-compose logs backend
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose down
+
+      - name: Upload Test Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: Back/build/reports/tests/test

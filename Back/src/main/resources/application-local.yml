@@ -1,10 +1,36 @@
 spring:
+  redis:
+    host: redis
+    port: 6379
+    timeout: 6000
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME}  # Gmail 주소
+    password: ${GMAIL_APP_PASSWORD}   # 앱 비밀번호 사용
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  cloud:
+    gcp:
+      storage:
+        credentials:
+          location: ${LOCATION}
+        project-id: ${PROJECT_ID}
+        bucket: ${BUCKET}
+
   config:
     activate:
       on-profile: local
+  jwt:
+    secret: ${JWT_SECRET}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/${DB_NAME}?serverTimezone=UTC&CharacterEncoding=UTF-8
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=UTC&CharacterEncoding=UTF-8
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
@@ -16,7 +42,16 @@ spring:
       hibernate:
         show-sql: false
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Seoul
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
 
 springdoc:
   swagger-ui:
@@ -32,3 +67,7 @@ springdoc:
   default-produces-media-type: application/json
   paths-to-match:
     - /**
+
+api:
+  key: ${API_KEY}
+  url: ${API_URL}
