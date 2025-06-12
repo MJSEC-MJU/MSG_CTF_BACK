@@ -22,7 +22,7 @@ public class FilterConfig {
         );
 
         ZonedDateTime endTime = ZonedDateTime.of(
-                LocalDateTime.of(2025, 3, 29, 22, 0),
+                LocalDateTime.of(2025, 7, 29, 22, 0),
                 ZoneId.of("Asia/Seoul")
         );
 
