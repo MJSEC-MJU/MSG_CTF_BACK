@@ -20,7 +20,7 @@ public class HistoryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String userId;
+    private String loginId;
 
     private Long challengeId;
 
