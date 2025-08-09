@@ -58,7 +58,7 @@ public class ChallengeService {
     BcryptPasswordEncoder -> PasswordEncoder로 변경해서 진행했음.
     (혹시 몰라 메모해둠)
      */
-    private final BcryptPasswordEncoder passwordEncoder;
+    private final BCryptPasswordEncoder passwordEncoder;
     private final RedissonClient redissonClient;
 
     @Value("${api.key}")
