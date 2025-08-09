@@ -226,11 +226,11 @@ public class UserService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         
-        leaderboardRepository.findByUserId(user.getLoginId())
+        leaderboardRepository.findByLoginId(user.getLoginId())
             .ifPresent(leaderboardRepository::delete);
       
         // 회원의 로그인 ID를 기준으로 히스토리 삭제
-        historyRepository.deleteByUserId(user.getLoginId());
+        historyRepository.deleteByLoginId(user.getLoginId());
       
         userRepository.delete(user);
     }
@@ -302,7 +302,7 @@ public class UserService {
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
 
-        List<HistoryEntity> historyEntities = historyRepository.findByUserId(user.getLoginId());
+        List<HistoryEntity> historyEntities = historyRepository.findByLoginId(user.getLoginId());
 
         if(historyEntities == null){
             return Collections.emptyList();
@@ -314,7 +314,7 @@ public class UserService {
                             .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
                     return new HistoryDto(
-                            historyEntity.getUserId(),
+                            historyEntity.getLoginId(),
                             historyEntity.getChallengeId().toString(),
                             challenge.getTitle(),
                             historyEntity.getSolvedTime(),

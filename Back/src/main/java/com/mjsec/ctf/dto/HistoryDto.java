@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 public class HistoryDto {
-    private String userId;
+    private String loginId;
     private String challengeId;
     private String title;
     private LocalDateTime solvedTime;
