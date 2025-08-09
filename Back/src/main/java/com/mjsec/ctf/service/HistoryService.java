@@ -36,7 +36,7 @@ public class HistoryService {
 
             // HistoryDto의 challengeId 타입이 String인 경우 문자열로 변환합니다.
             return new HistoryDto(
-                    history.getUserId(),
+                    history.getLoginId(),
                     String.valueOf(history.getChallengeId()),
                     challenge.getTitle(),
                     history.getSolvedTime(),

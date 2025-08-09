@@ -18,31 +18,34 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
     // 필요 시 사용자별 조회 등의 메소드를 추가할 수 있음
     List<HistoryEntity> findAllByOrderBySolvedTimeAsc();
 
-    List<HistoryEntity> findByUserId(String userId);
+    // userId → loginId로 변경
+    List<HistoryEntity> findByLoginId(String loginId);
 
-    @Query("SELECT COUNT(DISTINCT h.userId) FROM HistoryEntity h WHERE h.challengeId = :challengeId")
+    @Query("SELECT COUNT(DISTINCT h.loginId) FROM HistoryEntity h WHERE h.challengeId = :challengeId")
     long countDistinctByChallengeId(Long challengeId);
 
-    @Query("SELECT COUNT(h) > 0 FROM HistoryEntity h WHERE h.userId = :userId AND h.challengeId = :challengeId")
-    boolean existsByUserIdAndChallengeId(@Param("userId") String userId, @Param("challengeId") Long challengeId);
+    // 메서드명과 파라미터명 모두 변경
+    @Query("SELECT COUNT(h) > 0 FROM HistoryEntity h WHERE h.loginId = :loginId AND h.challengeId = :challengeId")
+    boolean existsByLoginIdAndChallengeId(@Param("loginId") String loginId, @Param("challengeId") Long challengeId);
 
-    @Query("SELECT DISTINCT h.userId FROM HistoryEntity h")
-    List<String> findDistinctUserIds();
+    // 메서드명 변경
+    @Query("SELECT DISTINCT h.loginId FROM HistoryEntity h")
+    List<String> findDistinctLoginIds();
 
-     // challengeId에 해당하는 HistoryEntity를 삭제하는 메서드
+    // challengeId에 해당하는 HistoryEntity를 삭제하는 메서드
     @Transactional
     @Modifying
     @Query("DELETE FROM HistoryEntity h WHERE h.challengeId = :challengeId")
     void deleteByChallengeId(@Param("challengeId") Long challengeId);
 
-    // userId에 해당하는 HistoryEntity를 삭제하는 메서드
+    // loginId에 해당하는 HistoryEntity를 삭제하는 메서드 (파라미터명과 쿼리 변경)
     @Transactional
     @Modifying
-    @Query("DELETE FROM HistoryEntity h WHERE h.userId = :userId")
-    void deleteByUserId(@Param("userId") String userId);
+    @Query("DELETE FROM HistoryEntity h WHERE h.loginId = :loginId")
+    void deleteByLoginId(@Param("loginId") String loginId);
 
-    // 비관적 락을 적용하여 조회
+    // 비관적 락을 적용하여 조회 (메서드명과 파라미터명, 쿼리 모두 변경)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT h FROM HistoryEntity h WHERE h.userId = :userId AND h.challengeId = :challengeId")
-    Optional<HistoryEntity> findWithLockByUserIdAndChallengeId(@Param("userId") String userId, @Param("challengeId") Long challengeId);
+    @Query("SELECT h FROM HistoryEntity h WHERE h.loginId = :loginId AND h.challengeId = :challengeId")
+    Optional<HistoryEntity> findWithLockByLoginIdAndChallengeId(@Param("loginId") String loginId, @Param("challengeId") Long challengeId);
 }

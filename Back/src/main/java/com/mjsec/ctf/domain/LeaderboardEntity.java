@@ -18,8 +18,8 @@ public class LeaderboardEntity {
     @Column(name = "id")  // DB 컬럼명 매칭
     private Long id;
 
-    @Column(name = "userId")  // userId// 컬럼 매핑
-    private String userId;
+    @Column(name = "loginId")  // userId// 컬럼 매핑 <-loginId 로 수정
+    private String loginId;
 
     @Column(name = "total_point")  // total_point 컬럼 매핑
     private int totalPoint;
