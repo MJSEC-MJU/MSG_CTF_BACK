@@ -87,7 +87,7 @@ public class LeaderboardController {
 
         scheduleSseTask(emitter, () -> {
             try {
-                List<HistoryDto> historyDtos = historyService.getHistoryDtos();
+                List<HistoryDto> historyDtos = historyService.getActiveUserHistoryDtos();
                 emitter.send(
                         SseEmitter.event()
                                 .name("update")

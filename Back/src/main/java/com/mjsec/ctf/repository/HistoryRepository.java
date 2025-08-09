@@ -21,10 +21,9 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
     // userId → loginId로 변경
     List<HistoryEntity> findByLoginId(String loginId);
 
-    @Query("SELECT COUNT(DISTINCT h.loginId) FROM HistoryEntity h WHERE h.challengeId = :challengeId")
+    @Query("SELECT COUNT(DISTINCT h.loginId) FROM HistoryEntity h WHERE h.challengeId = :challengeId AND h.userDeleted = false AND h.loginId IS NOT NULL")
     long countDistinctByChallengeId(Long challengeId);
 
-    // 메서드명과 파라미터명 모두 변경
     @Query("SELECT COUNT(h) > 0 FROM HistoryEntity h WHERE h.loginId = :loginId AND h.challengeId = :challengeId")
     boolean existsByLoginIdAndChallengeId(@Param("loginId") String loginId, @Param("challengeId") Long challengeId);
 
@@ -48,4 +47,10 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT h FROM HistoryEntity h WHERE h.loginId = :loginId AND h.challengeId = :challengeId")
     Optional<HistoryEntity> findWithLockByLoginIdAndChallengeId(@Param("loginId") String loginId, @Param("challengeId") Long challengeId);
+
+    @Query("SELECT h FROM HistoryEntity h WHERE h.userDeleted = true")
+    List<HistoryEntity> findByUserDeletedTrue();
+
+    @Query("SELECT h FROM HistoryEntity h WHERE h.loginId = :loginId AND h.userDeleted = false")
+    List<HistoryEntity> findByLoginIdAndUserDeletedFalse(@Param("loginId") String loginId);
 }
