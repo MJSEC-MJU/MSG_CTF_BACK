@@ -1,9 +1,6 @@
 package com.mjsec.ctf.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,8 +12,15 @@ public class RefreshEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String loginId;
+
     private String refresh;
+
     private String expiration;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loginId", referencedColumnName = "loginId", insertable = false, updatable = false)
+    private UserEntity user;
 
 }

@@ -21,7 +21,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,8 +33,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,6 +52,12 @@ public class ChallengeService {
     private final HistoryRepository historyRepository;
     private final LeaderboardRepository leaderboardRepository;
     private final SubmissionRepository submissionRepository;
+
+    /*
+    7월 30일자 테스트할 땐
+    BcryptPasswordEncoder -> PasswordEncoder로 변경해서 진행했음.
+    (혹시 몰라 메모해둠)
+     */
     private final BCryptPasswordEncoder passwordEncoder;
     private final RedissonClient redissonClient;
 
@@ -79,7 +85,7 @@ public class ChallengeService {
         Page<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(pageable);
 
         return challenges.map(challenge -> {
-            boolean solved = historyRepository.existsByUserIdAndChallengeId(currentUserId(), challenge.getChallengeId());
+            boolean solved = historyRepository.existsByLoginIdAndChallengeId(currentUserId(), challenge.getChallengeId());
             return ChallengeDto.Simple.fromEntity(challenge, solved);
         });
     }
@@ -231,7 +237,7 @@ public class ChallengeService {
             ChallengeEntity challenge = challengeRepository.findById(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
-            if (historyRepository.findWithLockByUserIdAndChallengeId(user.getLoginId(), challengeId).isPresent()) {
+            if (historyRepository.findWithLockByLoginIdAndChallengeId(user.getLoginId(), challengeId).isPresent()) {
                 return "Submitted";
             }
 
@@ -255,7 +261,7 @@ public class ChallengeService {
                 return "Wrong";
             } else {
                 HistoryEntity history = HistoryEntity.builder()
-                        .userId(user.getLoginId())
+                        .loginId(user.getLoginId())
                         .challengeId(challenge.getChallengeId())
                         .solvedTime(LocalDateTime.now())
                         .univ(user.getUniv())
@@ -301,13 +307,13 @@ public class ChallengeService {
     // Leaderboard 업데이트 메서드
     private void updateLeaderboard(UserEntity user, LocalDateTime solvedTime) {
         // 이미 존재하는 Leaderboard 레코드를 조회
-        var optionalLeaderboard = leaderboardRepository.findByUserId(user.getLoginId());
+        var optionalLeaderboard = leaderboardRepository.findByLoginId(user.getLoginId());
         LeaderboardEntity leaderboardEntity;
         if (optionalLeaderboard.isPresent()) {
             leaderboardEntity = optionalLeaderboard.get();
         } else {
             leaderboardEntity = new LeaderboardEntity();
-            leaderboardEntity.setUserId(user.getLoginId());
+            leaderboardEntity.setLoginId(user.getLoginId());
         }
         
         // 사용자의 TotalPoint 와 LastSolvedTIme, Univ
@@ -318,40 +324,7 @@ public class ChallengeService {
         leaderboardRepository.save(leaderboardEntity);
     }
 
-    // 문제 점수 계산기 ver.1
-    /*
-    public void updateChallengeScore(ChallengeEntity challenge) {
-        
-        // 현재 챌린지를 해결한 사용자 수를 계산
-        long solvedCount = historyRepository.countDistinctByChallengeId(challenge.getChallengeId());
-        
-        // 전체 참가자 수를 계산
-        long totalParticipants = userRepository.count();
-    
-        double maxDecrementFactor = 0.9;
-
-        double newPoints;
-        if (totalParticipants > 1) {
-            // 점수 감소 비율 계산
-            double decrementFactor = maxDecrementFactor * (solvedCount - 1) / (totalParticipants - 1);
-            decrementFactor = Math.min(decrementFactor, maxDecrementFactor);
-    
-            // 초기 점수에서 점수를 감소시킴
-            newPoints = challenge.getInitialPoints() * (1 - decrementFactor);
-           // 최소 점수 이하로 떨어지지 않도록 함
-            newPoints = Math.max(newPoints, challenge.getMinPoints());
-        } else {
-            newPoints = challenge.getInitialPoints();  // 참가자가 1명 이하인 경우 초기 점수 유지
-        }
-    
-        newPoints = Math.floor(newPoints);
-        challenge.setPoints((int)newPoints);
-    
-        challengeRepository.save(challenge);
-    }
-     */
-
-    // 문제 점수 계산기 ver.2
+    // 문제 점수 계산기 (updateChallengeScore 메서드 수정 - 삭제된 사용자 제외)
     public void updateChallengeScore(ChallengeEntity challenge) {
 
         long solvedCount = historyRepository.countDistinctByChallengeId(challenge.getChallengeId());
@@ -373,7 +346,6 @@ public class ChallengeService {
     // 퍼스트 블러드 Sender
     private void sendFirstBloodNotification(ChallengeEntity challenge, UserEntity user) {
         RestTemplate restTemplate = new RestTemplate();
-    
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         headers.set("X-API-Key", apiKey);
@@ -396,9 +368,9 @@ public class ChallengeService {
 
     public void updateTotalPoints () {
 
-        List<String> userIds = historyRepository.findDistinctUserIds();
+        List<String> loginIds = historyRepository.findDistinctLoginIds();
 
-        if(userIds.isEmpty()){
+        if(loginIds.isEmpty()){
             List<String> userLoginIds = userRepository.findAllUserLoginIds();
 
             for(String loginId : userLoginIds){
@@ -408,7 +380,7 @@ public class ChallengeService {
                 user.setTotalPoint(0);
                 userRepository.save(user);
 
-                LeaderboardEntity leaderboardEntity = leaderboardRepository.findByUserId(user.getLoginId())
+                LeaderboardEntity leaderboardEntity = leaderboardRepository.findByLoginId(user.getLoginId())
                         .orElseThrow(() -> new RestApiException(ErrorCode.LEADERBOARD_NOT_FOUND));
 
                 leaderboardEntity.setTotalPoint(0);
@@ -419,8 +391,8 @@ public class ChallengeService {
             return;
         }
 
-        for (String userId : userIds) {
-            List<HistoryEntity> userHistoryList = historyRepository.findByUserId(userId);
+        for (String loginId : loginIds) {
+            List<HistoryEntity> userHistoryList = historyRepository.findByLoginIdAndUserDeletedFalse(loginId);
 
             List<Long> challengeIds = userHistoryList.stream()
                     .map(HistoryEntity::getChallengeId)
@@ -443,7 +415,7 @@ public class ChallengeService {
                 }
             }
 
-            UserEntity user = userRepository.findByLoginId(userId)
+            UserEntity user = userRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
 
             user.setTotalPoint(totalPoints);

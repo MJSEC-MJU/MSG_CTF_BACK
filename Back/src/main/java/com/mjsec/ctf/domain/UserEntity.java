@@ -1,5 +1,6 @@
 package com.mjsec.ctf.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mjsec.ctf.type.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -45,4 +46,14 @@ public class UserEntity extends BaseEntity {
 
     @Column(nullable = false)
     private int totalPoint;
+
+    @JsonIgnore
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private LeaderboardEntity leaderboard;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<SubmissionEntity> submissions;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<RefreshEntity> refreshTokens;
 }

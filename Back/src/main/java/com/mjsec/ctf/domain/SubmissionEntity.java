@@ -1,10 +1,7 @@
 package com.mjsec.ctf.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,4 +32,8 @@ public class SubmissionEntity {
 
     @Column
     private LocalDateTime lastAttemptTime;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loginId", referencedColumnName = "loginId", insertable=false, updatable=false)
+    private UserEntity user;
 }
