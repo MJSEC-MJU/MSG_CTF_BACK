@@ -28,7 +28,7 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
     boolean existsByLoginIdAndChallengeId(@Param("loginId") String loginId, @Param("challengeId") Long challengeId);
 
     // 메서드명 변경
-    @Query("SELECT DISTINCT h.loginId FROM HistoryEntity h")
+    @Query("SELECT DISTINCT h.loginId FROM HistoryEntity h WHERE h.loginId IS NOT NULL AND h.userDeleted = false")
     List<String> findDistinctLoginIds();
 
     // challengeId에 해당하는 HistoryEntity를 삭제하는 메서드
@@ -53,4 +53,12 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
 
     @Query("SELECT h FROM HistoryEntity h WHERE h.loginId = :loginId AND h.userDeleted = false")
     List<HistoryEntity> findByLoginIdAndUserDeletedFalse(@Param("loginId") String loginId);
+
+    @Query("SELECT h FROM HistoryEntity h " +
+            "JOIN ChallengeEntity c ON h.challengeId = c.challengeId " +
+            "WHERE h.loginId = :loginId " +
+            "AND h.userDeleted = false " +
+            "AND c.deletedAt IS NULL")
+    List<HistoryEntity> findByLoginIdAndUserDeletedFalseAndChallengeNotDeleted(@Param("loginId") String loginId);
+
 }

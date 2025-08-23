@@ -27,9 +27,9 @@ public class JwtService {
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SIG.HS256.key().build().getAlgorithm());
     }
 
-    public List<String> getRoles(String token) {
+    public List<String> getRole(String token) {
 
-        List<?> roles = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("roles", List.class);
+        List<?> roles = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", List.class);
 
         if (roles != null) {
             return roles.stream()

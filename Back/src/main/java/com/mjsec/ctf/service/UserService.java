@@ -79,7 +79,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .roles("ROLE_USER")
+                .role("ROLE_USER")
                 .totalPoint(0)
                 .build();
 
@@ -136,7 +136,7 @@ public class UserService {
         userProfile.put("loginId", user.getLoginId());
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
-        userProfile.put("roles", user.getRoles());
+        userProfile.put("roles", user.getRole());
         userProfile.put("total_point", user.getTotalPoint());
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
@@ -159,11 +159,11 @@ public class UserService {
             user.setPassword(encodedPassword);
         }
         // 역할 수정 로직 추가
-        if (updateDto.getRoles() != null && !updateDto.getRoles().isBlank()) {
-            String roleStr = updateDto.getRoles().toUpperCase();
+        if (updateDto.getRole() != null && !updateDto.getRole().isBlank()) {
+            String roleStr = updateDto.getRole().toUpperCase();
             try {
                 UserRole role = UserRole.valueOf(roleStr);
-                user.setRoles(role.toString());
+                user.setRole(role.toString());
             } catch (IllegalArgumentException e) {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
@@ -262,9 +262,9 @@ public class UserService {
 
         // roles 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
         String role;
-        if (request.getRoles() != null && !request.getRoles().isBlank()) {
+        if (request.getRole() != null && !request.getRole().isBlank()) {
             // 입력값을 대문자로 변환하여 표준 형식으로 맞춥니다.
-            String inputRole = request.getRoles().toUpperCase();
+            String inputRole = request.getRole().toUpperCase();
             if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
@@ -278,7 +278,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .roles(role)  // 전달된 역할로 설정 (관리자 생성 시 "admin" 입력 가능)
+                .role(role)  // 전달된 역할로 설정 (관리자 생성 시 "admin" 입력 가능)
                 .totalPoint(0)
                 .build();
 

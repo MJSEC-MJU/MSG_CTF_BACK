@@ -79,7 +79,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // 사용자 정보 추출 및 SecurityContext에 설정
         String loginId = jwtService.getLoginId(accessToken);
-        List<String> roles = jwtService.getRoles(accessToken);
+        List<String> roles = jwtService.getRole(accessToken);
 
         log.info("Token validated. loginId: {}, Roles: {}", loginId, roles);
 

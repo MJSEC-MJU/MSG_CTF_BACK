@@ -42,7 +42,7 @@ public class UserEntity extends BaseEntity {
      */
 
     @Column(nullable = false)
-    private String roles;
+    private String role;
 
     @Column(nullable = false)
     private int totalPoint;

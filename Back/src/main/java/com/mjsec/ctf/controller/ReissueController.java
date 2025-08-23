@@ -64,7 +64,7 @@ public class ReissueController {
         }
 
         String loginId = jwtService.getLoginId(refreshToken);
-        List<String> roles = jwtService.getRoles(refreshToken);
+        List<String> roles = jwtService.getRole(refreshToken);
 
         String newAccess = jwtService.createJwt("accessToken", loginId, roles, 3_600_000L);
         String newRefresh = jwtService.createJwt("refreshToken",loginId,roles,43_200_000L);
