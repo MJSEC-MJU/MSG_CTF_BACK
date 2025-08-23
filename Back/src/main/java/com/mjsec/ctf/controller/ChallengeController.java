@@ -9,6 +9,7 @@ import com.mjsec.ctf.service.JwtService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.core.io.ByteArrayResource;
 import java.io.IOException;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/challenges")
 @RequiredArgsConstructor
@@ -124,4 +126,5 @@ public class ChallengeController {
             );
         }
     }
+
 }

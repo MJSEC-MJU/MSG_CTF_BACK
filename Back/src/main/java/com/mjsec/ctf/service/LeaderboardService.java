@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class LeaderboardService {
@@ -19,7 +20,10 @@ public class LeaderboardService {
 
     // 모든 유저의 userid, total_poing, univ 데이터를 가져오는 메서드
     public List<LeaderboardEntity> getLeaderboard() {
-        return leaderboardRepository.findAllByOrderByTotalPointDescLastSolvedTimeAsc(); // 모든 데이터를 total_point 기준 내림차순으로 가져오기
+        return leaderboardRepository.findAllByOrderByTotalPointDescLastSolvedTimeAsc()
+                .stream()
+                .filter(leaderboard -> leaderboard.getTotalPoint() > 0) // 0점 유저 제외
+                .collect(Collectors.toList());
     }
     // 여기서 한 부분이 달라졌는데 본래 updatedAt 으로 정렬하던것을 LastSolvedTime 으로 정렬하게 바꿨습니다
     // 이때 lastSolvedTime 은 mysql 에서 트리거를 활용하여 설정됩니다.
