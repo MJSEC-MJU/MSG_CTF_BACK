@@ -29,10 +29,10 @@ public class JwtService {
 
     public List<String> getRole(String token) {
 
-        List<?> roles = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", List.class);
+        List<?> role = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", List.class);
 
-        if (roles != null) {
-            return roles.stream()
+        if (role != null) {
+            return role.stream()
                     .map(Object::toString)
                     .collect(Collectors.toList());
         } else {
@@ -70,16 +70,16 @@ public class JwtService {
      *
      * @param tokenType : 토큰 타입(ACCESS 토큰 / REFRESH 토큰)
      * @param loginId : 유저의 로그인 id
-     * @param roles : 유저의 권한 -> 일단 Enum 타입으로 수정함.
+     * @param role : 유저의 권한 -> 일단 Enum 타입으로 수정함.
      * @param expiredMs : 만료 시점
      * @return JWT
      */
-    public String createJwt(String tokenType, String loginId, List<String> roles, Long expiredMs) {
+    public String createJwt(String tokenType, String loginId, List<String> role, Long expiredMs) {
 
         return Jwts.builder()
                 .claim("tokenType", tokenType)
                 .claim("loginId", loginId)
-                .claim("roles", roles)
+                .claim("role", role)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)

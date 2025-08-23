@@ -38,7 +38,7 @@ public class UserEntity extends BaseEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     @Fetch(FetchMode.JOIN)
-    private List<UserRole> roles;
+    private List<UserRole> role;
      */
 
     @Column(nullable = false)

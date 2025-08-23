@@ -136,7 +136,7 @@ public class UserService {
         userProfile.put("loginId", user.getLoginId());
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
-        userProfile.put("roles", user.getRole());
+        userProfile.put("role", user.getRole());
         userProfile.put("total_point", user.getTotalPoint());
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
@@ -260,7 +260,7 @@ public class UserService {
             throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
 
-        // roles 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
+        // role 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
         String role;
         if (request.getRole() != null && !request.getRole().isBlank()) {
             // 입력값을 대문자로 변환하여 표준 형식으로 맞춥니다.
