@@ -286,6 +286,9 @@ public class ChallengeService {
                     }
                 }
 
+                user.setMileage(user.getMileage() + 100); // (임시) 제출한 플래그가 정답 시 마일리지 부여
+                userRepository.save(user);
+
                 updateChallengeScore(challenge);
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
