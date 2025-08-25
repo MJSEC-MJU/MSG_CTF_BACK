@@ -11,7 +11,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
@@ -26,7 +25,7 @@ public class PaymentTokenEntity {
     private Long paymentTokenId;
 
     @Column
-    private String token;
+    private String paymentToken;
 
     @Column
     private Long userId;
