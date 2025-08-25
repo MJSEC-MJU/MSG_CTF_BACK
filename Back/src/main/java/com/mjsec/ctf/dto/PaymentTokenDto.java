@@ -12,7 +12,7 @@ public class PaymentTokenDto {
 
     private String token;
 
-    private Long userId;
+    private String loginId;
 
     private LocalDateTime expiry;
 

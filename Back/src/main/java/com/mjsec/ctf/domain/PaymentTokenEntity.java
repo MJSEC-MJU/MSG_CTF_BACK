@@ -28,7 +28,7 @@ public class PaymentTokenEntity {
     private String paymentToken;
 
     @Column
-    private Long userId;
+    private String loginId;
 
     @Column
     private LocalDateTime expiry;

@@ -3,6 +3,7 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.dto.PaymentTokenDto;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.service.JwtService;
+import com.mjsec.ctf.service.PaymentService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
 
     private final JwtService jwtService;
+    private final PaymentService paymentService;
 
     @Operation(summary = "QR 발급을 위한 토큰 반환", description = "마일리지 결제를 위한 QR 코드 생성을 위해 토큰을 반환합니다.")
     @PostMapping("/qr-token")

@@ -25,7 +25,7 @@ public class PaymentHistoryEntity {
     private Long paymentHistoryId;
 
     @Column
-    private Long userId;
+    private String loginId;
 
     @Column
     private int mileageUsed;
