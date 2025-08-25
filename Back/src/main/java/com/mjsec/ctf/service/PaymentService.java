@@ -2,10 +2,12 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.PaymentHistoryEntity;
 import com.mjsec.ctf.domain.PaymentTokenEntity;
+import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.PaymentTokenDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.PaymentHistoryRepository;
 import com.mjsec.ctf.repository.PaymentTokenRepository;
+import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -17,13 +19,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class PaymentService {
 
-    private final PaymentTokenRepository tokenRepository;
-    private final PaymentHistoryRepository historyRepository;
+    private final PaymentTokenRepository paymentTokenRepository;
+    private final PaymentHistoryRepository paymentHistoryRepository;
+    private final UserRepository userRepository;
 
-    public PaymentService(PaymentTokenRepository tokenRepository, PaymentHistoryRepository historyRepository) {
+    public PaymentService(PaymentTokenRepository paymentTokenRepository, PaymentHistoryRepository paymentHistoryRepository,
+                          UserRepository userRepository) {
 
-        this.tokenRepository = tokenRepository;
-        this.historyRepository = historyRepository;
+        this.paymentTokenRepository = paymentTokenRepository;
+        this.paymentHistoryRepository = paymentHistoryRepository;
+        this.userRepository = userRepository;
     }
 
     public PaymentTokenDto createPaymentToken(String loginId) {
@@ -35,7 +40,7 @@ public class PaymentService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        tokenRepository.save(paymentTokenEntity);
+        paymentTokenRepository.save(paymentTokenEntity);
 
         return PaymentTokenDto.builder()
                 .paymentTokenId(paymentTokenEntity.getPaymentTokenId())
@@ -47,14 +52,25 @@ public class PaymentService {
     }
 
     @Transactional
-    public void processPayment(String paymentToken, int mileageUsed) {
+    public void processPayment(String loginId, String paymentToken, int mileageUsed) {
 
-        PaymentTokenEntity tokenEntity = tokenRepository.findByPaymentToken(paymentToken)
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+        PaymentTokenEntity tokenEntity = paymentTokenRepository.findByPaymentToken(paymentToken)
                 .orElseThrow(() -> new RestApiException(ErrorCode.INVALID_TOKEN));
 
         if (tokenEntity.getExpiry().isBefore(LocalDateTime.now())) {
             throw new RestApiException(ErrorCode.TOKEN_EXPIRED);
         }
+
+        if(user.getMileage() < mileageUsed){
+            throw new RestApiException(ErrorCode.NOT_ENOUGH_MILEAGE);
+        }
+        else {
+            user.setMileage(user.getMileage() - mileageUsed);
+        }
+        userRepository.save(user);
 
         PaymentHistoryEntity historyEntity = PaymentHistoryEntity.builder()
                 .loginId(tokenEntity.getLoginId())
@@ -62,8 +78,8 @@ public class PaymentService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        historyRepository.save(historyEntity);
-        tokenRepository.deleteByPaymentToken(paymentToken);
+        paymentHistoryRepository.save(historyEntity);
+        paymentTokenRepository.deleteByPaymentToken(paymentToken);
     }
 }
 

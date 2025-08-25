@@ -42,11 +42,12 @@ public class PaymentController {
 
     @PostMapping("/checkout")
     public ResponseEntity<SuccessResponse<Void>> checkout(
+            @RequestParam String loginId,
             @RequestParam String paymentToken,
             @RequestParam int mileageUsed
     ) {
 
-        paymentService.processPayment(paymentToken, mileageUsed);
+        paymentService.processPayment(loginId, paymentToken, mileageUsed);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(

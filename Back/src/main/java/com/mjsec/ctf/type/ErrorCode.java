@@ -53,7 +53,8 @@ public enum ErrorCode {
 
     //마일리지 결제
     INVALID_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."),
-    TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "만료된 토큰입니다.")
+    TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "만료된 토큰입니다."),
+    NOT_ENOUGH_MILEAGE(HttpStatus.BAD_REQUEST, "마일리지가 부족합니다.")
     ;
 
     private final HttpStatus httpStatus;
