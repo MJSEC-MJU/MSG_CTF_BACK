@@ -23,6 +23,8 @@ public enum ResponseMessage {
     SUBMIT_FAILED_WAIT("브루트포스 금지"),
     ALREADY_SUBMITTED("이미 정답처리 된 문제"),
     GET_HISTORY_SUCCESS("히스토리 조회 성공"),
+    GENERATE_QR_TOKEN_SUCCESS("QR 발급용 토큰 생성 성공"),
+    MILEAGE_BASED_CHECKOUT_SUCCESS("마일리지 기반 결제 성공")
     ;
 
     private final String message;

@@ -47,6 +47,9 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false)
     private int totalPoint;
 
+    @Column(nullable = false)
+    private int mileage;
+
     @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private LeaderboardEntity leaderboard;

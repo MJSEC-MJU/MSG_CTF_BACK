@@ -93,6 +93,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/payment/qr-token").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
                         
                 );
 

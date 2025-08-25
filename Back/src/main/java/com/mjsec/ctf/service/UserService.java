@@ -81,6 +81,7 @@ public class UserService {
                 .univ(request.getUniv())
                 .roles("ROLE_USER")
                 .totalPoint(0)
+                .mileage(0)
                 .build();
 
         userRepository.save(user);
@@ -138,6 +139,7 @@ public class UserService {
         userProfile.put("univ", user.getUniv());
         userProfile.put("roles", user.getRoles());
         userProfile.put("total_point", user.getTotalPoint());
+        userProfile.put("mileage", user.getMileage());
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
 
@@ -280,6 +282,7 @@ public class UserService {
                 .univ(request.getUniv())
                 .roles(role)  // 전달된 역할로 설정 (관리자 생성 시 "admin" 입력 가능)
                 .totalPoint(0)
+                .mileage(0)
                 .build();
 
         userRepository.save(user);

@@ -268,6 +268,7 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
+                // firstBloodLock 안전하게 처리
                 String firstBloodLockKey = "firstBloodLock:" + challengeId;
                 RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
                 boolean firstBloodLocked = false;
@@ -280,11 +281,16 @@ public class ChallengeService {
                             sendFirstBloodNotification(challenge, user);
                         }
                     }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 } finally {
-                    if (firstBloodLocked) {
+                    if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
                         firstBloodLock.unlock();
                     }
                 }
+
+                user.setMileage(user.getMileage() + 100); // 제출 정답 시 마일리지 부여
+                userRepository.save(user);
 
                 updateChallengeScore(challenge);
                 challenge.setSolvers(challenge.getSolvers() + 1);
@@ -298,7 +304,7 @@ public class ChallengeService {
             Thread.currentThread().interrupt();
             return "Error while processing";
         } finally {
-            if (locked) {
+            if (locked && lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
         }

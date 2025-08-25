@@ -28,6 +28,7 @@ public class AdminUserInitializer {
                         .univ("Admin Univ")       
                         .roles("ROLE_ADMIN")
                         .totalPoint(0)
+                        .mileage(0)
                         .build();
                 userRepository.save(admin);
                 System.out.println("관리자 계정 생성 완료: " + adminUsername);
