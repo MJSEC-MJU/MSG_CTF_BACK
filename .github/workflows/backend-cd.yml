@@ -21,6 +21,11 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
+      - name: Build & Push Frontend
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/frontend:latest -f frontend.dockerfile .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/frontend:latest
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -97,7 +102,7 @@ jobs:
       # 필수 디렉터리 + .env 생성
       - name: Prepare remote dirs & .env
         run: |
-          ssh "$REMOTE_HOST" <<'EOF'
+          ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
 
@@ -113,8 +118,13 @@ jobs:
                          "$REMOTE_DIR/certbot/www" \
                          "$REMOTE_DIR/certbot/logs"
 
-            # .env 파일 생성 (보안 강화)
-            sudo tee "$REMOTE_DIR/.env" >/dev/null <<'EOT'
+            # 기존 .env 파일 백업 (있다면)
+            if sudo test -f "$REMOTE_DIR/.env"; then
+              sudo cp "$REMOTE_DIR/.env" "$REMOTE_DIR/.env.backup.$(date +%Y%m%d_%H%M%S)"
+            fi
+
+            # .env 파일 생성 (heredoc 구분자를 더 명확하게)
+            sudo bash -c "cat > '$REMOTE_DIR/.env'" <<'ENV_CONTENT'
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -137,11 +147,21 @@ jobs:
             LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
             HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
             REMOTE_DIR=${{ env.REMOTE_DIR }}
-            EOT
+            ENV_CONTENT
 
-            # .env 파일 권한 설정
+            # .env 파일 권한 설정 (별도 명령으로)
             sudo chmod 600 "$REMOTE_DIR/.env"
-          EOF
+            
+            # .env 파일 검증
+            echo "Validating .env file..."
+            if sudo test -s "$REMOTE_DIR/.env"; then
+              echo "✅ .env file created successfully"
+              echo "File size: $(sudo wc -l < "$REMOTE_DIR/.env") lines"
+            else
+              echo "❌ .env file is empty or not created"
+              exit 1
+            fi
+          EOSSH
 
       # 설정 파일들 업로드
       - name: Upload configuration files
