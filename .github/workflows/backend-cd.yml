@@ -21,11 +21,6 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
-      - name: Build & Push Frontend
-        run: |
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/frontend:latest -f frontend.dockerfile .
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/frontend:latest
-
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
