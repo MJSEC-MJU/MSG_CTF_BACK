@@ -29,6 +29,7 @@ jobs:
       WWW_DOMAIN:        www.${{ secrets.DOMAIN }}
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
+      REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
 
     steps:
       - uses: actions/checkout@v4
@@ -43,13 +44,13 @@ jobs:
         run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Test SSH
-        run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
+        run: ssh -o ConnectTimeout=10 "$REMOTE_HOST" "echo OK"
 
       # 원격 docker compose v2 보장 (있으면 패스)
       - name: Ensure docker compose v2 on remote
         continue-on-error: true
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+          ssh "$REMOTE_HOST" <<'EOSSH'
             set -Eeuo pipefail
             if sudo docker compose version >/dev/null 2>&1; then
               echo "docker compose v2 already present"
@@ -76,7 +77,7 @@ jobs:
       # Docker 데몬 기동 보장
       - name: Ensure Docker service is running
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+          ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             sudo systemctl enable --now docker || sudo service docker start
             sudo docker info >/dev/null
@@ -85,7 +86,7 @@ jobs:
       # 필수 디렉터리 + .env 생성
       - name: Prepare remote dirs & .env
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
+          ssh "$REMOTE_HOST" <<'EOF'
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
 
@@ -130,17 +131,14 @@ jobs:
       # 업로드는 /tmp → sudo mv (권한 안전)
       - name: Upload docker-compose.yml via /tmp
         run: |
-          scp -o StrictHostKeyChecking=no docker-compose.yml \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/docker-compose.yml
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'"
+          scp -o StrictHostKeyChecking=no docker-compose.yml "$REMOTE_HOST":/tmp/docker-compose.yml
+          ssh "$REMOTE_HOST" "sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'"
 
       - name: Upload NGINX templates via /tmp
         run: |
-          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.http.conf.template
-          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.https.conf.template
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template  "$REMOTE_HOST":/tmp/default.http.conf.template
+          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template "$REMOTE_HOST":/tmp/default.https.conf.template
+          ssh "$REMOTE_HOST" "
             sudo mv /tmp/default.http.conf.template  '${{ env.REMOTE_DIR }}/nginx/default.http.conf.template';
             sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
@@ -160,12 +158,11 @@ jobs:
           else
             printf '%s' "$GCP_SA" > gcp.json
           fi
-          scp -o StrictHostKeyChecking=no gcp.json \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/gcp.json
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
+          scp -o StrictHostKeyChecking=no gcp.json "$REMOTE_HOST":/tmp/gcp.json
+          ssh "$REMOTE_HOST" "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
           rm -f gcp.json
 
-      # 퓨니코드 계산 (idna 모듈 없이 파이썬 내장 코덱 사용)
+      # 퓨니코드 계산 (표준 idna 코덱 사용)
       - name: Compute Punycode (apex & www)
         id: puny
         env:
@@ -178,7 +175,7 @@ jobs:
           print(os.environ['RAW_DOMAIN'].encode('idna').decode())
           PY
           )
-                    W_ASCII=$(python3 - <<'PY'
+          W_ASCII=$(python3 - <<'PY'
           import os
           print(os.environ['RAW_WWW'].encode('idna').decode())
           PY
@@ -193,7 +190,7 @@ jobs:
       # 1) HTTP 기동 (Punycode로 conf 생성)
       - name: Start stack (HTTP only)
         run: |
-          ssh ${{ secrets.SERVER_USER }}@{{ secrets.SERVER_IP }} \
+          ssh "$REMOTE_HOST" \
             "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
@@ -225,7 +222,7 @@ jobs:
           TOKEN="$(openssl rand -hex 16)"
 
           # 원격에 토큰 생성
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+          ssh "$REMOTE_HOST" "
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
             sudo mkdir -p \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge\"
@@ -248,7 +245,7 @@ jobs:
       # 2) 인증서 발급/갱신 (entrypoint override + Punycode)
       - name: Issue/Renew SSL via certbot
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+          ssh "$REMOTE_HOST" \
             "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
@@ -265,7 +262,7 @@ jobs:
       # 3) HTTPS 전환 & 리로드 (Punycode로 conf 생성)
       - name: Apply HTTPS config & reload nginx
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+          ssh "$REMOTE_HOST" \
             "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
@@ -283,7 +280,6 @@ jobs:
         run: |
           set -e
           for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
-            # IPv4 우선 해석
             ip=$(getent ahostsv4 "$host" | awk '/STREAM/ {print $1; exit}')
             echo "Host=$host IPv4=$ip"
             ok=0
@@ -291,7 +287,6 @@ jobs:
               if [ -n "$ip" ] && curl -fsS -m 8 --resolve "$host:443:$ip" "https://$host" -o /dev/null; then
                 echo "HTTPS OK (runner over IPv4): $host ($ip)"; ok=1; break
               fi
-              # IP를 아직 못 구했으면 -4 강제 시도
               if [ -z "$ip" ] && curl -4 -fsS -m 8 "https://$host" -o /dev/null; then
                 echo "HTTPS OK (runner over -4): $host"; ok=1; break
               fi
@@ -301,4 +296,4 @@ jobs:
           done
 
       - name: Prune old images
-        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo docker image prune -f --filter 'until=24h' || true"
+        run: ssh "$REMOTE_HOST" "sudo docker image prune -f --filter 'until=24h' || true"
