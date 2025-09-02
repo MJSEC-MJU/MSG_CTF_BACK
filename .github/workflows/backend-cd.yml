@@ -21,7 +21,7 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
-      # 커스텀 NGINX 이미지는 더 이상 빌드하지 않습니다 (공식 이미지 사용).
+      # NGINX는 공식 이미지 사용 (커스텀 빌드 제거)
       # - name: Build & Push NGINX
       #   run: |
       #     docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
@@ -51,7 +51,7 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
 
-      # 원격 필수 패키지/디렉터리 준비 + .env 생성 (sudo tee) + 소유권 조정
+      # 원격 필수 패키지/디렉터리 준비 + .env 생성 (sudo tee)
       - name: Prepare remote dirs & .env
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
@@ -64,13 +64,13 @@ jobs:
               sudo apt-get install -y gettext-base
             fi
 
-            # 디렉터리 생성
+            # 디렉터리 생성 (root 소유 유지)
             sudo mkdir -p "$REMOTE_DIR/nginx/conf.d" \
                          "$REMOTE_DIR/certbot/config" \
                          "$REMOTE_DIR/certbot/www" \
                          "$REMOTE_DIR/certbot/logs"
 
-            # .env 생성 (비밀값 로컬 확장은 GH runner가 하고, 원격 셸 확장은 막음)
+            # .env 생성 (원격 쉘 확장 방지를 위해 인용 heredoc)
             sudo tee "$REMOTE_DIR/.env" >/dev/null <<'EOT'
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -95,21 +95,29 @@ jobs:
             # Backend의 GCP 키 호스트 경로 (compose에서 사용)
             HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
             EOT
-
-            # 이후 scp 업로드 가능하도록 소유자 변경
-            sudo chown -R "$(id -un)":"$(id -gn)" "$REMOTE_DIR"
           EOF
 
-      # Compose/템플릿 업로드
-      - name: Upload docker-compose.yml
-        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/
-
-      - name: Upload NGINX templates (HTTP/HTTPS)
+      # Compose/템플릿 업로드: /tmp로 올린 뒤 sudo mv (권한 이슈 방지)
+      - name: Upload docker-compose.yml via /tmp
         run: |
-          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template  ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/nginx/
-          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/nginx/
+          scp -o StrictHostKeyChecking=no docker-compose.yml \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/docker-compose.yml
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'
+          "
 
-      # GCP 키 파일(있으면) 설치
+      - name: Upload NGINX templates via /tmp
+        run: |
+          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.http.conf.template
+          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.https.conf.template
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            sudo mv /tmp/default.http.conf.template  '${{ env.REMOTE_DIR }}/nginx/default.http.conf.template'
+            sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template'
+          "
+
+      # GCP 키 파일(있으면) 설치 ( /tmp 업로드 → sudo mv )
       - name: Upload GCP Service Account (optional)
         env:
           GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -125,10 +133,13 @@ jobs:
             printf '%s' "$GCP_SA" > gcp.json
           fi
           scp -o StrictHostKeyChecking=no gcp.json \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/gcp_service_account.json
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/gcp.json
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'
+          "
           rm -f gcp.json
 
-      # 1) HTTP로 부팅 (공식 nginx 이미지 사용 + 디렉터리 바인드)
+      # 1) HTTP로 부팅 (공식 nginx 이미지 + conf.d 디렉터리 바인드)
       - name: Start stack (HTTP only)
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
