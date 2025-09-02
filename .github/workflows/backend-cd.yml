@@ -197,7 +197,9 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-            docker compose run --rm certbot certonly \
+            # entrypoint(sh) 무시하고 certbot 바이너리로 실행
+            sudo docker compose run --rm --entrypoint certbot certbot \
+              certonly \
               --webroot -w /var/www/certbot \
               --non-interactive --keep-until-expiring \
               --email '${{ env.LETSENCRYPT_EMAIL }}' \
