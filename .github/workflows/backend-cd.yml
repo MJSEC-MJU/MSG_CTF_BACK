@@ -47,6 +47,7 @@ jobs:
 
       # 원격 docker compose v2 보장 (있으면 패스)
       - name: Ensure docker compose v2 on remote
+        continue-on-error: true
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -Eeuo pipefail
