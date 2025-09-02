@@ -21,8 +21,6 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
-      # NGINX는 공식 이미지 사용 (커스텀 빌드 X)
-
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -41,27 +39,24 @@ jobs:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
       - name: Add host key
-        run: |
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+        run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
 
-      # 원격에 docker compose v2 설치
+      # docker compose v2 보장 (있으면 패스)
       - name: Ensure docker compose v2 on remote
-        continue-on-error: true   
+        continue-on-error: true
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -Eeuo pipefail
             if sudo docker compose version >/dev/null 2>&1; then
-              echo "docker compose v2 already present"
-              exit 0
+              echo "docker compose v2 already present"; exit 0
             fi
             sudo apt-get update -y
             if ! sudo apt-get install -y docker-compose-plugin; then
               sudo apt-get install -y curl
-              ARCH="$(uname -m)"
-              case "$ARCH" in
+              ARCH="$(uname -m)"; case "$ARCH" in
                 x86_64|amd64) ARCH="x86_64" ;;
                 aarch64|arm64) ARCH="aarch64" ;;
                 *) ARCH="x86_64" ;;
@@ -75,10 +70,28 @@ jobs:
             echo "docker compose v2 installed"
           EOSSH
 
+      # Docker 데몬 기동 보장
+      - name: Ensure Docker service is running
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+            set -euo pipefail
+            sudo systemctl enable --now docker || sudo service docker start
+            sudo docker info >/dev/null
+          EOSSH
 
+      # idn2 (한글 도메인 → Punycode) 설치
+      - name: Ensure idn2 on remote
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+            set -euo pipefail
+            if ! command -v idn2 >/dev/null 2>&1; then
+              sudo apt-get update -y
+              sudo apt-get install -y idn2
+            fi
+            idn2 --version | head -n1
+          EOSSH
 
-
-      # 필수 패키지/디렉터리 준비 + .env 생성
+      # 필수 디렉터리 + .env 생성
       - name: Prepare remote dirs & .env
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
@@ -123,14 +136,12 @@ jobs:
             EOT
           EOF
 
-      # 업로드는 /tmp로 → sudo mv (권한 안전)
+      # 업로드는 /tmp → sudo mv (권한 안전)
       - name: Upload docker-compose.yml via /tmp
         run: |
           scp -o StrictHostKeyChecking=no docker-compose.yml \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/docker-compose.yml
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'
-          "
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'"
 
       - name: Upload NGINX templates via /tmp
         run: |
@@ -139,8 +150,8 @@ jobs:
           scp -o StrictHostKeyChecking=no nginx/default.https.conf.template \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.https.conf.template
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            sudo mv /tmp/default.http.conf.template  '${{ env.REMOTE_DIR }}/nginx/default.http.conf.template'
-            sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template'
+            sudo mv /tmp/default.http.conf.template  '${{ env.REMOTE_DIR }}/nginx/default.http.conf.template';
+            sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
 
       # (옵션) GCP 키 업로드: /tmp → sudo mv
@@ -160,25 +171,28 @@ jobs:
           fi
           scp -o StrictHostKeyChecking=no gcp.json \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/gcp.json
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'
-          "
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
           rm -f gcp.json
 
-      # 1) HTTP 기동 (파일 쓰기는 sudo tee)
+      # 1) HTTP 기동 (IDN→Punycode 변환 후 conf 생성)
       - name: Start stack (HTTP only)
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
+            D_UNI='${{ env.DOMAIN }}'
+            W_UNI='${{ env.WWW_DOMAIN }}'
+            D_ASCII="$(idn2 -a "$D_UNI")"
+            W_ASCII="$(idn2 -a "$W_UNI")"
+
+            DOMAIN="$D_ASCII" WWW_DOMAIN="$W_ASCII" \
               envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
-            docker compose down --remove-orphans || true
-            docker compose pull || true
-            docker compose up -d nginx backend frontend redis
+            sudo docker compose down --remove-orphans || true
+            sudo docker compose pull || true
+            sudo docker compose up -d nginx backend frontend redis
           EOSSH
 
       - name: Wait for HTTP
@@ -191,35 +205,82 @@ jobs:
           done
           exit 1
 
-      # 2) 인증서 발급/갱신
+      # (선택) ACME 프리플라이트: 토큰 파일로 HTTP-01 도달 확인
+      - name: ACME preflight (HTTP-01 reachability)
+        run: |
+          set -euo pipefail
+          TOKEN="$(openssl rand -hex 16)"
+
+          # 원격에 토큰 생성
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            set -euo pipefail
+            REMOTE_DIR='${{ env.REMOTE_DIR }}'
+            sudo mkdir -p \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge\"
+            echo \"$TOKEN\" | sudo tee \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge/$TOKEN\" >/dev/null
+          "
+
+          # 러너에서 퓨니코드 계산 (curl은 보통 IDN 지원하지만 방어용)
+          D_ASCII=$(python3 - <<'PY'
+          import idna; print(idna.encode("${{ env.DOMAIN }}").decode())
+          PY
+          )
+                    W_ASCII=$(python3 - <<'PY'
+          import idna; print(idna.encode("${{ env.WWW_DOMAIN }}").decode())
+          PY
+          )
+
+          for host in "$D_ASCII" "$W_ASCII"; do
+            echo "Check: http://$host/.well-known/acme-challenge/$TOKEN"
+            body="$(curl -fsS -m 8 "http://$host/.well-known/acme-challenge/$TOKEN" || true)"
+            if [ "$body" != "$TOKEN" ]; then
+              echo "❌ ACME path unreachable for $host"
+              echo "   Expected: $TOKEN"
+              echo "   Got: ${body:0:120}..."
+              exit 1
+            else
+              echo "✅ OK for $host"
+            fi
+          done
+
+      # 2) 인증서 발급/갱신 (entrypoint override + Punycode)
       - name: Issue/Renew SSL via certbot
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-            # entrypoint(sh) 무시하고 certbot 바이너리로 실행
+
+            D_UNI='${{ env.DOMAIN }}'
+            W_UNI='${{ env.WWW_DOMAIN }}'
+            D_ASCII="$(idn2 -a "$D_UNI")"
+            W_ASCII="$(idn2 -a "$W_UNI")"
+
             sudo docker compose run --rm --entrypoint certbot certbot \
               certonly \
               --webroot -w /var/www/certbot \
               --non-interactive --keep-until-expiring \
               --email '${{ env.LETSENCRYPT_EMAIL }}' \
-              -d '${{ env.DOMAIN }}' -d '${{ env.WWW_DOMAIN }}' \
+              -d "$D_ASCII" -d "$W_ASCII" \
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      # 3) HTTPS 전환 & 리로드 (sudo tee)
+      # 3) HTTPS 전환 & 리로드 (Punycode로 conf 생성)
       - name: Apply HTTPS config & reload nginx
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
+            D_UNI='${{ env.DOMAIN }}'
+            W_UNI='${{ env.WWW_DOMAIN }}'
+            D_ASCII="$(idn2 -a "$D_UNI")"
+            W_ASCII="$(idn2 -a "$W_UNI")"
+
+            DOMAIN="$D_ASCII" WWW_DOMAIN="$W_ASCII" \
               envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
-            docker compose exec -T nginx nginx -t
-            docker compose exec -T nginx nginx -s reload
+            sudo docker compose exec -T nginx nginx -t
+            sudo docker compose exec -T nginx nginx -s reload
           EOSSH
 
       - name: Verify HTTPS (apex & www)
@@ -235,4 +296,4 @@ jobs:
           done
 
       - name: Prune old images
-        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "docker image prune -f --filter 'until=24h' || true"
+        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo docker image prune -f --filter 'until=24h' || true"
