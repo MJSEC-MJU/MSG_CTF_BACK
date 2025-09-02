@@ -1,17 +1,12 @@
 name: Docker Compose CI
 
 on:
-  push:
-    branches:
-      - dev
-  pull_request:
-    branches:
-      - dev
+  push: { branches: [ dev ] }
+  pull_request: { branches: [ dev ] }
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
-
     env:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
@@ -21,72 +16,68 @@ jobs:
       SPRING_SECURITY_USER_PASSWORD: ${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}  # 추가
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}  # 추가
-      API_KEY: ${{ secrets.API_KEY }} #디스코드봇 요청 API키키
-      BUCKET : ${{ secrets.BUCKET}}
-      LOCATION : ${{ secrets.LOCATION}}
-      PROJECT_ID : ${{ secrets.PROJECT_ID}}
-      GCP_JSON_FILE :  ${{ secrets.GCP_JSON_FILE}}
+      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      API_KEY: ${{ secrets.API_KEY }}
+      API_URL: ${{ secrets.API_URL }}             # ✅ 추가
+      BUCKET: ${{ secrets.BUCKET }}
+      LOCATION: ${{ secrets.LOCATION }}
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Create .env file
+      - name: Create .env
         run: |
-          echo "DB_NAME=${{ env.DB_NAME }}" > .env
-          echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
-          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
-          echo "DB_PORT=${{ env.DB_PORT }}" >> .env
-          echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}" >> .env
-          echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}" >> .env
-          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> .env
-          echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}" >> .env  # 추가
-          echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}" >> .env  # 추가
-          echo "API_KEY=${{ env.API_KEY }}" >> .env
-          echo "BUCKET=${{ env.BUCKET }}" >> .env
-          echo "LOCATION=${{ env.LOCATION }}" >> .env
-          echo "PROJECT_ID=${{ env.PROJECT_ID }}" >> .env
-          echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}" >> .env
-          
-      - name: Create SSL files
-        run: |
-          mkdir -p ./nginx/ssl
-          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
-          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
+          {
+            echo "DB_NAME=${{ env.DB_NAME }}"
+            echo "DB_USERNAME=${{ env.DB_USERNAME }}"
+            echo "DB_PASSWORD=${{ env.DB_PASSWORD }}"
+            echo "DB_PORT=${{ env.DB_PORT }}"
+            echo "SPRING_SECURITY_USER_NAME=${{ env.SPRING_SECURITY_USER_NAME }}"
+            echo "SPRING_SECURITY_USER_PASSWORD=${{ env.SPRING_SECURITY_USER_PASSWORD }}"
+            echo "JWT_SECRET=${{ env.JWT_SECRET }}"
+            echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}"
+            echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}"
+            echo "API_KEY=${{ env.API_KEY }}"
+            echo "API_URL=${{ env.API_URL }}"         # ✅ 추가
+            echo "BUCKET=${{ env.BUCKET }}"
+            echo "LOCATION=${{ env.LOCATION }}"
+            echo "PROJECT_ID=${{ env.PROJECT_ID }}"
+            echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}"
+            echo "HOST_GCP_JSON_PATH=/dev/null"       # ✅ CI에선 키 마운트 우회
+          } > .env
+          cat .env | sed 's/^\(.*PASSWORD\|JWT_SECRET\|API_KEY\)=.*/\1=****/'
 
-      - name: Install Docker Compose
+      # ubuntu-latest는 Compose v2 기본 탑재 → 굳이 설치 불필요
+      - name: Show Docker versions
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+          docker --version
+          docker compose version
 
-      - name: Docker Compose Build and Up
-        run: docker-compose up --build -d
+      # ✅ CI에서는 db/redis/backend만 기동 (nginx/certbot/frontend 미기동)
+      - name: Docker Compose Up (db/redis/backend)
+        run: |
+          docker compose up -d db redis backend
+          docker compose ps
 
       - name: Wait for MySQL
         run: |
-          for i in {1..30}; do
-            docker-compose exec -T db mysqladmin ping -h localhost --silent && break
-            echo "Waiting for MySQL..."
-            sleep 2
+          for i in $(seq 1 30); do
+            if docker compose exec -T db mysqladmin ping -h 127.0.0.1 -uroot -p"${{ env.DB_PASSWORD }}" --silent; then
+              echo "MySQL is ready"; exit 0
+            fi
+            echo "Waiting for MySQL... ($i/30)"; sleep 2
           done
+          echo "MySQL did not become ready"; docker compose logs db; exit 1
 
       - name: Run Gradle Tests in Docker
-        run: docker-compose run --rm test
+        run: docker compose run --rm test
 
-      - name: Start Backend Container
-        run: docker-compose up -d backend
-
-      - name: Check Backend Container Logs
-        run: docker-compose logs backend
+      - name: Backend logs (tail)
+        if: always()
+        run: docker compose logs --no-color --tail=200 backend || true
 
       - name: Stop containers
         if: always()
-        run: docker-compose down
-
-      - name: Upload Test Report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-report
-          path: Back/build/reports/tests/test
+        run: docker compose down -v

@@ -1,123 +1,64 @@
-name: Backend & NGINX CD
+name: Backend & NGINX CD (Auto-SSL)
 
 on:
-  push:
-    branches:
-      - dev
+  push: { branches: [ dev ] }
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-
-    env:
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      SERVER_IP: ${{ secrets.SERVER_IP }}
-      SERVER_USER: ${{ secrets.SERVER_USER }}
-      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      API_KEY: ${{ secrets.API_KEY }}
-      API_URL: ${{ secrets.API_URL }}
-      BUCKET: ${{ secrets.BUCKET }}
-      LOCATION: ${{ secrets.LOCATION }}
-      PROJECT_ID: ${{ secrets.PROJECT_ID }}
-      # GCP 서비스 계정 키 파일명 (예: extreme-world-450010-q0-7d448bb68c2e.json)
-      GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
-
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Create SSL files locally for nginx
-        run: |
-          mkdir -p ./nginx/ssl
-          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
-          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
-          ls -la ./nginx/ssl
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
-
-      - name: Build and Push Backend Image to Docker Hub
+      - name: Build & Push Backend
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
-      - name: Build and Push NGINX Image to Docker Hub
+      - name: Build & Push NGINX
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
 
-      - name: Create target directories on server
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            sudo mkdir -p /home/ubuntu/app
-            sudo mkdir -p /home/ubuntu/app/nginx
-            sudo mkdir -p /home/ubuntu/src
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN:            ${{ secrets.DOMAIN }}
+      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}
+      LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+      REMOTE_DIR:        /home/ubuntu/app
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Remove old docker-compose and .env on server
-        uses: appleboy/ssh-action@v0.1.5
+      # SSH 준비
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            sudo rm -rf /home/ubuntu/app/docker-compose.yml
-            sudo rm -rf /tmp/docker-compose.yml
-            sudo rm -f /home/ubuntu/app/.env
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-      - name: Upload docker-compose.yml to server (temporary location)
-        uses: appleboy/scp-action@v0.1.1
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: "/tmp/docker-compose.yml"
+      - name: Add host key
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Move docker-compose.yml to target directory with sudo
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            sudo mv /tmp/docker-compose.yml /home/ubuntu/app/docker-compose.yml
+      - name: Test SSH
+        run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
 
-      - name: Upload nginx configuration file to server
-        uses: appleboy/scp-action@v0.1.1
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "nginx/nginx.conf"
-          target: "/home/ubuntu/app/nginx/"
-          strip_components: 1
-
-      - name: Upload nginx SSL directory to server
-        uses: appleboy/scp-action@v0.1.1
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "nginx/ssl"
-          target: "/home/ubuntu/app/nginx/"
-          strip_components: 1
-
-      - name: Create .env file on server with sudo
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            sudo bash -c "cat > /home/ubuntu/app/docker-compose.yml/.env <<EOF
+      # 서버 디렉터리 준비 및 .env 생성 (※ 기존 .env 경로 버그 수정)
+      - name: Prepare remote dirs & .env
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
+            set -euo pipefail
+            sudo mkdir -p '${{ env.REMOTE_DIR }}'/nginx \
+                           '${{ env.REMOTE_DIR }}'/certbot/{config,www,logs}
+            # 앱 .env (백엔드/인증/스토리지 등)
+            cat > '${{ env.REMOTE_DIR }}'/.env <<EOT
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -130,33 +71,110 @@ jobs:
             GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
             GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
             API_KEY=${{ secrets.API_KEY }}
-            API_URL= ${{ secrets.API_URL }}
+            API_URL=${{ secrets.API_URL }}
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
-            GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
             GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
-            EOF"
+            DOMAIN=${{ env.DOMAIN }}
+            LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
+            EOT
+          EOF
 
-      - name: Upload and decode GCP Service Account Key to server
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            # base64 디코딩 후 /home/ubuntu/src/에 저장 (파일명은 GCP_JSON_FILE 환경 변수에 설정된 값 사용)
-            echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 -d | sudo tee /home/ubuntu/src/${{ secrets.GCP_JSON_FILE }}
+      # Compose/템플릿 업로드
+      - name: Upload docker-compose.yml
+        run: scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/
 
-      - name: Deploy containers on server
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/app/docker-compose.yml/
-            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
-            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
-            sudo docker-compose up -d backend nginx redis
-            sudo docker image prune -f
+      - name: Upload NGINX templates (HTTP/HTTPS)
+        run: |
+          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template  ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/nginx/
+          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/nginx/
+
+      # GCP 키 파일(있으면) 설치
+      - name: Upload GCP Service Account (optional)
+        env:
+          GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: |
+          set -euo pipefail
+          # 비어있으면 패스
+          if [ -z "${GCP_SA:-}" ]; then
+            echo "GCP_SERVICE_ACCOUNT_KEY not set. Skipping."
+            exit 0
+          fi
+
+          # base64 또는 raw JSON 모두 지원
+          if printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d >/dev/null 2>&1; then
+            printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d > gcp.json
+          else
+            # raw JSON으로 가정
+            printf '%s' "$GCP_SA" > gcp.json
+          fi
+
+          scp -o StrictHostKeyChecking=no gcp.json \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/gcp_service_account.json
+          rm -f gcp.json
+
+
+      # 1) HTTP로 부팅
+      - name: Start stack (HTTP only)
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            set -euo pipefail
+            cd '${{ env.REMOTE_DIR }}' &&
+            docker compose down --remove-orphans || true &&
+            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
+              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template > nginx/default.conf &&
+            docker compose pull || true &&
+            docker compose up -d nginx backend frontend redis
+          "
+
+
+      - name: Wait for HTTP
+        run: |
+          for i in $(seq 1 24); do
+            if curl -fsS -m 5 -o /dev/null "http://${{ env.DOMAIN }}"; then
+              echo "HTTP OK"; exit 0
+            fi
+            echo "...waiting HTTP ($i/24)"; sleep 5
+          done
+          exit 1
+
+      # 2) 인증서 발급/갱신
+      - name: Issue/Renew SSL via certbot
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            set -euo pipefail
+            cd '${{ env.REMOTE_DIR }}' &&
+            docker compose run --rm certbot certonly \
+              --webroot -w /var/www/certbot \
+              --non-interactive --keep-until-expiring \
+              --email '${{ env.LETSENCRYPT_EMAIL }}' \
+              -d '${{ env.DOMAIN }}' -d '${{ env.WWW_DOMAIN }}' \
+              --agree-tos --no-eff-email --rsa-key-size 4096
+          "
+
+      # 3) HTTPS로 전환 & 리로드
+      - name: Switch to HTTPS & reload NGINX
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            set -euo pipefail
+            cd '${{ env.REMOTE_DIR }}' &&
+            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
+              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template > nginx/default.conf &&
+            docker compose exec -T nginx nginx -t &&
+            docker compose exec -T nginx nginx -s reload
+          "
+
+
+      - name: Verify HTTPS
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS -m 5 -o /dev/null "https://${{ env.DOMAIN }}"; then
+              echo "HTTPS OK"; exit 0
+            fi
+            echo "...waiting HTTPS ($i/12)"; sleep 10
+          done
+          exit 1
+
+      - name: Prune old images
+        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "docker image prune -f --filter 'until=24h' || true"
