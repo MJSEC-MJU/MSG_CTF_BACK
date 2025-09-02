@@ -29,6 +29,7 @@ jobs:
       WWW_DOMAIN:        www.${{ secrets.DOMAIN }}
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
+
     steps:
       - uses: actions/checkout@v4
 
@@ -44,19 +45,20 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
 
-      # docker compose v2 보장 (있으면 패스)
+      # 원격 docker compose v2 보장 (있으면 패스)
       - name: Ensure docker compose v2 on remote
-        continue-on-error: true
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
             set -Eeuo pipefail
             if sudo docker compose version >/dev/null 2>&1; then
-              echo "docker compose v2 already present"; exit 0
+              echo "docker compose v2 already present"
+              exit 0
             fi
             sudo apt-get update -y
             if ! sudo apt-get install -y docker-compose-plugin; then
               sudo apt-get install -y curl
-              ARCH="$(uname -m)"; case "$ARCH" in
+              ARCH="$(uname -m)"
+              case "$ARCH" in
                 x86_64|amd64) ARCH="x86_64" ;;
                 aarch64|arm64) ARCH="aarch64" ;;
                 *) ARCH="x86_64" ;;
@@ -162,28 +164,36 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
           rm -f gcp.json
 
-      # 러너에서 Punycode 변환 (IDN → ASCII)
+      # 퓨니코드 계산 (idna 모듈 없이 파이썬 내장 코덱 사용)
       - name: Compute Punycode (apex & www)
-        id: idn
+        id: puny
+        env:
+          RAW_DOMAIN: ${{ env.DOMAIN }}
+          RAW_WWW:    ${{ env.WWW_DOMAIN }}
         run: |
+          set -e
           D_ASCII=$(python3 - <<'PY'
-          import idna; print(idna.encode("${{ env.DOMAIN }}").decode())
+          import os
+          print(os.environ['RAW_DOMAIN'].encode('idna').decode())
           PY
           )
                     W_ASCII=$(python3 - <<'PY'
-          import idna; print(idna.encode("${{ env.WWW_DOMAIN }}").decode())
+          import os
+          print(os.environ['RAW_WWW'].encode('idna').decode())
           PY
           )
-          echo "d_ascii=$D_ASCII" >> $GITHUB_OUTPUT
-          echo "w_ascii=$W_ASCII" >> $GITHUB_OUTPUT
+          {
+            echo "D_ASCII=$D_ASCII"
+            echo "W_ASCII=$W_ASCII"
+          } >> "$GITHUB_OUTPUT"
           echo "Apex: $D_ASCII"
-          echo "WWW:  $W_ASCII"
+          echo "WWW : $W_ASCII"
 
       # 1) HTTP 기동 (Punycode로 conf 생성)
       - name: Start stack (HTTP only)
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
-            "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}' WWW_ASCII='${{ steps.idn.outputs.w_ascii }}' bash -s" <<'EOSSH'
+          ssh ${{ secrets.SERVER_USER }}@{{ secrets.SERVER_IP }} \
+            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -196,10 +206,9 @@ jobs:
             sudo docker compose up -d nginx backend frontend redis
           EOSSH
 
-
       - name: Wait for HTTP (apex punycode)
         run: |
-          HOST='${{ steps.idn.outputs.d_ascii }}'
+          HOST='${{ steps.puny.outputs.D_ASCII }}'
           for i in $(seq 1 24); do
             if curl -fsS -m 5 -o /dev/null "http://$HOST"; then
               echo "HTTP OK: $HOST"; exit 0
@@ -222,7 +231,7 @@ jobs:
             echo \"$TOKEN\" | sudo tee \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge/$TOKEN\" >/dev/null
           "
 
-          for host in "${{ steps.idn.outputs.d_ascii }}" "${{ steps.idn.outputs.w_ascii }}"; do
+          for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
             echo "Check: http://$host/.well-known/acme-challenge/$TOKEN"
             body="$(curl -fsS -m 8 "http://$host/.well-known/acme-challenge/$TOKEN" || true)"
             if [ "$body" != "$TOKEN" ]; then
@@ -239,7 +248,7 @@ jobs:
       - name: Issue/Renew SSL via certbot
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
-            "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}' WWW_ASCII='${{ steps.idn.outputs.w_ascii }}' bash -s" <<'EOSSH'
+            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -252,12 +261,11 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-
       # 3) HTTPS 전환 & 리로드 (Punycode로 conf 생성)
       - name: Apply HTTPS config & reload nginx
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
-            "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}' WWW_ASCII='${{ steps.idn.outputs.w_ascii }}' bash -s" <<'EOSSH'
+            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -269,11 +277,12 @@ jobs:
             sudo docker compose exec -T nginx nginx -s reload
           EOSSH
 
-
+      # 4) HTTPS 검증 (IPv4-first, punycode 출력 일관 참조)
       - name: Verify HTTPS (IPv4-first with retries)
         run: |
           set -e
           for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
+            # IPv4 우선 해석
             ip=$(getent ahostsv4 "$host" | awk '/STREAM/ {print $1; exit}')
             echo "Host=$host IPv4=$ip"
             ok=0
@@ -281,11 +290,14 @@ jobs:
               if [ -n "$ip" ] && curl -fsS -m 8 --resolve "$host:443:$ip" "https://$host" -o /dev/null; then
                 echo "HTTPS OK (runner over IPv4): $host ($ip)"; ok=1; break
               fi
+              # IP를 아직 못 구했으면 -4 강제 시도
+              if [ -z "$ip" ] && curl -4 -fsS -m 8 "https://$host" -o /dev/null; then
+                echo "HTTPS OK (runner over -4): $host"; ok=1; break
+              fi
               echo "...waiting HTTPS $host ($i/20)"; sleep 3
             done
             [ $ok -eq 1 ] || { echo "Runner IPv4 check failed for $host"; exit 1; }
           done
-
 
       - name: Prune old images
         run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo docker image prune -f --filter 'until=24h' || true"
