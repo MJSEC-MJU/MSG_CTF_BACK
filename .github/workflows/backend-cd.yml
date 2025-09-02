@@ -21,7 +21,7 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
-      # 🔥 커스텀 NGINX 이미지는 더 이상 빌드하지 않습니다 (공식 이미지 사용).
+      #  커스텀 NGINX 이미지는 더 이상 빌드하지 않습니다 (공식 이미지 사용).
       # - name: Build & Push NGINX
       #   run: |
       #     docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
@@ -56,10 +56,16 @@ jobs:
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
             set -euo pipefail
-            sudo mkdir -p '${{ env.REMOTE_DIR }}'/nginx/conf.d \
-                           '${{ env.REMOTE_DIR }}'/certbot/{config,www,logs}
-            # 앱 .env
-            cat > '${{ env.REMOTE_DIR }}'/.env <<EOT
+            REMOTE_DIR='${{ env.REMOTE_DIR }}'
+
+            # 디렉터리 생성
+            sudo mkdir -p "$REMOTE_DIR/nginx/conf.d" \
+                        "$REMOTE_DIR/certbot/config" \
+                        "$REMOTE_DIR/certbot/www" \
+                        "$REMOTE_DIR/certbot/logs"
+
+            # .env는 root 권한으로 안전하게 생성 (비밀값 확장 방지 위해 인용 heredoc)
+            sudo tee "$REMOTE_DIR/.env" >/dev/null <<'EOT'
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -78,13 +84,13 @@ jobs:
             PROJECT_ID=${{ secrets.PROJECT_ID }}
             GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
             GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
-            # Nginx/Certbot
             DOMAIN=${{ env.DOMAIN }}
             LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
-            # Backend용 GCP 키 호스트 경로 (compose에서 사용)
+            # backend 키 마운트를 compose에서 변수로 사용
             HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
             EOT
           EOF
+
 
       # Compose/템플릿 업로드
       - name: Upload docker-compose.yml
