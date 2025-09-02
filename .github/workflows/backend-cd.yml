@@ -270,17 +270,22 @@ jobs:
           EOSSH
 
 
-      - name: Verify HTTPS (apex & www, punycode)
+      - name: Verify HTTPS (IPv4-first with retries)
         run: |
-          for host in "${{ steps.idn.outputs.d_ascii }}" "${{ steps.idn.outputs.w_ascii }}"; do
-            for i in $(seq 1 12); do
-              if curl -fsS -m 5 -o /dev/null "https://$host"; then
-                echo "HTTPS OK: $host"; break
+          set -e
+          for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
+            ip=$(getent ahostsv4 "$host" | awk '/STREAM/ {print $1; exit}')
+            echo "Host=$host IPv4=$ip"
+            ok=0
+            for i in $(seq 1 20); do
+              if [ -n "$ip" ] && curl -fsS -m 8 --resolve "$host:443:$ip" "https://$host" -o /dev/null; then
+                echo "HTTPS OK (runner over IPv4): $host ($ip)"; ok=1; break
               fi
-              [ "$i" -eq 12 ] && { echo "HTTPS failed for $host" >&2; exit 1; }
-              echo "...waiting HTTPS $host ($i/12)"; sleep 10
+              echo "...waiting HTTPS $host ($i/20)"; sleep 3
             done
+            [ $ok -eq 1 ] || { echo "Runner IPv4 check failed for $host"; exit 1; }
           done
+
 
       - name: Prune old images
         run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo docker image prune -f --filter 'until=24h' || true"
