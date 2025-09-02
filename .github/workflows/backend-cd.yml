@@ -21,10 +21,11 @@ jobs:
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
 
-      - name: Build & Push NGINX
-        run: |
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
+      # 🔥 커스텀 NGINX 이미지는 더 이상 빌드하지 않습니다 (공식 이미지 사용).
+      # - name: Build & Push NGINX
+      #   run: |
+      #     docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest -f nginx/Dockerfile .
+      #     docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
 
   deploy:
     needs: build-and-push
@@ -50,14 +51,14 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
 
-      # 서버 디렉터리 준비 및 .env 생성 (※ 기존 .env 경로 버그 수정)
+      # 서버 디렉터리 준비 및 .env 생성
       - name: Prepare remote dirs & .env
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
             set -euo pipefail
-            sudo mkdir -p '${{ env.REMOTE_DIR }}'/nginx \
+            sudo mkdir -p '${{ env.REMOTE_DIR }}'/nginx/conf.d \
                            '${{ env.REMOTE_DIR }}'/certbot/{config,www,logs}
-            # 앱 .env (백엔드/인증/스토리지 등)
+            # 앱 .env
             cat > '${{ env.REMOTE_DIR }}'/.env <<EOT
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -75,9 +76,13 @@ jobs:
             BUCKET=${{ secrets.BUCKET }}
             LOCATION=${{ secrets.LOCATION }}
             PROJECT_ID=${{ secrets.PROJECT_ID }}
+            GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
             GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
+            # Nginx/Certbot
             DOMAIN=${{ env.DOMAIN }}
             LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
+            # Backend용 GCP 키 호스트 경로 (compose에서 사용)
+            HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
             EOT
           EOF
 
@@ -87,6 +92,7 @@ jobs:
 
       - name: Upload NGINX templates (HTTP/HTTPS)
         run: |
+          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template  ${{ secrets.SERVER_USER }}@${{ secrets.Server_IP }}:${{ env.REMOTE_DIR }}/nginx/ 2>/dev/null || \
           scp -o StrictHostKeyChecking=no nginx/default.http.conf.template  ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/nginx/
           scp -o StrictHostKeyChecking=no nginx/default.https.conf.template ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/nginx/
 
@@ -96,26 +102,20 @@ jobs:
           GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: |
           set -euo pipefail
-          # 비어있으면 패스
           if [ -z "${GCP_SA:-}" ]; then
             echo "GCP_SERVICE_ACCOUNT_KEY not set. Skipping."
             exit 0
           fi
-
-          # base64 또는 raw JSON 모두 지원
           if printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d >/dev/null 2>&1; then
             printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d > gcp.json
           else
-            # raw JSON으로 가정
             printf '%s' "$GCP_SA" > gcp.json
           fi
-
           scp -o StrictHostKeyChecking=no gcp.json \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/gcp_service_account.json
           rm -f gcp.json
 
-
-      # 1) HTTP로 부팅
+      # 1) HTTP로 부팅 (공식 nginx 이미지 사용 가정)
       - name: Start stack (HTTP only)
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
@@ -123,11 +123,10 @@ jobs:
             cd '${{ env.REMOTE_DIR }}' &&
             docker compose down --remove-orphans || true &&
             DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template > nginx/default.conf &&
+              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template > nginx/conf.d/default.conf &&
             docker compose pull || true &&
             docker compose up -d nginx backend frontend redis
           "
-
 
       - name: Wait for HTTP
         run: |
@@ -160,21 +159,22 @@ jobs:
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}' &&
             DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template > nginx/default.conf &&
+              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template > nginx/conf.d/default.conf &&
             docker compose exec -T nginx nginx -t &&
             docker compose exec -T nginx nginx -s reload
           "
 
-
-      - name: Verify HTTPS
+      - name: Verify HTTPS (apex & www)
         run: |
-          for i in $(seq 1 12); do
-            if curl -fsS -m 5 -o /dev/null "https://${{ env.DOMAIN }}"; then
-              echo "HTTPS OK"; exit 0
-            fi
-            echo "...waiting HTTPS ($i/12)"; sleep 10
+          for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
+            for i in $(seq 1 12); do
+              if curl -fsS -m 5 -o /dev/null "https://$host"; then
+                echo "HTTPS OK: $host"; break
+              fi
+              [ "$i" -eq 12 ] && { echo "HTTPS failed for $host" >&2; exit 1; }
+              echo "...waiting HTTPS $host ($i/12)"; sleep 10
+            done
           done
-          exit 1
 
       - name: Prune old images
         run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "docker image prune -f --filter 'until=24h' || true"
