@@ -19,6 +19,7 @@ jobs:
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       API_KEY: ${{ secrets.API_KEY }}
+      API_URL: ${{ secrets.API_URL }}             # ✅ 추가
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -39,43 +40,44 @@ jobs:
             echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}"
             echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}"
             echo "API_KEY=${{ env.API_KEY }}"
+            echo "API_URL=${{ env.API_URL }}"         # ✅ 추가
             echo "BUCKET=${{ env.BUCKET }}"
             echo "LOCATION=${{ env.LOCATION }}"
             echo "PROJECT_ID=${{ env.PROJECT_ID }}"
             echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}"
+            echo "HOST_GCP_JSON_PATH=/dev/null"       # ✅ CI에선 키 마운트 우회
           } > .env
+          cat .env | sed 's/^\(.*PASSWORD\|JWT_SECRET\|API_KEY\)=.*/\1=****/'
 
-      - name: Install Docker Compose
+      # ubuntu-latest는 Compose v2 기본 탑재 → 굳이 설치 불필요
+      - name: Show Docker versions
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+          docker --version
+          docker compose version
 
-      - name: Docker Compose Build and Up
-        run: docker-compose up --build -d
+      # ✅ CI에서는 db/redis/backend만 기동 (nginx/certbot/frontend 미기동)
+      - name: Docker Compose Up (db/redis/backend)
+        run: |
+          docker compose up -d db redis backend
+          docker compose ps
 
       - name: Wait for MySQL
         run: |
-          for i in {1..30}; do
-            docker-compose exec -T db mysqladmin ping -h localhost --silent && break
-            echo "Waiting for MySQL..."; sleep 2
+          for i in $(seq 1 30); do
+            if docker compose exec -T db mysqladmin ping -h 127.0.0.1 -uroot -p"${{ env.DB_PASSWORD }}" --silent; then
+              echo "MySQL is ready"; exit 0
+            fi
+            echo "Waiting for MySQL... ($i/30)"; sleep 2
           done
+          echo "MySQL did not become ready"; docker compose logs db; exit 1
 
       - name: Run Gradle Tests in Docker
-        run: docker-compose run --rm test
+        run: docker compose run --rm test
 
-      - name: Start Backend Container
-        run: docker-compose up -d backend
-
-      - name: Check Backend Container Logs
-        run: docker-compose logs backend
+      - name: Backend logs (tail)
+        if: always()
+        run: docker compose logs --no-color --tail=200 backend || true
 
       - name: Stop containers
         if: always()
-        run: docker-compose down
-
-      - name: Upload Test Report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-report
-          path: Back/build/reports/tests/test
+        run: docker compose down -v
