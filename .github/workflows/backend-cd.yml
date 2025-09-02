@@ -30,6 +30,7 @@ jobs:
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
       REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
+      REMOTE_IP:         ${{ secrets.SERVER_IP }}
 
     steps:
       - uses: actions/checkout@v4
@@ -275,24 +276,32 @@ jobs:
             sudo docker compose exec -T nginx nginx -s reload
           EOSSH
 
-      # 4) HTTPS 검증 (IPv4-first, punycode 출력 일관 참조)
-      - name: Verify HTTPS (IPv4-first with retries)
+      # 4-1) 서버 내부에서 HTTPS 자체검증 (방화벽/외부 라우팅 이슈와 무관)
+      - name: Remote self-check HTTPS
+        run: |
+          ssh "$REMOTE_HOST" \
+            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
+            set -euo pipefail
+            for h in "$DOMAIN_ASCII" "$WWW_ASCII"; do
+              echo "Remote curl https://$h"
+              curl -fsS -m 8 -o /dev/null "https://$h"
+              echo "OK: $h"
+            done
+          EOSSH
+
+      # 4-2) 러너에서 서버 공인 IPv4로 SNI 고정 검증 (DNS 캐시/경로 차이 무시)
+      - name: Verify HTTPS from runner via fixed IP (SNI/Host forced)
         run: |
           set -e
           for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
-            ip=$(getent ahostsv4 "$host" | awk '/STREAM/ {print $1; exit}')
-            echo "Host=$host IPv4=$ip"
-            ok=0
-            for i in $(seq 1 20); do
-              if [ -n "$ip" ] && curl -fsS -m 8 --resolve "$host:443:$ip" "https://$host" -o /dev/null; then
-                echo "HTTPS OK (runner over IPv4): $host ($ip)"; ok=1; break
+            echo "Runner check: https://$host via ${{ env.REMOTE_IP }}"
+            for i in $(seq 1 15); do
+              if curl -fsS -m 8 --resolve "$host:443:${{ env.REMOTE_IP }}" "https://$host" -o /dev/null; then
+                echo "HTTPS OK (runner via fixed IP): $host"; break
               fi
-              if [ -z "$ip" ] && curl -4 -fsS -m 8 "https://$host" -o /dev/null; then
-                echo "HTTPS OK (runner over -4): $host"; ok=1; break
-              fi
-              echo "...waiting HTTPS $host ($i/20)"; sleep 3
+              [ "$i" -eq 15 ] && { echo "Runner check failed for $host"; exit 1; }
+              echo "...retry $i/15"; sleep 2
             done
-            [ $ok -eq 1 ] || { echo "Runner IPv4 check failed for $host"; exit 1; }
           done
 
       - name: Prune old images
