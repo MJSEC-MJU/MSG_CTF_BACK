@@ -48,22 +48,35 @@ jobs:
         run: ssh -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo OK"
 
       # 원격에 docker compose v2 설치
-      - name: Install docker compose v2 on remote
+      - name: Ensure docker compose v2 on remote
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
-            set -euo pipefail
-            if docker compose version >/dev/null 2>&1; then
-              echo "docker compose v2 already present"; exit 0
+            set -Eeuo pipefail
+
+            # 이미 있으면 바로 성공 종료
+            if sudo docker compose version >/dev/null 2>&1; then
+              echo "docker compose v2 already present"
+              exit 0
             fi
+
+            # 없으면 설치 (플러그인 방식 우선, 실패 시 바이너리 설치)
             sudo apt-get update -y
-            sudo apt-get install -y curl
-            ARCH="$(uname -m)"; case "$ARCH" in x86_64) ARCH=x86_64;; aarch64|arm64) ARCH=aarch64;; *) ARCH=x86_64;; esac
-            sudo install -m 0755 -d /usr/local/lib/docker/cli-plugins
-            sudo curl -fsSL "https://github.com/docker/compose/releases/download/v2.30.3/docker-compose-linux-$ARCH" \
-              -o /usr/local/lib/docker/cli-plugins/docker-compose
-            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-            docker compose version
+            if ! sudo apt-get install -y docker-compose-plugin; then
+              sudo apt-get install -y curl || true
+              ARCH="$(uname -m)"; case "$ARCH" in
+                x86_64) ARCH=x86_64;;
+                aarch64|arm64) ARCH=aarch64;;
+                *) ARCH=x86_64;;
+              esac
+              sudo install -m 0755 -d /usr/local/lib/docker/cli-plugins
+              sudo curl -fsSL "https://github.com/docker/compose/releases/download/v2.30.3/docker-compose-linux-$ARCH" \
+                -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            fi
+
+            sudo docker compose version
           EOSSH
+
 
       # 필수 패키지/디렉터리 준비 + .env 생성
       - name: Prepare remote dirs & .env
