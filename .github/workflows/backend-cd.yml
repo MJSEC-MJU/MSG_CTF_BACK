@@ -182,7 +182,8 @@ jobs:
       # 1) HTTP 기동 (Punycode로 conf 생성)
       - name: Start stack (HTTP only)
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}'; WWW_ASCII='${{ steps.idn.outputs.w_ascii }}'; bash -s" <<'EOSSH'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+            "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}' WWW_ASCII='${{ steps.idn.outputs.w_ascii }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -194,6 +195,7 @@ jobs:
             sudo docker compose pull || true
             sudo docker compose up -d nginx backend frontend redis
           EOSSH
+
 
       - name: Wait for HTTP (apex punycode)
         run: |
@@ -236,9 +238,11 @@ jobs:
       # 2) 인증서 발급/갱신 (entrypoint override + Punycode)
       - name: Issue/Renew SSL via certbot
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}'; WWW_ASCII='${{ steps.idn.outputs.w_ascii }}'; bash -s" <<'EOSSH'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+            "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}' WWW_ASCII='${{ steps.idn.outputs.w_ascii }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
+
             sudo docker compose run --rm --entrypoint certbot certbot \
               certonly \
               --webroot -w /var/www/certbot \
@@ -248,10 +252,12 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
+
       # 3) HTTPS 전환 & 리로드 (Punycode로 conf 생성)
       - name: Apply HTTPS config & reload nginx
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}'; WWW_ASCII='${{ steps.idn.outputs.w_ascii }}'; bash -s" <<'EOSSH'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+            "DOMAIN_ASCII='${{ steps.idn.outputs.d_ascii }}' WWW_ASCII='${{ steps.idn.outputs.w_ascii }}' bash -s" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -262,6 +268,7 @@ jobs:
             sudo docker compose exec -T nginx nginx -t
             sudo docker compose exec -T nginx nginx -s reload
           EOSSH
+
 
       - name: Verify HTTPS (apex & www, punycode)
         run: |
