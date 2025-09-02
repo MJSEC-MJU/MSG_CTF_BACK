@@ -92,11 +92,28 @@ jobs:
 
       # GCP 키 파일(있으면) 설치
       - name: Upload GCP Service Account (optional)
-        if: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
+        env:
+          GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 -d > gcp.json
-          scp -o StrictHostKeyChecking=no gcp.json ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/gcp_service_account.json
+          set -euo pipefail
+          # 비어있으면 패스
+          if [ -z "${GCP_SA:-}" ]; then
+            echo "GCP_SERVICE_ACCOUNT_KEY not set. Skipping."
+            exit 0
+          fi
+
+          # base64 또는 raw JSON 모두 지원
+          if printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d >/dev/null 2>&1; then
+            printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d > gcp.json
+          else
+            # raw JSON으로 가정
+            printf '%s' "$GCP_SA" > gcp.json
+          fi
+
+          scp -o StrictHostKeyChecking=no gcp.json \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ env.REMOTE_DIR }}/gcp_service_account.json
           rm -f gcp.json
+
 
       # 1) HTTP로 부팅
       - name: Start stack (HTTP only)
