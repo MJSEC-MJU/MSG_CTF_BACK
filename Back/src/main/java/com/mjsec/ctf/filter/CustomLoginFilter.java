@@ -88,7 +88,7 @@ public class CustomLoginFilter extends GenericFilterBean {
         final long ACCESS_TOKEN_EXPIRY = 3_600_000L; // 1분
         final long REFRESH_TOKEN_EXPIRY = 43_200_000L; // 12시간
 
-        String role = user.getRoles();
+        String role = user.getRole();
         // 다중 Role 지원 시, 적절하게 List로 변환 필요
         String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(role), ACCESS_TOKEN_EXPIRY);
         String refreshToken = jwtService.createJwt("refreshToken", user.getLoginId(), List.of(role), REFRESH_TOKEN_EXPIRY);
