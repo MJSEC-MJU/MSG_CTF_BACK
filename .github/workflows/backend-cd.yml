@@ -25,8 +25,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      DOMAIN:            ${{ secrets.DOMAIN }}               # 예: msg.xn--3e0b707e (퓨니코드 권장)
-      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}           # 예: www.msg.xn--3e0b707e
+      DOMAIN:            ${{ secrets.DOMAIN }}               # e.g. msg.xn--3e0b707e
+      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}           # e.g. www.msg.xn--3e0b707e
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
       REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
@@ -109,8 +109,8 @@ jobs:
       # 로컬에서 .env 생성 → 업로드 (VITE/CRA 프론트 변수 포함)
       - name: Build .env locally and upload
         env:
-          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택) 명시 시크릿
-          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택) CRA 호환
+          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택)
+          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택)
         run: |
           set -euo pipefail
 
@@ -119,7 +119,7 @@ jobs:
           [ -z "$VITE_URL" ] && VITE_URL="https://${{ env.DOMAIN }}"
           [ -z "$REACT_URL" ] && REACT_URL="https://${{ env.DOMAIN }}"
 
-          # 시크릿 내부의 $ 확장 방지를 위해 인용 heredoc 사용
+          # 시크릿 내부의 $ 확장 방지 위해 quoted heredoc 사용
           cat > .env.ci <<'EOF'
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -197,15 +197,16 @@ jobs:
           ssh "$REMOTE_HOST" "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
           rm -f gcp.json
 
-      # 1) HTTP 기동 (템플릿 치환은 기존 변수명 사용)
+      # 1) HTTP 기동 (템플릿 치환은 변수 먼저 정의 후 사용)
       - name: Start stack (HTTP only)
         run: |
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
+            DOMAIN='${{ env.DOMAIN }}'
+            WWW_DOMAIN='${{ env.WWW_DOMAIN }}'
 
-            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template \
+            envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             sudo docker compose down --remove-orphans || true
@@ -304,15 +305,16 @@ jobs:
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
+            DOMAIN='${{ env.DOMAIN }}'
+            WWW_DOMAIN='${{ env.WWW_DOMAIN }}'
 
-            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
+            envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             echo "== verify cert files exist =="
             sudo ls -l /home/ubuntu/app/certbot/config/live || true
-            if [ ! -d "/home/ubuntu/app/certbot/config/live/${DOMAIN}" ]; then
-              echo "❗ live/${DOMAIN} not found. certbot may have failed or used a different primary name."
+            if [ ! -d "/home/ubuntu/app/certbot/config/live/$DOMAIN" ]; then
+              echo "❗ live/$DOMAIN not found. certbot may have failed or used a different primary name."
             fi
 
             sudo docker compose exec -T nginx nginx -t
