@@ -4,10 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mjsec.ctf.type.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
-
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -47,8 +43,8 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false)
     private int totalPoint;
 
-    @Column(nullable = false)
-    private int mileage;
+    @Column
+    private Long currentTeamId;
 
     @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -59,4 +55,19 @@ public class UserEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<RefreshEntity> refreshTokens;
+
+    public boolean hasTeam() {
+
+        return currentTeamId != null;
+    }
+
+    public void joinTeam(Long teamId) {
+
+        this.currentTeamId = teamId;
+    }
+
+    public void leaveTeam() {
+
+        this.currentTeamId = null;
+    }
 }
