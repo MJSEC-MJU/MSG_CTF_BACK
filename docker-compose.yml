@@ -69,6 +69,8 @@ services:
     container_name: ctf-frontend
     restart: unless-stopped
     expose: [ "80" ]  # nginx에서 내부 접근
+    environment:
+      VITE_API_URL: ${VITE_API_URL}   # ✅ .env(or 원격 .env)에서 주입
     networks: [ ctf-network ]
 
   nginx:
@@ -82,11 +84,8 @@ services:
       - "80:80"     # HTTP-01 챌린지/초기
       - "443:443"   # 인증 후 HTTPS
     volumes:
-      # 디렉터리 바인드(RO): 워크플로우가 생성한 conf 사용
       - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:ro
-      # ACME 챌린지(웹루트) 공유
       - /home/ubuntu/app/certbot/www:/var/www/certbot:rw
-      # 인증서/키 공유
       - /home/ubuntu/app/certbot/config:/etc/letsencrypt:rw
     networks: [ ctf-network ]
 
