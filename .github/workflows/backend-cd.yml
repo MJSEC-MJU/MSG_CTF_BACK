@@ -121,38 +121,38 @@ jobs:
 
           # 시크릿 내부의 $ 확장 방지를 위해 인용 heredoc 사용
           cat > .env.ci <<'EOF'
-DB_NAME=${{ secrets.DB_NAME }}
-DB_USERNAME=${{ secrets.DB_USERNAME }}
-DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-DB_PORT=${{ secrets.DB_PORT }}
-DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
-DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
-SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
-GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
-API_KEY=${{ secrets.API_KEY }}
-API_URL=${{ secrets.API_URL }}
-BUCKET=${{ secrets.BUCKET }}
-LOCATION=${{ secrets.LOCATION }}
-PROJECT_ID=${{ secrets.PROJECT_ID }}
-GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
-GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
+          SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+          GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
+          API_KEY=${{ secrets.API_KEY }}
+          API_URL=${{ secrets.API_URL }}
+          BUCKET=${{ secrets.BUCKET }}
+          LOCATION=${{ secrets.LOCATION }}
+          PROJECT_ID=${{ secrets.PROJECT_ID }}
+          GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
+          GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
 
-# --- Domains (as provided) ---
-DOMAIN=${{ env.DOMAIN }}
-WWW_DOMAIN=${{ env.WWW_DOMAIN }}
-LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
+          # --- Domains (as provided) ---
+          DOMAIN=${{ env.DOMAIN }}
+          WWW_DOMAIN=${{ env.WWW_DOMAIN }}
+          LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
 
-# --- Paths ---
-HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
+          # --- Paths ---
+          HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
 
-# --- derived (do not edit manually) ---
-FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
-CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
-SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
-EOF
+          # --- derived (do not edit manually) ---
+          FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
+          CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
+          SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
+          EOF
 
           {
             printf '\n# --- frontend runtime variables ---\n'
