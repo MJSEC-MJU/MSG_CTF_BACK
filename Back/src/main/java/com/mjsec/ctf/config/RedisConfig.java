@@ -15,14 +15,15 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
-    @Value("${spring.redis.host}")
+    @Value("${spring.data.redis.host}")
     private String host;
 
-    @Value("${spring.redis.port}")
+    @Value("${spring.data.redis.port}")
     private int port;
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
+
         RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
 
         configuration.setHostName(host);
@@ -33,6 +34,7 @@ public class RedisConfig {
 
     @Bean
     public StringRedisTemplate redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+
         StringRedisTemplate redisTemplate = new StringRedisTemplate();
         redisTemplate.setConnectionFactory(redisConnectionFactory);
         redisTemplate.setKeySerializer(new StringRedisSerializer());
@@ -42,6 +44,7 @@ public class RedisConfig {
 
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
+
         Config config = new Config();
         config.useSingleServer()
                 .setAddress("redis://" + host + ":" + port)
