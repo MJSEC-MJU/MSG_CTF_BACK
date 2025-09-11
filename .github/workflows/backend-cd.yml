@@ -286,16 +286,35 @@ jobs:
           EOSSH
 
       # 4-1) 서버 내부에서 HTTPS 자체검증
-      - name: Remote self-check HTTPS
+            - name: Remote self-check HTTPS (bind to localhost with SNI)
         run: |
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
+            cd '${{ env.REMOTE_DIR }}'
+
+            echo "== nginx container status =="
+            sudo docker compose ps nginx || true
+
+            echo "== inside nginx: ports =="
+            sudo docker compose exec -T nginx sh -lc "ss -lntp | awk 'NR==1 || /:80|:443/'" || true
+
             for h in '${{ env.DOMAIN }}' '${{ env.WWW_DOMAIN }}'; do
-              echo "Remote curl https://$h"
-              curl -fsS -m 8 -o /dev/null "https://$h"
-              echo "OK: $h"
+              echo "Localhost HTTPS check with SNI: https://$h (-> 127.0.0.1:443)"
+              if ! curl -fsS -m 10 -o /dev/null --resolve "$h:443:127.0.0.1" "https://$h"; then
+                echo "❌ Localhost HTTPS failed for $h"
+                echo "== recent nginx logs =="
+                sudo docker compose logs --tail=120 nginx || true
+                echo "== nginx -t output =="
+                sudo docker compose exec -T nginx nginx -t || true
+                echo "== certs listing =="
+                sudo docker compose exec -T nginx sh -lc "ls -l /etc/letsencrypt/live || true; ls -l /etc/letsencrypt/archive || true"
+                exit 1
+              else
+                echo "✅ Localhost HTTPS OK for $h"
+              fi
             done
           EOSSH
+
 
       # 4-2) 러너에서 서버 공인 IPv4로 SNI 고정 검증
       - name: Verify HTTPS from runner via fixed IP (SNI/Host forced)
