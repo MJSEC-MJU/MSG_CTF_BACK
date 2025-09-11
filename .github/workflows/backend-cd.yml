@@ -109,8 +109,8 @@ jobs:
       # 로컬에서 .env 생성 → 업로드 (VITE/CRA 프론트 변수 포함)
       - name: Build .env locally and upload
         env:
-          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택) 명시 시크릿
-          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택) CRA 호환
+          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택)
+          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택)
         run: |
           set -euo pipefail
 
@@ -119,7 +119,8 @@ jobs:
           [ -z "$VITE_URL" ] && VITE_URL="https://${{ env.DOMAIN }}"
           [ -z "$REACT_URL" ] && REACT_URL="https://${{ env.DOMAIN }}"
 
-          cat > .env.ci <<EOF
+          # 1) 여기문을 'EOF'로 인용 → 시크릿 내부의 $ 확장 방지
+          cat > .env.ci <<'EOF'
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USERNAME=${{ secrets.DB_USERNAME }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -151,12 +152,16 @@ jobs:
           FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
           CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
           SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
-
-          # --- frontend runtime variables ---
-          VITE_API_URL=$VITE_URL
-          REACT_APP_API_URL=$REACT_URL
           EOF
 
+          # 2) 동적으로 필요한 라인만 안전하게 추가 (여기서 변수 확장)
+          {
+            printf '\n# --- frontend runtime variables ---\n'
+            printf 'VITE_API_URL=%s\n' "$VITE_URL"
+            printf 'REACT_APP_API_URL=%s\n' "$REACT_URL"
+          } >> .env.ci
+
+          # 3) 업로드
           scp -o StrictHostKeyChecking=no .env.ci "$REMOTE_HOST":/tmp/.env
           ssh "$REMOTE_HOST" "sudo mv /tmp/.env '${{ env.REMOTE_DIR }}/.env' && sudo chown root:root '${{ env.REMOTE_DIR }}/.env' && sudo chmod 600 '${{ env.REMOTE_DIR }}/.env'"
 
