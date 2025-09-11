@@ -121,38 +121,38 @@ jobs:
 
           # 시크릿 내부의 $ 확장 방지를 위해 인용 heredoc 사용
           cat > .env.ci <<'EOF'
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_PORT=${{ secrets.DB_PORT }}
-          DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
-          SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
-          GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
-          API_KEY=${{ secrets.API_KEY }}
-          API_URL=${{ secrets.API_URL }}
-          BUCKET=${{ secrets.BUCKET }}
-          LOCATION=${{ secrets.LOCATION }}
-          PROJECT_ID=${{ secrets.PROJECT_ID }}
-          GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
-          GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
+DB_NAME=${{ secrets.DB_NAME }}
+DB_USERNAME=${{ secrets.DB_USERNAME }}
+DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+DB_PORT=${{ secrets.DB_PORT }}
+DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+SPRING_SECURITY_USER_NAME=${{ secrets.SPRING_SECURITY_USER_NAME }}
+SPRING_SECURITY_USER_PASSWORD=${{ secrets.SPRING_SECURITY_USER_PASSWORD }}
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
+API_KEY=${{ secrets.API_KEY }}
+API_URL=${{ secrets.API_URL }}
+BUCKET=${{ secrets.BUCKET }}
+LOCATION=${{ secrets.LOCATION }}
+PROJECT_ID=${{ secrets.PROJECT_ID }}
+GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
+GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
 
-          # --- Domains (as provided) ---
-          DOMAIN=${{ env.DOMAIN }}
-          WWW_DOMAIN=${{ env.WWW_DOMAIN }}
-          LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
+# --- Domains (as provided) ---
+DOMAIN=${{ env.DOMAIN }}
+WWW_DOMAIN=${{ env.WWW_DOMAIN }}
+LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
 
-          # --- Paths ---
-          HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
+# --- Paths ---
+HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
 
-          # --- derived (do not edit manually) ---
-          FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
-          CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
-          SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
-          EOF
+# --- derived (do not edit manually) ---
+FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
+CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
+SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
+EOF
 
           {
             printf '\n# --- frontend runtime variables ---\n'
@@ -226,8 +226,8 @@ jobs:
             done
           done
 
-      # 서버에서 DNS/포트/컨테이너 상태 디버그 (선택)
-      - name: Server-side DNS & ports debug (optional)
+      # 서버에서 DNS/포트/컨테이너 상태 디버그
+      - name: Server-side DNS & ports debug
         run: |
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -e
@@ -237,7 +237,20 @@ jobs:
             done
             echo
             echo "== Host listening ports (80/443) =="
-            sudo ss -lntp | awk 'NR==1 || /:80|:443/'
+            if command -v ss >/dev/null 2>&1; then
+              ss -lntp | awk 'NR==1 || /:80|:443/'
+            elif command -v netstat >/dev/null 2>&1; then
+              netstat -tulpn | grep -E ":80|:443" || true
+            else
+              sudo apt-get update -y && sudo apt-get install -y net-tools && netstat -tulpn | grep -E ":80|:443" || true
+            fi
+            echo
+            echo "== ufw status (if enabled) =="
+            if command -v ufw >/dev/null 2>&1; then
+              sudo ufw status verbose || true
+            else
+              echo "ufw not installed"
+            fi
             echo
             echo "== docker compose ps =="
             cd '${{ env.REMOTE_DIR }}' && sudo docker compose ps
@@ -285,7 +298,7 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      # 3) HTTPS 전환 & 리로드
+      # 3) HTTPS 전환 & 리로드 + 인증서 존재 확인
       - name: Apply HTTPS config & reload nginx
         run: |
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
@@ -295,6 +308,12 @@ jobs:
             DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
               envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
+
+            echo "== verify cert files exist =="
+            sudo ls -l /home/ubuntu/app/certbot/config/live || true
+            if [ ! -d "/home/ubuntu/app/certbot/config/live/${DOMAIN}" ]; then
+              echo "❗ live/${DOMAIN} not found. certbot may have failed or used a different primary name."
+            fi
 
             sudo docker compose exec -T nginx nginx -t
             sudo docker compose exec -T nginx nginx -s reload
@@ -310,18 +329,18 @@ jobs:
             echo "== nginx container status =="
             sudo docker compose ps nginx || true
 
-            echo "== inside nginx: ports =="
-            sudo docker compose exec -T nginx sh -lc "ss -lntp | awk 'NR==1 || /:80|:443/'" || true
+            echo "== inside nginx: ports (install ss/netstat if needed) =="
+            sudo docker compose exec -T nginx sh -lc 'apk add --no-cache iproute2 >/dev/null 2>&1 || true; apk add --no-cache net-tools >/dev/null 2>&1 || true; (ss -lntp 2>/dev/null || netstat -tulpn | grep -E ":80|:443" || true)'
 
             for h in '${{ env.DOMAIN }}' '${{ env.WWW_DOMAIN }}'; do
               echo "Localhost HTTPS check with SNI: https://$h (-> 127.0.0.1:443)"
-              if ! curl -fsS -m 10 -o /dev/null --resolve "$h:443:127.0.0.1" "https://$h"; then
+              if ! curl -vkI -m 10 --resolve "$h:443:127.0.0.1" "https://$h" >/dev/null 2>&1; then
                 echo "❌ Localhost HTTPS failed for $h"
                 echo "== recent nginx logs =="
                 sudo docker compose logs --tail=120 nginx || true
                 echo "== nginx -t output =="
                 sudo docker compose exec -T nginx nginx -t || true
-                echo "== certs listing =="
+                echo "== certs listing (in container) =="
                 sudo docker compose exec -T nginx sh -lc "ls -l /etc/letsencrypt/live || true; ls -l /etc/letsencrypt/archive || true"
                 exit 1
               else
@@ -336,13 +355,19 @@ jobs:
           set -e
           for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
             echo "Runner check: https://$host via ${{ env.REMOTE_IP }}"
+            ok=0
             for i in $(seq 1 15); do
               if curl -fsS -m 8 --resolve "$host:443:${{ env.REMOTE_IP }}" "https://$host" -o /dev/null; then
-                echo "HTTPS OK (runner via fixed IP): $host"; break
+                echo "HTTPS OK (runner via fixed IP): $host"; ok=1; break
               fi
-              [ "$i" -eq 15 ] && { echo "Runner check failed for $host"; exit 1; }
               echo "...retry $i/15"; sleep 2
             done
+            if [ "$ok" -ne 1 ]; then
+              echo "❌ Runner cannot reach ${host}:443 at IP ${{ env.REMOTE_IP }}"
+              echo "   ▶ Check cloud firewall (GCP VPC inbound rule) allows tcp/443 to instance."
+              echo "   ▶ Check host firewall: 'sudo ufw status', then 'sudo ufw allow 80/tcp; sudo ufw allow 443/tcp' if active."
+              exit 1
+            fi
           done
 
       - name: Prune old images
