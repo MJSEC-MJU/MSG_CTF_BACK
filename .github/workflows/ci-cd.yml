@@ -19,7 +19,7 @@ jobs:
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       API_KEY: ${{ secrets.API_KEY }}
-      API_URL: ${{ secrets.API_URL }}             # ✅ 추가
+      API_URL: ${{ secrets.API_URL }}             
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -40,12 +40,12 @@ jobs:
             echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}"
             echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}"
             echo "API_KEY=${{ env.API_KEY }}"
-            echo "API_URL=${{ env.API_URL }}"         # ✅ 추가
+            echo "API_URL=${{ env.API_URL }}"        
             echo "BUCKET=${{ env.BUCKET }}"
             echo "LOCATION=${{ env.LOCATION }}"
             echo "PROJECT_ID=${{ env.PROJECT_ID }}"
             echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}"
-            echo "HOST_GCP_JSON_PATH=/dev/null"       # ✅ CI에선 키 마운트 우회
+            echo "HOST_GCP_JSON_PATH=/dev/null"       # 
           } > .env
           cat .env | sed 's/^\(.*PASSWORD\|JWT_SECRET\|API_KEY\)=.*/\1=****/'
 

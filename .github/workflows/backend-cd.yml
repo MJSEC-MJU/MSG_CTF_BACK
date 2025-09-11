@@ -25,8 +25,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      DOMAIN:            ${{ secrets.DOMAIN }}
-      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}
+      DOMAIN:            ${{ secrets.DOMAIN }}               # 예: msg.xn--3e0b707e (퓨니코드 권장)
+      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}           # 예: www.msg.xn--3e0b707e
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
       REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
@@ -42,7 +42,9 @@ jobs:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
       - name: Add host key
-        run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 "$REMOTE_HOST" "echo OK"
@@ -84,7 +86,7 @@ jobs:
             sudo docker info >/dev/null
           EOSSH
 
-      # 필수 디렉터리 + .env 생성
+      # 필수 디렉터리 + .env 생성 (환경변수 이름 그대로 유지)
       - name: Prepare remote dirs & .env
         run: |
           ssh "$REMOTE_HOST" <<'EOF'
@@ -97,14 +99,14 @@ jobs:
               sudo apt-get install -y gettext-base
             fi
 
-            # 디렉터리 (root 소유)
+            # 디렉터리
             sudo mkdir -p "$REMOTE_DIR/nginx/conf.d" \
                          "$REMOTE_DIR/certbot/config" \
                          "$REMOTE_DIR/certbot/www" \
                          "$REMOTE_DIR/certbot/logs"
 
-            # .env (인용 heredoc으로 원격 확장 방지)
-            sudo tee "$REMOTE_DIR/.env" >/dev/null <<'EOT'
+            # .env
+            sudo tee "$REMOTE_DIR/.env" >/dev/null <<EOT
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -123,9 +125,44 @@ jobs:
             PROJECT_ID=${{ secrets.PROJECT_ID }}
             GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
             GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
+
+            # --- Domains (as provided in secrets) ---
             DOMAIN=${{ env.DOMAIN }}
+            WWW_DOMAIN=${{ env.WWW_DOMAIN }}
             LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
+
+            # --- Paths ---
             HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
+            EOT
+          EOF
+
+      # 프런트 오리진/CORS + 프런트 런타임 변수(Vite/CRA)를 .env에 덧붙임
+      - name: Append Frontend origins & runtime vars to .env
+        env:
+          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택) 직접 지정 시 사용
+          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택) CRA 호환
+        run: |
+          ssh "$REMOTE_HOST" bash -s <<EOF
+            set -euo pipefail
+            REMOTE_DIR='${{ env.REMOTE_DIR }}'
+            A="https://${{ env.DOMAIN }}"
+            W="https://${{ env.WWW_DOMAIN }}"
+
+            VITE_URL="${VITE_API_URL_SECRET:-}"
+            REACT_URL="${REACT_APP_API_URL_SECRET:-}"
+            [ -z "\$VITE_URL" ] && VITE_URL="\$A"
+            [ -z "\$REACT_URL" ] && REACT_URL="\$A"
+
+            sudo tee -a "\$REMOTE_DIR/.env" >/dev/null <<EOT
+
+            # --- derived (do not edit manually) ---
+            FRONTEND_ORIGIN=\$A
+            CORS_ALLOWED_ORIGINS=\$A,\$W
+            SPRING_WEB_CORS_ALLOWED_ORIGINS=\$A,\$W
+
+            # --- frontend runtime variables ---
+            VITE_API_URL=\$VITE_URL
+            REACT_APP_API_URL=\$REACT_URL
             EOT
           EOF
 
@@ -144,7 +181,7 @@ jobs:
             sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
 
-      # (옵션) GCP 키 업로드: /tmp → sudo mv
+      # (옵션) GCP 키 업로드
       - name: Upload GCP Service Account (optional)
         env:
           GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -163,40 +200,14 @@ jobs:
           ssh "$REMOTE_HOST" "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
           rm -f gcp.json
 
-      # 퓨니코드 계산 (표준 idna 코덱 사용)
-      - name: Compute Punycode (apex & www)
-        id: puny
-        env:
-          RAW_DOMAIN: ${{ env.DOMAIN }}
-          RAW_WWW:    ${{ env.WWW_DOMAIN }}
-        run: |
-          set -e
-          D_ASCII=$(python3 - <<'PY'
-          import os
-          print(os.environ['RAW_DOMAIN'].encode('idna').decode())
-          PY
-          )
-          W_ASCII=$(python3 - <<'PY'
-          import os
-          print(os.environ['RAW_WWW'].encode('idna').decode())
-          PY
-          )
-          {
-            echo "D_ASCII=$D_ASCII"
-            echo "W_ASCII=$W_ASCII"
-          } >> "$GITHUB_OUTPUT"
-          echo "Apex: $D_ASCII"
-          echo "WWW : $W_ASCII"
-
-      # 1) HTTP 기동 (Punycode로 conf 생성)
+      # 1) HTTP 기동 (템플릿 치환은 기존 변수명 사용)
       - name: Start stack (HTTP only)
         run: |
-          ssh "$REMOTE_HOST" \
-            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
+          ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            DOMAIN="$DOMAIN_ASCII" WWW_DOMAIN="$WWW_ASCII" \
+            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
               envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
@@ -205,24 +216,25 @@ jobs:
             sudo docker compose up -d nginx backend frontend redis
           EOSSH
 
-      - name: Wait for HTTP (apex punycode)
+      - name: Wait for HTTP (apex & www)
         run: |
-          HOST='${{ steps.puny.outputs.D_ASCII }}'
-          for i in $(seq 1 24); do
-            if curl -fsS -m 5 -o /dev/null "http://$HOST"; then
-              echo "HTTP OK: $HOST"; exit 0
-            fi
-            echo "...waiting HTTP ($i/24)"; sleep 5
+          for HOST in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
+            echo "Waiting for http://$HOST"
+            for i in $(seq 1 24); do
+              if curl -fsS -m 5 -o /dev/null "http://$HOST"; then
+                echo "HTTP OK: $HOST"; break
+              fi
+              [ "$i" -eq 24 ] && { echo "HTTP failed: $HOST"; exit 1; }
+              echo "...waiting HTTP ($i/24)"; sleep 5
+            done
           done
-          exit 1
 
-      # (선택) ACME 프리플라이트: 토큰 파일로 HTTP-01 도달 확인
+      # (선택) ACME 프리플라이트
       - name: ACME preflight (HTTP-01 reachability)
         run: |
           set -euo pipefail
           TOKEN="$(openssl rand -hex 16)"
 
-          # 원격에 토큰 생성
           ssh "$REMOTE_HOST" "
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
@@ -230,7 +242,7 @@ jobs:
             echo \"$TOKEN\" | sudo tee \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge/$TOKEN\" >/dev/null
           "
 
-          for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
+          for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
             echo "Check: http://$host/.well-known/acme-challenge/$TOKEN"
             body="$(curl -fsS -m 8 "http://$host/.well-known/acme-challenge/$TOKEN" || true)"
             if [ "$body" != "$TOKEN" ]; then
@@ -243,11 +255,10 @@ jobs:
             fi
           done
 
-      # 2) 인증서 발급/갱신 (entrypoint override + Punycode)
+      # 2) 인증서 발급/갱신
       - name: Issue/Renew SSL via certbot
         run: |
-          ssh "$REMOTE_HOST" \
-            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
+          ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -256,19 +267,18 @@ jobs:
               --webroot -w /var/www/certbot \
               --non-interactive --keep-until-expiring \
               --email '${{ env.LETSENCRYPT_EMAIL }}' \
-              -d "$DOMAIN_ASCII" -d "$WWW_ASCII" \
+              -d '${{ env.DOMAIN }}' -d '${{ env.WWW_DOMAIN }}' \
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      # 3) HTTPS 전환 & 리로드 (Punycode로 conf 생성)
+      # 3) HTTPS 전환 & 리로드
       - name: Apply HTTPS config & reload nginx
         run: |
-          ssh "$REMOTE_HOST" \
-            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
+          ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            DOMAIN="$DOMAIN_ASCII" WWW_DOMAIN="$WWW_ASCII" \
+            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
               envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
@@ -276,24 +286,23 @@ jobs:
             sudo docker compose exec -T nginx nginx -s reload
           EOSSH
 
-      # 4-1) 서버 내부에서 HTTPS 자체검증 (방화벽/외부 라우팅 이슈와 무관)
+      # 4-1) 서버 내부에서 HTTPS 자체검증
       - name: Remote self-check HTTPS
         run: |
-          ssh "$REMOTE_HOST" \
-            "DOMAIN_ASCII='${{ steps.puny.outputs.D_ASCII }}' WWW_ASCII='${{ steps.puny.outputs.W_ASCII }}' bash -s" <<'EOSSH'
+          ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
-            for h in "$DOMAIN_ASCII" "$WWW_ASCII"; do
+            for h in '${{ env.DOMAIN }}' '${{ env.WWW_DOMAIN }}'; do
               echo "Remote curl https://$h"
               curl -fsS -m 8 -o /dev/null "https://$h"
               echo "OK: $h"
             done
           EOSSH
 
-      # 4-2) 러너에서 서버 공인 IPv4로 SNI 고정 검증 (DNS 캐시/경로 차이 무시)
+      # 4-2) 러너에서 서버 공인 IPv4로 SNI 고정 검증
       - name: Verify HTTPS from runner via fixed IP (SNI/Host forced)
         run: |
           set -e
-          for host in "${{ steps.puny.outputs.D_ASCII }}" "${{ steps.puny.outputs.W_ASCII }}"; do
+          for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
             echo "Runner check: https://$host via ${{ env.REMOTE_IP }}"
             for i in $(seq 1 15); do
               if curl -fsS -m 8 --resolve "$host:443:${{ env.REMOTE_IP }}" "https://$host" -o /dev/null; then
