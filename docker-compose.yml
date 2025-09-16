@@ -70,7 +70,7 @@ services:
     restart: unless-stopped
     expose: [ "80" ]  # nginx에서 내부 접근
     environment:
-      VITE_API_URL: ${VITE_API_URL}   # ✅ .env(or 원격 .env)에서 주입
+      VITE_API_URL: ${VITE_API_URL}  
     networks: [ ctf-network ]
 
   nginx:

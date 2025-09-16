@@ -4,6 +4,10 @@ on:
   push: { branches: [ dev ] }
   workflow_dispatch:
 
+concurrency:
+  group: backend-nginx-cd-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -18,8 +22,14 @@ jobs:
 
       - name: Build & Push Backend
         run: |
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest -f dockerfile .
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend:latest
+          set -euo pipefail
+          # Dockerfile 이름 양쪽 케이스 지원
+          DF="Dockerfile"; [ -f dockerfile ] && DF="dockerfile"
+          IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/backend"
+          TAG_SHA="${{ github.sha }}"
+          docker build -t "${IMAGE}:${TAG_SHA}" -t "${IMAGE}:latest" -f "$DF" .
+          docker push "${IMAGE}:${TAG_SHA}"
+          docker push "${IMAGE}:latest"
 
   deploy:
     needs: build-and-push
@@ -31,6 +41,7 @@ jobs:
       REMOTE_DIR:        /home/ubuntu/app
       REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
       REMOTE_IP:         ${{ secrets.SERVER_IP }}
+      IMAGE_TAG:         ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -56,8 +67,7 @@ jobs:
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -Eeuo pipefail
             if sudo docker compose version >/dev/null 2>&1; then
-              echo "docker compose v2 already present"
-              exit 0
+              echo "docker compose v2 already present"; exit 0
             fi
             sudo apt-get update -y
             if ! sudo apt-get install -y docker-compose-plugin; then
@@ -92,32 +102,26 @@ jobs:
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
-
             # envsubst 설치
             if ! command -v envsubst >/dev/null 2>&1; then
               sudo apt-get update -y
               sudo apt-get install -y gettext-base
             fi
-
-            # 디렉터리
             sudo mkdir -p "$REMOTE_DIR/nginx/conf.d" \
                          "$REMOTE_DIR/certbot/config" \
-                         "$REMOTE_DIR/certbot/www" \
+                         "$REMOTE_DIR/certbot/www/.well-known/acme-challenge" \
                          "$REMOTE_DIR/certbot/logs"
           EOSSH
 
-      # 로컬에서 .env 생성 → 업로드 (VITE/CRA 프론트 변수 포함)
+      # 로컬에서 .env 생성 → 업로드
       - name: Build .env locally and upload
         env:
           VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택)
           REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택)
         run: |
           set -euo pipefail
-
-          VITE_URL="${VITE_API_URL_SECRET:-}"
-          REACT_URL="${REACT_APP_API_URL_SECRET:-}"
-          [ -z "$VITE_URL" ] && VITE_URL="https://${{ env.DOMAIN }}"
-          [ -z "$REACT_URL" ] && REACT_URL="https://${{ env.DOMAIN }}"
+          VITE_URL="${VITE_API_URL_SECRET:-https://${{ env.DOMAIN }}}"
+          REACT_URL="${REACT_APP_API_URL_SECRET:-https://${{ env.DOMAIN }}}"
 
           # 시크릿 내부의 $ 확장 방지 위해 quoted heredoc 사용
           cat > .env.ci <<'EOF'
@@ -148,10 +152,11 @@ jobs:
           # --- Paths ---
           HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
 
-          # --- derived (do not edit manually) ---
+          # --- derived ---
           FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
           CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
           SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
+          IMAGE_TAG=${{ env.IMAGE_TAG }}
           EOF
 
           {
@@ -163,10 +168,12 @@ jobs:
           scp -o StrictHostKeyChecking=no .env.ci "$REMOTE_HOST":/tmp/.env
           ssh "$REMOTE_HOST" "sudo mv /tmp/.env '${{ env.REMOTE_DIR }}/.env' && sudo chown root:root '${{ env.REMOTE_DIR }}/.env' && sudo chmod 600 '${{ env.REMOTE_DIR }}/.env'"
 
-      # 업로드는 /tmp → sudo mv (권한 안전)
-      - name: Upload docker-compose.yml via /tmp
+      # docker-compose 파일 업로드 (yml/yaml 둘 다 지원)
+      - name: Upload docker-compose via /tmp
         run: |
-          scp -o StrictHostKeyChecking=no docker-compose.yml "$REMOTE_HOST":/tmp/docker-compose.yml
+          set -euo pipefail
+          FILE="docker-compose.yml"; [ -f docker-compose.yaml ] && FILE="docker-compose.yaml"
+          scp -o StrictHostKeyChecking=no "$FILE" "$REMOTE_HOST":/tmp/docker-compose.yml
           ssh "$REMOTE_HOST" "sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'"
 
       - name: Upload NGINX templates via /tmp
@@ -197,7 +204,7 @@ jobs:
           ssh "$REMOTE_HOST" "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
           rm -f gcp.json
 
-      # 1) HTTP 기동 (템플릿 치환은 변수 먼저 정의 후 사용)
+      # 1) HTTP 기동 (템플릿 치환 → 전체 서비스 up)
       - name: Start stack (HTTP only)
         run: |
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
@@ -206,26 +213,37 @@ jobs:
             DOMAIN='${{ env.DOMAIN }}'
             WWW_DOMAIN='${{ env.WWW_DOMAIN }}'
 
-            envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template \
+            # envsubst: 변수 리스트는 백슬래시 없이 단일쿼트
+            envsubst '$DOMAIN,$WWW_DOMAIN' < nginx/default.http.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             sudo docker compose down --remove-orphans || true
             sudo docker compose pull || true
-            sudo docker compose up -d nginx backend frontend redis
+            sudo docker compose up -d --remove-orphans
           EOSSH
 
-      - name: Wait for HTTP (apex & www)
+      # apex는 필수, www는 있으면만 테스트/사용
+      - name: Wait for HTTP (apex required, www optional)
         run: |
-          for HOST in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
-            echo "Waiting for http://$HOST"
-            for i in $(seq 1 24); do
-              if curl -fsS -m 5 -o /dev/null "http://$HOST"; then
-                echo "HTTP OK: $HOST"; break
-              fi
-              [ "$i" -eq 24 ] && { echo "HTTP failed: $HOST"; exit 1; }
-              echo "...waiting HTTP ($i/24)"; sleep 5
-            done
+          set -euo pipefail
+          APEX="${{ env.DOMAIN }}"
+          WWW="${{ env.WWW_DOMAIN }}"
+          echo "Waiting for http://$APEX"
+          for i in $(seq 1 24); do
+            if curl -fsS -m 5 -o /dev/null "http://$APEX"; then
+              echo "HTTP OK: $APEX"; break
+            fi
+            [ "$i" -eq 24 ] && { echo "HTTP failed: $APEX"; exit 1; }
+            echo "...waiting HTTP ($i/24)"; sleep 5
           done
+
+          WWW_OK=0
+          if curl -fsS -m 5 -o /dev/null "http://$WWW"; then
+            echo "HTTP OK: $WWW"; WWW_OK=1
+          else
+            echo "WWW not reachable. Will SKIP www for ACME."
+          fi
+          echo "WWW_OK=$WWW_OK" >> "$GITHUB_ENV"
 
       # 서버에서 DNS/포트/컨테이너 상태 디버그
       - name: Server-side DNS & ports debug
@@ -246,18 +264,11 @@ jobs:
               sudo apt-get update -y && sudo apt-get install -y net-tools && netstat -tulpn | grep -E ":80|:443" || true
             fi
             echo
-            echo "== ufw status (if enabled) =="
-            if command -v ufw >/dev/null 2>&1; then
-              sudo ufw status verbose || true
-            else
-              echo "ufw not installed"
-            fi
-            echo
             echo "== docker compose ps =="
             cd '${{ env.REMOTE_DIR }}' && sudo docker compose ps
           EOSSH
 
-      # (선택) ACME 프리플라이트
+      # ACME 프리플라이트 (리치 가능한 호스트만 수집)
       - name: ACME preflight (HTTP-01 reachability)
         run: |
           set -euo pipefail
@@ -266,40 +277,50 @@ jobs:
           ssh "$REMOTE_HOST" "
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
-            sudo mkdir -p \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge\"
             echo \"$TOKEN\" | sudo tee \"\$REMOTE_DIR/certbot/www/.well-known/acme-challenge/$TOKEN\" >/dev/null
           "
 
-          for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
+          HOSTS="${{ env.DOMAIN }}"
+          if [ "${WWW_OK:-0}" = "1" ]; then
+            HOSTS="$HOSTS ${{ env.WWW_DOMAIN }}"
+          fi
+
+          ACME_HOSTS=""
+          for host in $HOSTS; do
             echo "Check: http://$host/.well-known/acme-challenge/$TOKEN"
             body="$(curl -fsS -m 8 "http://$host/.well-known/acme-challenge/$TOKEN" || true)"
-            if [ "$body" != "$TOKEN" ]; then
-              echo "❌ ACME path unreachable for $host"
-              echo "   Expected: $TOKEN"
-              echo "   Got: ${body:0:120}..."
-              exit 1
+            if [ "$body" = "$TOKEN" ]; then
+              echo "✅ OK for $host"; ACME_HOSTS="$ACME_HOSTS $host"
             else
-              echo "✅ OK for $host"
+              echo "❌ ACME path unreachable for $host (skip)"
             fi
           done
+          ACME_HOSTS="$(echo "$ACME_HOSTS" | xargs)"
+          if [ -z "$ACME_HOSTS" ]; then
+            echo "No hosts are ACME-reachable. Abort."; exit 1
+          fi
+          echo "ACME_HOSTS=$ACME_HOSTS" >> "$GITHUB_ENV"
 
-      # 2) 인증서 발급/갱신
+      # 인증서 발급/갱신 (리치 가능한 호스트만 -d 인자로)
       - name: Issue/Renew SSL via certbot
         run: |
+          set -euo pipefail
+          DOMAINS_ARGS=""
+          for h in $ACME_HOSTS; do DOMAINS_ARGS="$DOMAINS_ARGS -d $h"; done
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-
+            DOMAINS_ARGS_PLACEHOLDER="$(printf '%s\n' "${{ env.ACME_HOSTS }}" | xargs -I{} printf -- " -d {}")"
             sudo docker compose run --rm --entrypoint certbot certbot \
               certonly \
               --webroot -w /var/www/certbot \
               --non-interactive --keep-until-expiring \
               --email '${{ env.LETSENCRYPT_EMAIL }}' \
-              -d '${{ env.DOMAIN }}' -d '${{ env.WWW_DOMAIN }}' \
+              ${DOMAINS_ARGS_PLACEHOLDER} \
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      # 3) HTTPS 전환 & 리로드 + 인증서 존재 확인
+      # HTTPS 전환 & 리로드 + 인증서 존재 확인
       - name: Apply HTTPS config & reload nginx
         run: |
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
@@ -308,22 +329,24 @@ jobs:
             DOMAIN='${{ env.DOMAIN }}'
             WWW_DOMAIN='${{ env.WWW_DOMAIN }}'
 
-            envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
+            # ✅ envsubst: 변수 리스트는 백슬래시 없이 단일쿼트
+            envsubst '$DOMAIN,$WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             echo "== verify cert files exist =="
             sudo ls -l /home/ubuntu/app/certbot/config/live || true
             if [ ! -d "/home/ubuntu/app/certbot/config/live/$DOMAIN" ]; then
-              echo "❗ live/$DOMAIN not found. certbot may have failed or used a different primary name."
+              echo "❗ live/$DOMAIN not found. certbot may have used a different primary name."
             fi
 
             sudo docker compose exec -T nginx nginx -t
             sudo docker compose exec -T nginx nginx -s reload
           EOSSH
 
-      # 4-1) 서버 내부에서 HTTPS 자기검증 (localhost 바인딩 + SNI 고정)
+      # 서버 내부에서 HTTPS 자기검증 (SNI 고정)
       - name: Remote self-check HTTPS (bind to localhost with SNI)
         run: |
+          set -euo pipefail
           ssh "$REMOTE_HOST" bash -s <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
@@ -331,19 +354,16 @@ jobs:
             echo "== nginx container status =="
             sudo docker compose ps nginx || true
 
-            echo "== inside nginx: ports (install ss/netstat if needed) =="
+            echo "== inside nginx: ports (best effort) =="
             sudo docker compose exec -T nginx sh -lc 'apk add --no-cache iproute2 >/dev/null 2>&1 || true; apk add --no-cache net-tools >/dev/null 2>&1 || true; (ss -lntp 2>/dev/null || netstat -tulpn | grep -E ":80|:443" || true)'
 
-            for h in '${{ env.DOMAIN }}' '${{ env.WWW_DOMAIN }}'; do
+            for h in ${{ env.ACME_HOSTS }}; do
               echo "Localhost HTTPS check with SNI: https://$h (-> 127.0.0.1:443)"
               if ! curl -vkI -m 10 --resolve "$h:443:127.0.0.1" "https://$h" >/dev/null 2>&1; then
                 echo "❌ Localhost HTTPS failed for $h"
-                echo "== recent nginx logs =="
-                sudo docker compose logs --tail=120 nginx || true
-                echo "== nginx -t output =="
-                sudo docker compose exec -T nginx nginx -t || true
-                echo "== certs listing (in container) =="
-                sudo docker compose exec -T nginx sh -lc "ls -l /etc/letsencrypt/live || true; ls -l /etc/letsencrypt/archive || true"
+                echo "== recent nginx logs =="; sudo docker compose logs --tail=120 nginx || true
+                echo "== nginx -t output ==";  sudo docker compose exec -T nginx nginx -t || true
+                echo "== certs listing (in container) =="; sudo docker compose exec -T nginx sh -lc "ls -l /etc/letsencrypt/live || true; ls -l /etc/letsencrypt/archive || true"
                 exit 1
               else
                 echo "✅ Localhost HTTPS OK for $h"
@@ -351,25 +371,20 @@ jobs:
             done
           EOSSH
 
-      # 4-2) 러너에서 서버 공인 IPv4로 SNI 고정 검증
+      # 러너에서 서버 공인 IPv4로 SNI 고정 검증 (ACME_HOSTS만)
       - name: Verify HTTPS from runner via fixed IP (SNI/Host forced)
         run: |
-          set -e
-          for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
+          set -euo pipefail
+          for host in $ACME_HOSTS; do
             echo "Runner check: https://$host via ${{ env.REMOTE_IP }}"
             ok=0
             for i in $(seq 1 15); do
               if curl -fsS -m 8 --resolve "$host:443:${{ env.REMOTE_IP }}" "https://$host" -o /dev/null; then
-                echo "HTTPS OK (runner via fixed IP): $host"; ok=1; break
+                echo "HTTPS OK: $host"; ok=1; break
               fi
               echo "...retry $i/15"; sleep 2
             done
-            if [ "$ok" -ne 1 ]; then
-              echo "❌ Runner cannot reach ${host}:443 at IP ${{ env.REMOTE_IP }}"
-              echo "   ▶ Check cloud firewall (GCP VPC inbound rule) allows tcp/443 to instance."
-              echo "   ▶ Check host firewall: 'sudo ufw status', then 'sudo ufw allow 80/tcp; sudo ufw allow 443/tcp' if active."
-              exit 1
-            fi
+            [ "$ok" -eq 1 ] || { echo "❌ Cannot reach $host:443 at IP ${{ env.REMOTE_IP }}"; exit 1; }
           done
 
       - name: Prune old images
