@@ -1,24 +1,21 @@
-version: "3.8"
-
 services:
   redis:
     image: redis:7.0
     container_name: ctf-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    ports: [ "6379:6379" ]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-    networks:
-      - ctf-network
+    networks: [ ctf-network ]
 
   db:
     image: mysql:8.0
     container_name: ctf-mysql
-    ports:
-      - "3306:3306"
+    restart: unless-stopped
+    ports: [ "3306:3306" ]
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
@@ -29,17 +26,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - ctf-network
+    networks: [ ctf-network ]
 
   backend:
     image: ${DOCKER_HUB_USERNAME}/backend:latest
     container_name: ctf-backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8080:8080"
+      redis:
+        condition: service_healthy
+    # 필요시에만 외부 노출:
+    # ports: [ "8080:8080" ]
     environment:
       SPRING_PROFILES_ACTIVE: local
       DB_HOST: db
@@ -57,41 +56,56 @@ services:
       API_KEY: ${API_KEY}
       API_URL: ${API_URL}
       BUCKET: ${BUCKET}
-      LOCATION: file:/secrets/gcp_service_account.json
+      LOCATION: ${LOCATION}
       PROJECT_ID: ${PROJECT_ID}
       GCP_JSON_FILE: ${GCP_JSON_FILE}
-      # 컨테이너 내부에서 서비스 계정 키 파일 경로를 지정합니다.
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp_service_account.json
-    # 서버의 /home/ubuntu/src 에 업로드된 키 파일을 컨테이너로 마운트합니다.
     volumes:
-      - /home/ubuntu/src/${GCP_JSON_FILE}:/secrets/gcp_service_account.json:ro
-    networks:
-      - ctf-network
-
-  nginx:
-    image: ${DOCKER_HUB_USERNAME}/nginx:latest
-    container_name: ctf-nginx
-    depends_on:
-      - backend
-    ports:
-      - "443:443"
-    volumes:
-      - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:ro
-      - /home/ubuntu/app/nginx/ssl:/etc/letsencrypt/live/msg.mjsec.kr:ro
-    networks:
-      - ctf-network
+      - ${HOST_GCP_JSON_PATH:-/dev/null}:/secrets/gcp_service_account.json:ro
+    networks: [ ctf-network ]
 
   frontend:
     image: ${DOCKER_HUB_USERNAME}/frontend:latest
     container_name: ctf-frontend
-    expose:
-      - "80"
-    networks:
-      - ctf-network
+    restart: unless-stopped
+    expose: [ "80" ]  # nginx에서 내부 접근
+    environment:
+      VITE_API_URL: ${VITE_API_URL}  
+    networks: [ ctf-network ]
 
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ctf-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"     # HTTP-01 챌린지/초기
+      - "443:443"   # 인증 후 HTTPS
+    volumes:
+      - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /home/ubuntu/app/certbot/www:/var/www/certbot:rw
+      - /home/ubuntu/app/certbot/config:/etc/letsencrypt:rw
+    networks: [ ctf-network ]
+
+  # certbot은 on-demand로 docker compose run --rm 사용
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ctf-certbot
+    restart: unless-stopped
+    volumes:
+      - /home/ubuntu/app/certbot/www:/var/www/certbot
+      - /home/ubuntu/app/certbot/config:/etc/letsencrypt
+    entrypoint: sh
+    command: -c "sleep infinity"
+    networks: [ ctf-network ]
+
+  # 기본 실행에서 제외 (CI에서만)
   test:
     image: gradle:8.1.1-jdk17
     container_name: ctf-test
+    profiles: [ "ci" ]
     working_dir: /app
     volumes:
       - ./Back:/app
@@ -111,8 +125,7 @@ services:
         condition: service_healthy
     entrypoint: ["sh", "-c"]
     command: ["./gradlew test --stacktrace"]
-    networks:
-      - ctf-network
+    networks: [ ctf-network ]
 
 volumes:
   gradle_cache:
