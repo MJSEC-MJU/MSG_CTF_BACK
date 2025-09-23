@@ -203,13 +203,23 @@ jobs:
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.http.conf.template \
-              | sudo tee nginx/conf.d/default.conf >/dev/null
-
-            sudo docker compose down --remove-orphans || true
-            sudo docker compose pull || true
-            sudo docker compose up -d nginx backend frontend redis
+            # HTTP 설정으로 nginx 시작
+            sudo docker compose exec nginx sh -c '
+              envsubst < /etc/nginx/templates/default.http.conf.template \
+                      > /etc/nginx/conf.d/default.conf \
+              && nginx -s reload
+            ' || {
+              echo "nginx exec failed, trying container recreation"
+              sudo docker compose down --remove-orphans || true
+              sudo docker compose pull || true
+              sudo docker compose up -d nginx backend frontend redis
+              sleep 5
+              sudo docker compose exec nginx sh -c '
+                envsubst < /etc/nginx/templates/default.http.conf.template \
+                        > /etc/nginx/conf.d/default.conf \
+                && nginx -s reload
+              '
+            }
           EOSSH
 
       # 80 확인 (DNS 무시, IP 고정)
@@ -250,22 +260,27 @@ jobs:
           EOSSH
 
       # 3) HTTPS 전환 & NGINX 리로드
-      - name: Apply HTTPS config & restart all services
+      - name: Apply HTTPS config & reload nginx
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.https.conf.template \
-              | sudo tee nginx/conf.d/default.conf >/dev/null
-
-            # 설정 파일 확인
-            sudo docker compose exec -T nginx nginx -t
+            # 컨테이너 내부에서 HTTPS 설정 생성 및 리로드
+            sudo docker compose exec nginx sh -c '
+              envsubst < /etc/nginx/templates/default.https.conf.template \
+                      > /etc/nginx/conf.d/default.conf \
+              && nginx -t \
+              && nginx -s reload
+            '
             
-            # 전체 스택 재시작 (순서 보장)
-            sudo docker compose down
-            sudo docker compose up -d
+            # 설정 확인
+            echo "=== HTTPS config applied ==="
+            sudo docker compose exec nginx head -10 /etc/nginx/conf.d/default.conf
+            
+            # 로그 확인
+            sleep 3
+            sudo docker compose logs nginx --tail=5
           EOSSH
 
       # 443 확인 (DNS 무시, SNI만 호스트로 강제)
