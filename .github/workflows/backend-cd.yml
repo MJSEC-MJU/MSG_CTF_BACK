@@ -205,9 +205,9 @@ jobs:
 
             # HTTP 설정으로 nginx 시작
             sudo docker compose exec nginx sh -c '
-              envsubst < /etc/nginx/templates/default.http.conf.template \
-                      > /etc/nginx/conf.d/default.conf \
-              && nginx -s reload
+            envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
+                    > /etc/nginx/conf.d/default.conf \
+            && nginx -s reload
             ' || {
               echo "nginx exec failed, trying container recreation"
               sudo docker compose down --remove-orphans || true
@@ -215,9 +215,9 @@ jobs:
               sudo docker compose up -d nginx backend frontend redis
               sleep 5
               sudo docker compose exec nginx sh -c '
-                envsubst < /etc/nginx/templates/default.http.conf.template \
-                        > /etc/nginx/conf.d/default.conf \
-                && nginx -s reload
+              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
+                      > /etc/nginx/conf.d/default.conf \
+              && nginx -s reload
               '
             }
           EOSSH
@@ -268,7 +268,7 @@ jobs:
 
             # 컨테이너 내부에서 HTTPS 설정 생성 및 리로드
             sudo docker compose exec nginx sh -c '
-              envsubst < /etc/nginx/templates/default.https.conf.template \
+              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.https.conf.template \
                       > /etc/nginx/conf.d/default.conf \
               && nginx -t \
               && nginx -s reload
