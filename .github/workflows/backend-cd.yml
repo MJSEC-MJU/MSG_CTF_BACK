@@ -250,7 +250,7 @@ jobs:
           EOSSH
 
       # 3) HTTPS 전환 & NGINX 리로드
-      - name: Apply HTTPS config & reload nginx
+      - name: Apply HTTPS config & restart all services
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
@@ -260,8 +260,12 @@ jobs:
               envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
+            # 설정 파일 확인
             sudo docker compose exec -T nginx nginx -t
-            sudo docker compose up -d --force-recreate nginx
+            
+            # 전체 스택 재시작 (순서 보장)
+            sudo docker compose down
+            sudo docker compose up -d
           EOSSH
 
       # 443 확인 (DNS 무시, SNI만 호스트로 강제)
