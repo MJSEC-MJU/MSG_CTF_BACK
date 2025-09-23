@@ -84,7 +84,7 @@ services:
       - "80:80"     # HTTP-01 챌린지/초기
       - "443:443"   # 인증 후 HTTPS
     volumes:
-      - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:rw
       - /home/ubuntu/app/certbot/www:/var/www/certbot:rw
       - /home/ubuntu/app/certbot/config:/etc/letsencrypt:rw
     networks: [ ctf-network ]
