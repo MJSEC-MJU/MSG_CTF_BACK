@@ -37,8 +37,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # 필요시에만 외부 노출:
-    # ports: [ "8080:8080" ]
     environment:
       SPRING_PROFILES_ACTIVE: local
       DB_HOST: db
@@ -68,7 +66,7 @@ services:
     image: ${DOCKER_HUB_USERNAME}/frontend:latest
     container_name: ctf-frontend
     restart: unless-stopped
-    expose: [ "80" ]  # nginx에서 내부 접근
+    expose: [ "80" ]
     environment:
       VITE_API_URL: ${VITE_API_URL}  
     networks: [ ctf-network ]
@@ -81,15 +79,18 @@ services:
       - backend
       - frontend
     ports:
-      - "80:80"     # HTTP-01 챌린지/초기
-      - "443:443"   # 인증 후 HTTPS
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - WWW_DOMAIN=${WWW_DOMAIN}
     volumes:
       - /home/ubuntu/app/nginx/conf.d:/etc/nginx/conf.d:rw
+      - /home/ubuntu/app/nginx:/etc/nginx/templates:ro
       - /home/ubuntu/app/certbot/www:/var/www/certbot:rw
       - /home/ubuntu/app/certbot/config:/etc/letsencrypt:rw
     networks: [ ctf-network ]
 
-  # certbot은 on-demand로 docker compose run --rm 사용
   certbot:
     image: certbot/certbot:latest
     container_name: ctf-certbot
@@ -101,7 +102,6 @@ services:
     command: -c "sleep infinity"
     networks: [ ctf-network ]
 
-  # 기본 실행에서 제외 (CI에서만)
   test:
     image: gradle:8.1.1-jdk17
     container_name: ctf-test
