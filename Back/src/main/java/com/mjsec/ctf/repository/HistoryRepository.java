@@ -53,4 +53,9 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
 
     @Query("SELECT h FROM HistoryEntity h WHERE h.loginId = :loginId AND h.userDeleted = false")
     List<HistoryEntity> findByLoginIdAndUserDeletedFalse(@Param("loginId") String loginId);
+
+    List<HistoryEntity> findByChallengeIdInAndLoginIdInAndUserDeletedFalse(
+            List<Long> challengeIds,
+            List<String> loginIds
+    );
 }

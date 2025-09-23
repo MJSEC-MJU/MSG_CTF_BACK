@@ -1,7 +1,7 @@
 package com.mjsec.ctf.filter;
 
 import com.mjsec.ctf.domain.RefreshEntity;
-import com.mjsec.ctf.dto.user.UserDTO;
+import com.mjsec.ctf.dto.user.UserDto;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;
@@ -59,9 +59,9 @@ public class CustomLoginFilter extends GenericFilterBean {
         }
 
         // 요청 본문에서 JSON 데이터 추출
-        UserDTO.SignIn loginRequest;
+        UserDto.SignIn loginRequest;
         try {
-            loginRequest = objectMapper.readValue(request.getInputStream(), UserDTO.SignIn.class);
+            loginRequest = objectMapper.readValue(request.getInputStream(), UserDto.SignIn.class);
         } catch (IOException e) {
             log.error("Invalid login request format: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

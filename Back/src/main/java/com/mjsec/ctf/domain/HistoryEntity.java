@@ -37,5 +37,4 @@ public class HistoryEntity {
         //삭제 처리
         this.userDeleted = true;
     }
-
 }

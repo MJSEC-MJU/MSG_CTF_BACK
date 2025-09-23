@@ -24,7 +24,11 @@ public enum ResponseMessage {
     ALREADY_SUBMITTED("이미 정답처리 된 문제"),
     GET_HISTORY_SUCCESS("히스토리 조회 성공"),
     GENERATE_QR_TOKEN_SUCCESS("QR 발급용 토큰 생성 성공"),
-    MILEAGE_BASED_CHECKOUT_SUCCESS("마일리지 기반 결제 성공")
+    MILEAGE_BASED_CHECKOUT_SUCCESS("마일리지 기반 결제 성공"),
+    CREATE_TEAM_SUCCESS("팀 생성 성공"),
+    ADD_TEAM_MEMBER_SUCCESS("팀원 추가 성공"),
+    DELETE_TEAM_MEMBER_SUCCESS("팀원 삭제 성공"),
+    GET_TEAM_PROFILE_SUCCESS("팀 프로필 조회 성공")
     ;
 
     private final String message;

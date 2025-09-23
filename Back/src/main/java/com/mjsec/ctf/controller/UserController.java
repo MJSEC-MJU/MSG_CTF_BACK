@@ -1,9 +1,8 @@
 package com.mjsec.ctf.controller;
 
-import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.dto.SuccessResponse;
-import com.mjsec.ctf.dto.user.UserDTO;
+import com.mjsec.ctf.dto.user.UserDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.AuthCodeService;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.Map;
-import java.util.regex.Pattern;
 
 
 @Slf4j
@@ -38,7 +36,7 @@ public class UserController {
 
     @Operation(summary = "회원가입", description = "유저 등록")
     @PostMapping("/sign-up")
-    public ResponseEntity<SuccessResponse<Void>> signUp(@RequestBody @Valid UserDTO.SignUp request) {
+    public ResponseEntity<SuccessResponse<Void>> signUp(@RequestBody @Valid UserDto.SignUp request) {
 
         userService.signUp(request); // 회원가입 서비스 호출
 

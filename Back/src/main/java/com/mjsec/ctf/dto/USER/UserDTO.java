@@ -6,10 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.util.List;
 import java.time.LocalDateTime;
 
-public class UserDTO {
+public class UserDto {
 
     @Data
     public static class SignIn {

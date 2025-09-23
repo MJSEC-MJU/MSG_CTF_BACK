@@ -40,13 +40,10 @@ public class TeamEntity extends BaseEntity {
     private String teamName;
 
     @Column(name = "mileage", nullable = false)
-    private int mileage = 0;
+    private int mileage;
 
     @Column(name = "total_point", nullable = false)
-    private int totalPoint = 0;
-
-    @Column(name = "max_members", nullable = false)
-    private int maxMembers = 4;
+    private int totalPoint;
 
     @Type(JsonType.class)
     @Column(name = "member_user_ids", columnDefinition = "json")
@@ -87,12 +84,13 @@ public class TeamEntity extends BaseEntity {
             solvedChallengeIds.add(challengeId);
             this.totalPoint += points;
             this.lastSolvedTime = LocalDateTime.now();
+            addMileage();
         }
     }
 
-    public void addMileage(int amount) {
+    public void addMileage() {
 
-        this.mileage += amount;
+        this.mileage += 100;
     }
 
     public boolean deductMileage(int amount) {

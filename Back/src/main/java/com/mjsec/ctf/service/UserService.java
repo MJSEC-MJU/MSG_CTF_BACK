@@ -2,9 +2,10 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
+import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.HistoryDto;
-import com.mjsec.ctf.dto.user.UserDTO;
+import com.mjsec.ctf.dto.user.UserDto;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
@@ -14,7 +15,6 @@ import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,9 +26,9 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
+    private final TeamService teamService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthCodeService authCodeService;
@@ -41,8 +41,25 @@ public class UserService {
 
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
 
+    public UserService(TeamService teamService, UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       AuthCodeService authCodeService, JwtService jwtService, RefreshRepository refreshRepository,
+                       BlacklistedTokenRepository blacklistedTokenRepository, HistoryRepository historyRepository,
+                       ChallengeRepository challengeRepository, LeaderboardRepository leaderboardRepository) {
+
+        this.teamService = teamService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authCodeService = authCodeService;
+        this.jwtService = jwtService;
+        this.refreshRepository = refreshRepository;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
+        this.historyRepository = historyRepository;
+        this.challengeRepository = challengeRepository;
+        this.leaderboardRepository = leaderboardRepository;
+    }
+
     //회원가입 로직
-    public void signUp(UserDTO.SignUp request) {
+    public void signUp(UserDto.SignUp request) {
         //입력 모두 들어갔는지 확인
         validateSignUp(request);
 
@@ -81,7 +98,6 @@ public class UserService {
                 .univ(request.getUniv())
                 .roles("ROLE_USER")
                 .totalPoint(0)
-                .mileage(0)
                 .build();
 
         userRepository.save(user);
@@ -139,7 +155,6 @@ public class UserService {
         userProfile.put("univ", user.getUniv());
         userProfile.put("roles", user.getRoles());
         userProfile.put("total_point", user.getTotalPoint());
-        userProfile.put("mileage", user.getMileage());
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
 
@@ -148,7 +163,7 @@ public class UserService {
 
     // 관리자용 회원정보 수정 메서드
     @Transactional
-    public UserEntity updateMember(Long userId, UserDTO.Update updateDto) {
+    public UserEntity updateMember(Long userId, UserDto.Update updateDto) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
         user.setEmail(updateDto.getEmail());
@@ -220,19 +235,36 @@ public class UserService {
     }
 
     public List<HistoryDto> getChallengeHistory(String accessToken) {
+
         String loginId = jwtService.getLoginId(accessToken);
 
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
 
-        // 삭제되지 않은 사용자의 기록만 조회
-        List<HistoryEntity> historyEntities = historyRepository.findByLoginIdAndUserDeletedFalse(user.getLoginId());
+        if (user.getCurrentTeamId() == null) {
+            throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
+        }
 
-        if (historyEntities == null || historyEntities.isEmpty()) {
+        TeamEntity team = teamService.getUserTeam(user.getCurrentTeamId())
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
+
+        if (solvedChallengeIds == null || solvedChallengeIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        return historyEntities.stream()
+        List<HistoryEntity> teamHistoryEntities = historyRepository
+                .findByChallengeIdInAndLoginIdInAndUserDeletedFalse(
+                        solvedChallengeIds,
+                        teamService.getTeamMemberLoginIds(team.getMemberUserIds())
+                );
+
+        if (teamHistoryEntities == null || teamHistoryEntities.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return teamHistoryEntities.stream()
                 .map(historyEntity -> {
                     ChallengeEntity challenge = challengeRepository.findById(historyEntity.getChallengeId())
                             .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
@@ -251,7 +283,7 @@ public class UserService {
 
     //어드민 회원가입
     @Transactional
-    public void adminSignUp(UserDTO.SignUp request) {
+    public void adminSignUp(UserDto.SignUp request) {
         if (userRepository.existsByLoginId(request.getLoginId())) {
             throw new RestApiException(ErrorCode.DUPLICATE_ID);
         }
@@ -280,9 +312,8 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .roles(role)  // 전달된 역할로 설정 (관리자 생성 시 "admin" 입력 가능)
+                .roles(role)
                 .totalPoint(0)
-                .mileage(0)
                 .build();
 
         userRepository.save(user);
@@ -303,7 +334,7 @@ public class UserService {
     /*
         검증용 메서드들
      */
-    private void validateSignUp(UserDTO.SignUp request){
+    private void validateSignUp(UserDto.SignUp request){
         if (request.getLoginId() == null || request.getLoginId().trim().isEmpty()) {
             throw new RestApiException(ErrorCode.EMPTY_LOGIN_ID);
         }

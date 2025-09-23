@@ -1,11 +1,10 @@
 package com.mjsec.ctf.service;
 
-import com.mjsec.ctf.domain.PaymentHistoryEntity;
 import com.mjsec.ctf.domain.PaymentTokenEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.PaymentTokenDto;
 import com.mjsec.ctf.exception.RestApiException;
-import com.mjsec.ctf.repository.PaymentHistoryRepository;
+import com.mjsec.ctf.repository.TeamPaymentHistoryRepository;
 import com.mjsec.ctf.repository.PaymentTokenRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
@@ -19,15 +18,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class PaymentService {
 
+
+    private final TeamService teamService;
     private final PaymentTokenRepository paymentTokenRepository;
-    private final PaymentHistoryRepository paymentHistoryRepository;
     private final UserRepository userRepository;
 
-    public PaymentService(PaymentTokenRepository paymentTokenRepository, PaymentHistoryRepository paymentHistoryRepository,
+    public PaymentService(TeamService teamService, PaymentTokenRepository paymentTokenRepository,
                           UserRepository userRepository) {
 
+        this.teamService = teamService;
         this.paymentTokenRepository = paymentTokenRepository;
-        this.paymentHistoryRepository = paymentHistoryRepository;
         this.userRepository = userRepository;
     }
 
@@ -64,21 +64,21 @@ public class PaymentService {
             throw new RestApiException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        if(user.getMileage() < mileageUsed){
-            throw new RestApiException(ErrorCode.NOT_ENOUGH_MILEAGE);
+        if (user.getCurrentTeamId() == null) {
+            throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
         }
         else {
-            user.setMileage(user.getMileage() - mileageUsed);
+            boolean success = teamService.useTeamMileage(
+                    user.getCurrentTeamId(),
+                    mileageUsed,
+                    user.getUserId()
+            );
+
+            if (!success) {
+                throw new RestApiException(ErrorCode.NOT_ENOUGH_MILEAGE);
+            }
         }
-        userRepository.save(user);
 
-        PaymentHistoryEntity historyEntity = PaymentHistoryEntity.builder()
-                .loginId(tokenEntity.getLoginId())
-                .mileageUsed(mileageUsed)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        paymentHistoryRepository.save(historyEntity);
         paymentTokenRepository.deleteByPaymentToken(paymentToken);
     }
 }

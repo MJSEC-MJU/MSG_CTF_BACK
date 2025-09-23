@@ -18,18 +18,21 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PaymentHistoryEntity {
+public class TeamPaymentHistoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long paymentHistoryId;
+    private Long teamPaymentHistoryId;
 
-    @Column
-    private String loginId;
+    @Column(nullable = false)
+    private Long teamId;
 
-    @Column
+    @Column(nullable = false)
+    private Long requesterUserId;
+
+    @Column(nullable = false)
     private int mileageUsed;
 
-    @Column
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 }
