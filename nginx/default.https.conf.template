@@ -12,7 +12,9 @@ server {
 
 # 443: apex(권장 canonical) — 실제 서비스
 server {
-  listen 443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
   server_name $DOMAIN;
 
   ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
@@ -60,7 +62,9 @@ server {
 
 # 443: www → apex 리다이렉트 (같은 인증서 사용)
 server {
-  listen 443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
   server_name $WWW_DOMAIN;
 
   ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
