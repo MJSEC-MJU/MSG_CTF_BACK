@@ -35,8 +35,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      DOMAIN:            ${{ secrets.DOMAIN }}               # e.g. msg.xn--3e0b707e
-      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}           # e.g. www.msg.xn--3e0b707e
+      DOMAIN:            ${{ secrets.DOMAIN }}              
+      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}           
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
       REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
@@ -214,7 +214,7 @@ jobs:
             WWW_DOMAIN='${{ env.WWW_DOMAIN }}'
 
             # envsubst: 변수 리스트는 백슬래시 없이 단일쿼트
-            envsubst '$DOMAIN,$WWW_DOMAIN' < nginx/default.http.conf.template \
+            envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.http.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             sudo docker compose down --remove-orphans || true
@@ -330,7 +330,7 @@ jobs:
             WWW_DOMAIN='${{ env.WWW_DOMAIN }}'
 
             # ✅ envsubst: 변수 리스트는 백슬래시 없이 단일쿼트
-            envsubst '$DOMAIN,$WWW_DOMAIN' < nginx/default.https.conf.template \
+            envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             echo "== verify cert files exist =="
