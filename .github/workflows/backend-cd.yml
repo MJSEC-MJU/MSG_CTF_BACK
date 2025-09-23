@@ -23,7 +23,6 @@ jobs:
       - name: Build & Push Backend
         run: |
           set -euo pipefail
-          # Dockerfile 이름 양쪽 케이스 지원
           DF="Dockerfile"; [ -f dockerfile ] && DF="dockerfile"
           IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/backend"
           TAG_SHA="${{ github.sha }}"
@@ -35,8 +34,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
-      DOMAIN:            ${{ secrets.DOMAIN }}              
-      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}           
+      DOMAIN:            ${{ secrets.DOMAIN }}
+      WWW_DOMAIN:        www.${{ secrets.DOMAIN }}
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       REMOTE_DIR:        /home/ubuntu/app
       REMOTE_HOST:       ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
@@ -60,7 +59,7 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 "$REMOTE_HOST" "echo OK"
 
-      # 원격 docker compose v2 보장 (있으면 패스)
+      # 원격 docker compose v2 보장
       - name: Ensure docker compose v2 on remote
         continue-on-error: true
         run: |
@@ -96,13 +95,12 @@ jobs:
             sudo docker info >/dev/null
           EOSSH
 
-      # 원격 디렉터리만 준비 (.env는 로컬에서 생성)
+      # 원격 디렉터리 준비
       - name: Prepare remote dirs (no .env here)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             REMOTE_DIR='${{ env.REMOTE_DIR }}'
-            # envsubst 설치
             if ! command -v envsubst >/dev/null 2>&1; then
               sudo apt-get update -y
               sudo apt-get install -y gettext-base
@@ -113,17 +111,16 @@ jobs:
                          "$REMOTE_DIR/certbot/logs"
           EOSSH
 
-      # 로컬에서 .env 생성 → 업로드
+      # .env 생성 → 업로드 (root:root 600로 유지)
       - name: Build .env locally and upload
         env:
-          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}           # (선택)
-          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }} # (선택)
+          VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}
+          REACT_APP_API_URL_SECRET: ${{ secrets.REACT_APP_API_URL }}
         run: |
           set -euo pipefail
           VITE_URL="${VITE_API_URL_SECRET:-https://${{ env.DOMAIN }}}"
           REACT_URL="${REACT_APP_API_URL_SECRET:-https://${{ env.DOMAIN }}}"
 
-          # 시크릿 내부의 $ 확장 방지 위해 quoted heredoc 사용
           cat > .env.ci <<'EOF'
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USERNAME=${{ secrets.DB_USERNAME }}
@@ -144,15 +141,12 @@ jobs:
           GCP_JSON_FILE=${{ secrets.GCP_JSON_FILE }}
           GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp_service_account.json
 
-          # --- Domains (as provided) ---
           DOMAIN=${{ env.DOMAIN }}
           WWW_DOMAIN=${{ env.WWW_DOMAIN }}
           LETSENCRYPT_EMAIL=${{ env.LETSENCRYPT_EMAIL }}
 
-          # --- Paths ---
           HOST_GCP_JSON_PATH=${{ env.REMOTE_DIR }}/gcp_service_account.json
 
-          # --- derived ---
           FRONTEND_ORIGIN=https://${{ env.DOMAIN }}
           CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
           SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
@@ -168,28 +162,22 @@ jobs:
           scp -o StrictHostKeyChecking=no .env.ci "$REMOTE_HOST":/tmp/.env
           ssh "$REMOTE_HOST" "sudo mv /tmp/.env '${{ env.REMOTE_DIR }}/.env' && sudo chown root:root '${{ env.REMOTE_DIR }}/.env' && sudo chmod 600 '${{ env.REMOTE_DIR }}/.env'"
 
-      # docker-compose 파일 업로드 (yml/yaml 둘 다 지원)
-      # 업로드는 /tmp로 → sudo mv (권한 안전)
+      # docker-compose / 템플릿 업로드
       - name: Upload docker-compose.yml via /tmp
         run: |
-          scp -o StrictHostKeyChecking=no docker-compose.yml \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/docker-compose.yml
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'
-          "
+          scp -o StrictHostKeyChecking=no docker-compose.yml "$REMOTE_HOST":/tmp/docker-compose.yml
+          ssh "$REMOTE_HOST" "sudo mv /tmp/docker-compose.yml '${{ env.REMOTE_DIR }}/docker-compose.yml'"
 
       - name: Upload NGINX templates via /tmp
         run: |
-          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.http.conf.template
-          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/default.https.conf.template
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            sudo mv /tmp/default.http.conf.template  '${{ env.REMOTE_DIR }}/nginx/default.http.conf.template'
-            sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template'
+          scp -o StrictHostKeyChecking=no nginx/default.http.conf.template  "$REMOTE_HOST":/tmp/default.http.conf.template
+          scp -o StrictHostKeyChecking=no nginx/default.https.conf.template "$REMOTE_HOST":/tmp/default.https.conf.template
+          ssh "$REMOTE_HOST" "
+            sudo mv /tmp/default.http.conf.template  '${{ env.REMOTE_DIR }}/nginx/default.http.conf.template';
+            sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
 
-      # (옵션) GCP 키 업로드: /tmp → sudo mv
+      # (옵션) GCP 키 업로드
       - name: Upload GCP Service Account (optional)
         env:
           GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -197,53 +185,63 @@ jobs:
           set -euo pipefail
           if [ -z "${GCP_SA:-}" ]; then
             echo "GCP_SERVICE_ACCOUNT_KEY not set. Skipping."
-            exit 0
-          fi
-          if printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d >/dev/null 2>&1; then
-            printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d > gcp.json
           else
-            printf '%s' "$GCP_SA" > gcp.json
+            if printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d >/dev/null 2>&1; then
+              printf '%s' "$GCP_SA" | tr -d '\n' | base64 -d > gcp.json
+            else
+              printf '%s' "$GCP_SA" > gcp.json
+            fi
+            scp -o StrictHostKeyChecking=no gcp.json "$REMOTE_HOST":/tmp/gcp.json
+            ssh "$REMOTE_HOST" "sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'"
+            rm -f gcp.json
           fi
-          scp -o StrictHostKeyChecking=no gcp.json \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/gcp.json
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            sudo mv /tmp/gcp.json '${{ env.REMOTE_DIR }}/gcp_service_account.json'
-          "
-          rm -f gcp.json
 
-      # 1) HTTP 기동 (파일 쓰기는 sudo tee)
+      # 1) HTTP 기동 (envsubst → up). compose는 sudo로 실행 (.env 접근 가능)
       - name: Start stack (HTTP only)
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+          ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
             DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.http.conf.template \
+              envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.http.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
-            docker compose down --remove-orphans || true
-            docker compose pull || true
-            docker compose up -d nginx backend frontend redis
+            sudo docker compose down --remove-orphans || true
+            sudo docker compose pull || true
+            sudo docker compose up -d nginx backend frontend redis
           EOSSH
 
-      - name: Wait for HTTP
+      # 80 확인 (DNS 무시, IP 고정)
+      - name: Wait for HTTP (via fixed IP)
         run: |
+          set -euo pipefail
+          APEX="${{ env.DOMAIN }}"; WWW="${{ env.WWW_DOMAIN }}"; IP="${{ env.REMOTE_IP }}"
+          echo "Waiting for http://${APEX} via ${IP}"
+          ok=0
           for i in $(seq 1 24); do
-            if curl -fsS -m 5 -o /dev/null "http://${{ env.DOMAIN }}"; then
-              echo "HTTP OK"; exit 0
+            if curl -fsS -m 6 --resolve "${APEX}:80:${IP}" "http://${APEX}" -o /dev/null; then
+              echo "HTTP OK (apex)"; ok=1; break
             fi
             echo "...waiting HTTP ($i/24)"; sleep 5
           done
-          exit 1
+          [ "$ok" -eq 1 ] || { echo "HTTP failed (apex via IP)"; exit 1; }
 
-      # 2) 인증서 발급/갱신
+          # www는 단순 체크 (인증 단계는 DNS 필요)
+          if curl -fsS -m 6 --resolve "${WWW}:80:${IP}" "http://${WWW}" -o /dev/null; then
+            echo "HTTP OK (www)"
+          else
+            echo "WWW not reachable via IP (might be no DNS)."
+          fi
+
+      # 2) 인증서 발급/갱신 (certbot 컨테이너 직접 실행)
       - name: Issue/Renew SSL via certbot
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+          ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-            docker compose run --rm certbot certonly \
+            sudo docker compose run --rm --entrypoint certbot certbot \
+              certonly \
               --webroot -w /var/www/certbot \
               --non-interactive --keep-until-expiring \
               --email '${{ env.LETSENCRYPT_EMAIL }}' \
@@ -251,32 +249,37 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      # 3) HTTPS 전환 & 리로드 (sudo tee)
+      # 3) HTTPS 전환 & NGINX 리로드
       - name: Apply HTTPS config & reload nginx
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOSSH'
+          ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
             DOMAIN='${{ env.DOMAIN }}' WWW_DOMAIN='${{ env.WWW_DOMAIN }}' \
-              envsubst '\$DOMAIN,\$WWW_DOMAIN' < nginx/default.https.conf.template \
+              envsubst '$DOMAIN $WWW_DOMAIN' < nginx/default.https.conf.template \
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
-            docker compose exec -T nginx nginx -t
-            docker compose exec -T nginx nginx -s reload
+            sudo docker compose exec -T nginx nginx -t
+            sudo docker compose exec -T nginx nginx -s reload
           EOSSH
 
-      - name: Verify HTTPS (apex & www)
+      # 443 확인 (DNS 무시, SNI만 호스트로 강제)
+      - name: Verify HTTPS (apex & www via fixed IP)
         run: |
+          set -euo pipefail
+          IP="${{ env.REMOTE_IP }}"
           for host in "${{ env.DOMAIN }}" "${{ env.WWW_DOMAIN }}"; do
+            echo "Check https://$host via $IP"
+            ok=0
             for i in $(seq 1 12); do
-              if curl -fsS -m 5 -o /dev/null "https://$host"; then
-                echo "HTTPS OK: $host"; break
+              if curl -fsS -m 8 --resolve "$host:443:${IP}" "https://$host" -o /dev/null; then
+                echo "HTTPS OK: $host"; ok=1; break
               fi
-              [ "$i" -eq 12 ] && { echo "HTTPS failed for $host" >&2; exit 1; }
-              echo "...waiting HTTPS $host ($i/12)"; sleep 10
+              echo "...waiting HTTPS $host ($i/12)"; sleep 5
             done
+            [ "$ok" -eq 1 ] || { echo "HTTPS failed for $host (via IP)"; exit 1; }
           done
 
       - name: Prune old images
-        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "docker image prune -f --filter 'until=24h' || true"
+        run: ssh "$REMOTE_HOST" "sudo docker image prune -f --filter 'until=24h' || true"
