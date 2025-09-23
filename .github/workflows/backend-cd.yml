@@ -261,7 +261,7 @@ jobs:
               | sudo tee nginx/conf.d/default.conf >/dev/null
 
             sudo docker compose exec -T nginx nginx -t
-            sudo docker compose exec -T nginx nginx -s reload
+            sudo docker compose up -d --force-recreate nginx
           EOSSH
 
       # 443 확인 (DNS 무시, SNI만 호스트로 강제)
