@@ -47,6 +47,21 @@ public class AdminController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/create/challenge-no-file")
+    public ResponseEntity<SuccessResponse<Void>> createChallengeWithoutFile(
+            @RequestBody @Valid ChallengeDto challengeDto) throws IOException {
+
+        // 기존 서비스 메소드를 재사용하되, 파일을 null로 전달
+        challengeService.createChallenge(null, challengeDto);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.CREATE_CHALLENGE_SUCCESS
+                )
+        );
+    }
+
     @Operation(summary = "문제 수정", description = "관리자 권한으로 문제를 수정합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/update/challenge/{challengeId}")
@@ -90,7 +105,7 @@ public class AdminController {
                 updatedUser.getUserId(),
                 updatedUser.getEmail(),
                 updatedUser.getLoginId(),
-                updatedUser.getRoles(),
+                updatedUser.getRole(),
                 updatedUser.getTotalPoint(),
                 updatedUser.getUniv(),
                 updatedUser.getCreatedAt(),
@@ -131,7 +146,8 @@ public class AdminController {
         List<UserEntity> users = userService.getAllUsers();
 
         List<UserDto.Response> responseList = users.stream().map(user ->
-            new UserDto.Response(user.getUserId(), user.getEmail(), user.getLoginId(), user.getRoles(), user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt())
+            new UserDto.Response(user.getUserId(), user.getEmail(), user.getLoginId(), user.getRole(), user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt())
+
         ).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
@@ -145,7 +161,7 @@ public class AdminController {
                 user.getUserId(),
                 user.getEmail(),
                 user.getLoginId(),
-                user.getRoles(),
+                user.getRole(),
                 user.getTotalPoint(),
                 user.getUniv(),
                 user.getCreatedAt(),
@@ -201,5 +217,20 @@ public class AdminController {
                         ResponseMessage.DELETE_TEAM_MEMBER_SUCCESS
                 )
         );
+    }
+
+    @Operation(summary = "점수 재계산", description = "관리자 권한으로 모든 유저의 점수를 재계산합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/recalculate-points")
+    public ResponseEntity<String> recalculatePoints() {
+        try {
+            log.info("Manual points recalculation started by admin");
+            challengeService.updateTotalPoints();
+            log.info("Manual points recalculation completed");
+            return ResponseEntity.ok("점수 재계산 완료");
+        } catch (Exception e) {
+            log.error("점수 재계산 중 오류 발생: ", e);
+            return ResponseEntity.status(500).body("점수 재계산 실패: " + e.getMessage());
+        }
     }
 }

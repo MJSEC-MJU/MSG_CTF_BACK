@@ -56,7 +56,7 @@ public class ChallengeService {
     private final SubmissionRepository submissionRepository;
 
     /*
-    7월 30일자 테스트할 땐
+    8월 19일자 테스트할 땐
     BcryptPasswordEncoder -> PasswordEncoder로 변경해서 진행했음.
     (혹시 몰라 메모해둠)
      */
@@ -89,6 +89,7 @@ public class ChallengeService {
         String currentLoginId = currentLoginId();
 
         return challenges.map(challenge -> {
+
             boolean solved = false;
 
             if (historyRepository.existsByLoginIdAndChallengeId(currentLoginId, challenge.getChallengeId())) {
@@ -125,8 +126,9 @@ public class ChallengeService {
     }
 
     // 문제 생성
+    @Transactional
     public void createChallenge(MultipartFile file, ChallengeDto challengeDto) throws IOException {
-        
+
         if(challengeDto == null) {
             throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
         }
@@ -151,23 +153,24 @@ public class ChallengeService {
         } else {
             builder.category(com.mjsec.ctf.type.ChallengeCategory.MISC);
         }
-        
+
         ChallengeEntity challenge = builder.build();
-    
+
         if(file != null) {
             String fileUrl = fileService.store(file);
             challenge.setFileUrl(fileUrl);
         }
-    
+
         challengeRepository.save(challenge);
     }
 
     // 문제 수정
+    @Transactional
     public void updateChallenge(Long challengeId, MultipartFile file, ChallengeDto challengeDto) throws IOException {
-        
+
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-    
+
         if(challengeDto != null) {
             // 새 빌더를 이용해 수정된 엔티티 생성 (ID는 유지)
             ChallengeEntity updatedChallenge = ChallengeEntity.builder()
@@ -192,31 +195,39 @@ public class ChallengeService {
             } else {
                 updatedChallenge.setCategory(challenge.getCategory());
             }
-    
+
             // 기존 파일 URL 유지
             updatedChallenge.setFileUrl(challenge.getFileUrl());
             challenge = updatedChallenge;
         }
-    
+
         if(file != null) {
             String fileUrl = fileService.store(file);
             challenge.setFileUrl(fileUrl);
         }
-    
+
         challengeRepository.save(challenge);
     }
 
     // 문제 삭제
+    @Transactional
     public void deleteChallenge(Long challengeId){
+        log.info("문제 삭제 시작: challengeId = {}", challengeId);
 
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-        // 해당 challenge_id에 해당하는 history 레코드를 먼저 삭제
-        historyRepository.deleteByChallengeId(challengeId);
-        
-        challengeRepository.delete(challenge);
 
+        // Challenge 먼저 soft delete
+        challengeRepository.delete(challenge);
+        challengeRepository.flush();
+
+        // 관련 데이터 삭제
+        submissionRepository.deleteByChallengeId(challengeId);
+        historyRepository.deleteByChallengeId(challengeId);
+
+        // 점수 재계산
         updateTotalPoints();
+        log.info("문제 삭제 완료: challengeId = {}", challengeId);
     }
 
     // 문제 파일 다운로드
@@ -224,14 +235,14 @@ public class ChallengeService {
         // 해당 challengeId로 ChallengeEntity를 조회합니다.
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
-    
+
         // 파일 URL이 없으면 예외 처리
         if (challenge.getFileUrl() == null) {
             throw new RestApiException(ErrorCode.FILE_NOT_FOUND);
         }
         String fileUrl = challenge.getFileUrl();
         String fileId = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-    
+
         return fileService.download(fileId);
     }
 
@@ -323,10 +334,17 @@ public class ChallengeService {
 
                 userRepository.save(user);
 
+                // 문제 점수 업데이트
                 updateChallengeScore(challenge);
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
+
+                // 개별 유저 즉시 업데이트 (새 유저도 즉시 리더보드에 반영)
+                updateUserTotalPointsIndividual(user);
+
+                // 전체 점수 재계산 (기존)
                 updateTotalPoints();
+
                 submissionRepository.delete(submission);
 
                 return "Correct";
@@ -341,7 +359,7 @@ public class ChallengeService {
         }
     }
 
-    // Leaderboard 업데이트 메서드
+    // Leaderboard 업데이트 메서드 <- 현재는 사용하지 않음.
     private void updateLeaderboard(UserEntity user, LocalDateTime solvedTime) {
         // 이미 존재하는 Leaderboard 레코드를 조회
         var optionalLeaderboard = leaderboardRepository.findByLoginId(user.getLoginId());
@@ -352,13 +370,59 @@ public class ChallengeService {
             leaderboardEntity = new LeaderboardEntity();
             leaderboardEntity.setLoginId(user.getLoginId());
         }
-        
+
         // 사용자의 TotalPoint 와 LastSolvedTIme, Univ
         leaderboardEntity.setTotalPoint(user.getTotalPoint());
         leaderboardEntity.setLastSolvedTime(solvedTime);
         leaderboardEntity.setUniv(user.getUniv());
-        
+
         leaderboardRepository.save(leaderboardEntity);
+    }
+    
+    //유저 개인별 TotalPoins 계산 업데이트
+    private void updateUserTotalPointsIndividual(UserEntity user) {
+        List<HistoryEntity> userHistoryList = historyRepository.findByLoginIdAndUserDeletedFalseAndChallengeNotDeleted(user.getLoginId());
+
+        LocalDateTime lastSolvedTime = null;
+        if (!userHistoryList.isEmpty()) {
+            for (HistoryEntity userHistory : userHistoryList) {
+                if (lastSolvedTime == null || userHistory.getSolvedTime().isAfter(lastSolvedTime)) {
+                    lastSolvedTime = userHistory.getSolvedTime();
+                }
+            }
+        }
+
+        int totalPoints = 0;
+        for (HistoryEntity history : userHistoryList) {
+            ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())
+                    .orElse(null);
+            if (challenge != null) {
+                totalPoints += challenge.getPoints();
+            }
+        }
+
+        user.setTotalPoint(totalPoints);
+        userRepository.save(user);
+
+        if (totalPoints > 0) {
+            LeaderboardEntity leaderboardEntity = leaderboardRepository.findByLoginId(user.getLoginId())
+                    .orElseGet(() -> {
+                        LeaderboardEntity newLeaderboard = new LeaderboardEntity();
+                        newLeaderboard.setLoginId(user.getLoginId());
+                        newLeaderboard.setUniv(user.getUniv());
+                        return newLeaderboard;
+                    });
+
+            leaderboardEntity.setTotalPoint(totalPoints);
+            leaderboardEntity.setLastSolvedTime(lastSolvedTime);
+            leaderboardRepository.save(leaderboardEntity);
+        } else {
+            LeaderboardEntity leaderboardEntity = leaderboardRepository.findByLoginId(user.getLoginId())
+                    .orElse(null);
+            if (leaderboardEntity != null) {
+                leaderboardRepository.delete(leaderboardEntity);
+            }
+        }
     }
 
     // 문제 점수 계산기 (updateChallengeScore 메서드 수정 - 삭제된 사용자 제외)
@@ -386,16 +450,16 @@ public class ChallengeService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         headers.set("X-API-Key", apiKey);
-    
+
         Map<String, Object> body = new HashMap<>();
         body.put("first_blood_problem", challenge.getTitle());
         body.put("first_blood_person", user.getLoginId());
         body.put("first_blood_school", user.getUniv());
-    
+
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-    
+
         ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
-    
+
         if (response.getStatusCode().is2xxSuccessful()) {
             log.info("First blood notification sent successfully.");
         } else {
@@ -403,62 +467,59 @@ public class ChallengeService {
         }
     }
 
-    public void updateTotalPoints () {
+    //전체 유저 TotalPoints 재계산
+    public void updateTotalPoints() {
+        log.info("전체 유저 점수 재계산 시작");
 
-        List<String> loginIds = historyRepository.findDistinctLoginIds();
+        List<String> allUserLoginIds = userRepository.findAllUserLoginIds();
 
-        if(loginIds.isEmpty()){
-            List<String> userLoginIds = userRepository.findAllUserLoginIds();
-
-            for(String loginId : userLoginIds){
-                UserEntity user = userRepository.findByLoginId(loginId)
-                        .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
-
-                user.setTotalPoint(0);
-                userRepository.save(user);
-
-                LeaderboardEntity leaderboardEntity = leaderboardRepository.findByLoginId(user.getLoginId())
-                        .orElseThrow(() -> new RestApiException(ErrorCode.LEADERBOARD_NOT_FOUND));
-
-                leaderboardEntity.setTotalPoint(0);
-                leaderboardEntity.setLastSolvedTime(null);
-                leaderboardRepository.save(leaderboardEntity);
-            }
-
-            return;
-        }
-
-        for (String loginId : loginIds) {
-            List<HistoryEntity> userHistoryList = historyRepository.findByLoginIdAndUserDeletedFalse(loginId);
-
-            List<Long> challengeIds = userHistoryList.stream()
-                    .map(HistoryEntity::getChallengeId)
-                    .toList();
-
-            LocalDateTime lastSolvedTime = null;
-            for (HistoryEntity userHistory : userHistoryList) {
-                if (lastSolvedTime == null || userHistory.getSolvedTime().isAfter(lastSolvedTime)) {
-                    lastSolvedTime = userHistory.getSolvedTime();
-                }
-            }
-
-            int totalPoints = 0;
-            for (Long challengeId : challengeIds) {
-                ChallengeEntity challenge = challengeRepository.findById(challengeId)
-                        .orElse(null);
-
-                if (challenge != null) {
-                    totalPoints += challenge.getPoints();
-                }
-            }
-
+        for(String loginId : allUserLoginIds) {
             UserEntity user = userRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+            List<HistoryEntity> userHistoryList = historyRepository
+                    .findByLoginIdAndUserDeletedFalseAndChallengeNotDeleted(loginId);
+
+            int totalPoints = 0;
+            LocalDateTime lastSolvedTime = null;
+
+            if (!userHistoryList.isEmpty()) {
+                for (HistoryEntity history : userHistoryList) {
+                    ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())
+                            .orElse(null);
+                    if (challenge != null) {
+                        totalPoints += challenge.getPoints();
+                    }
+
+                    if (lastSolvedTime == null || history.getSolvedTime().isAfter(lastSolvedTime)) {
+                        lastSolvedTime = history.getSolvedTime();
+                    }
+                }
+            }
 
             user.setTotalPoint(totalPoints);
             userRepository.save(user);
 
-            updateLeaderboard(user, lastSolvedTime);
+            if (totalPoints > 0) {
+                LeaderboardEntity leaderboardEntity = leaderboardRepository.findByLoginId(loginId)
+                        .orElseGet(() -> {
+                            LeaderboardEntity newLeaderboard = new LeaderboardEntity();
+                            newLeaderboard.setLoginId(loginId);
+                            newLeaderboard.setUniv(user.getUniv());
+                            return newLeaderboard;
+                        });
+
+                leaderboardEntity.setTotalPoint(totalPoints);
+                leaderboardEntity.setLastSolvedTime(lastSolvedTime);
+                leaderboardRepository.save(leaderboardEntity);
+            } else {
+                int deletedCount = leaderboardRepository.deleteByLoginIdNative(loginId);
+                if (deletedCount > 0) {
+                    log.debug("유저 {} 리더보드 삭제 완료", loginId);
+                }
+            }
         }
+
+        log.info("전체 유저 점수 재계산 완료");
     }
 }
