@@ -36,6 +36,7 @@ public class UserDto {
         private String role;
 
     }
+
     //어드민으로 계정 변경시
     @Data
     public static class Update {
