@@ -3,7 +3,6 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.ChallengeDto;
-import com.mjsec.ctf.dto.TeamRequestDto;
 import com.mjsec.ctf.dto.user.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.service.TeamService;
@@ -163,9 +162,9 @@ public class AdminController {
     }
 
     @PostMapping("/team/create")
-    public ResponseEntity<SuccessResponse<Void>> createTeam(@RequestBody TeamRequestDto teamRequestDto) {
+    public ResponseEntity<SuccessResponse<Void>> createTeam(@RequestParam String teamName) {
 
-        teamService.createTeam(teamRequestDto);
+        teamService.createTeam(teamName);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(
@@ -189,7 +188,7 @@ public class AdminController {
         );
     }
 
-    @PostMapping("/team/member/{teamName}")
+    @DeleteMapping("/team/member/{teamName}")
     public ResponseEntity<SuccessResponse<String>> deleteMember(
             @PathVariable String teamName,
             @RequestParam String email

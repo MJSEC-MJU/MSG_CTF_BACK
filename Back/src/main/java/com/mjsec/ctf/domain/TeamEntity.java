@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +57,26 @@ public class TeamEntity extends BaseEntity {
 
     @Column(name = "last_solved_time")
     private LocalDateTime lastSolvedTime;
+
+    @PrePersist
+    @PreUpdate
+    public void ensureNonNullCollections() {
+
+        if (memberUserIds == null) {
+            memberUserIds = new ArrayList<>();
+        }
+        if (solvedChallengeIds == null) {
+            solvedChallengeIds = new ArrayList<>();
+        }
+    }
+
+    public List<Long> getMemberUserIds() {
+
+        if (memberUserIds == null) {
+            memberUserIds = new ArrayList<>();
+        }
+        return memberUserIds;
+    }
 
     public boolean isMember(Long userId) {
 

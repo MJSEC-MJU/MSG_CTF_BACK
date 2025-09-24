@@ -3,9 +3,7 @@ package com.mjsec.ctf.service;
 import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.TeamPaymentHistoryEntity;
 import com.mjsec.ctf.domain.UserEntity;
-import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.TeamProfileDto;
-import com.mjsec.ctf.dto.TeamRequestDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.TeamPaymentHistoryRepository;
 import com.mjsec.ctf.repository.TeamRepository;
@@ -20,7 +18,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -39,19 +36,19 @@ public class TeamService {
         this.teamPaymentHistoryRepository = teamPaymentHistoryRepository;
     }
 
-    public TeamEntity createTeam(TeamRequestDto teamRequestDto) {
+    public void createTeam(String teamName) {
 
-        if (teamRepository.existsByTeamName(teamRequestDto.getTeamName())) {
+        if (teamRepository.existsByTeamName(teamName)) {
             throw new RestApiException(ErrorCode.TEAM_ALREADY_EXIST);
         }
 
         TeamEntity team = TeamEntity.builder()
-                .teamName(teamRequestDto.getTeamName())
+                .teamName(teamName)
                 .mileage(0)
                 .totalPoint(0)
                 .build();
 
-        return team;
+        teamRepository.save(team);
     }
 
     @Transactional
@@ -67,7 +64,7 @@ public class TeamService {
             throw new RestApiException(ErrorCode.ALREADY_HAVE_TEAM);
         }
 
-        if(team.getMemberUserIds().size() == 2) {
+        if(!team.getMemberUserIds().isEmpty() && team.getMemberUserIds().size() == 2) {
             throw new RestApiException(ErrorCode.TEAM_FULL);
         }
 

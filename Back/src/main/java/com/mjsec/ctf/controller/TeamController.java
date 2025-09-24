@@ -20,8 +20,6 @@ public class TeamController {
     private final TeamService teamService;
     private final JwtService jwtService;
 
-    /* 팀 히스토리 조회, 팀원이 푼 문제라면 막아두기 */
-
     @GetMapping("/profile")
     public ResponseEntity<SuccessResponse<TeamProfileDto>> getTeamProfile(
             @RequestHeader("Authorization") String authHeader) {

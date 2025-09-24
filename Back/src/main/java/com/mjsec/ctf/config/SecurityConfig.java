@@ -87,7 +87,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
                         .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
                         //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                         .requestMatchers("/api/leaderboard/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민만 접근
                         .requestMatchers("/api/users/profile").authenticated()
                         .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
@@ -95,6 +95,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/payment/qr-token").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
+                        .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
                         
                 );
 
