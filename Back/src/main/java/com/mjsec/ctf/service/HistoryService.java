@@ -56,7 +56,7 @@ public class HistoryService {
         List<HistoryEntity> histories = historyRepository.findAllByOrderBySolvedTimeAsc()
                 .stream()
                 .filter(h -> !h.isUserDeleted() && h.getLoginId() != null)
-                .collect(Collectors.toList());
+                .toList();
 
         return histories.stream().map(history -> {
             ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())

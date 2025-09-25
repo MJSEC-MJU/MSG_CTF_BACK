@@ -3,6 +3,7 @@ package com.mjsec.ctf.service;
 import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.SubmissionEntity;
+import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.domain.LeaderboardEntity;
@@ -21,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class ChallengeService {
 
+    private final TeamService teamService;
     private final FileService fileService;
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
@@ -77,20 +80,43 @@ public class ChallengeService {
         return loginId;
     }
 
-    // 모든 문제 조회 (ID 오름차순)
+    // 모든 문제 조회
     public Page<ChallengeDto.Simple> getAllChallengesOrderedById(Pageable pageable) {
-        log.info("Getting all challenges ordered by Id ASC!!");
+
+        log.info("Getting all challenges ordered by Id ASC");
 
         Page<ChallengeEntity> challenges = challengeRepository.findAllByOrderByChallengeIdAsc(pageable);
+        String currentLoginId = currentLoginId();
 
         return challenges.map(challenge -> {
-            boolean solved = historyRepository.existsByLoginIdAndChallengeId(currentLoginId(), challenge.getChallengeId());
+
+            boolean solved = false;
+
+            if (historyRepository.existsByLoginIdAndChallengeId(currentLoginId, challenge.getChallengeId())) {
+                solved = true;
+            }
+            else {
+                UserEntity user = userRepository.findByLoginId(currentLoginId)
+                        .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+                if (user.getCurrentTeamId() == null) {
+                    throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
+                }
+                else {
+                    Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
+                    if (team.isPresent()) {
+                        solved = team.get().hasSolvedChallenge(challenge.getChallengeId());
+                    }
+                }
+            }
+
             return ChallengeDto.Simple.fromEntity(challenge, solved);
         });
     }
 
     // 특정 문제 상세 조회 (문제 설명, 문제 id, point 등)
     public ChallengeDto.Detail getDetailChallenge(Long challengeId){
+
         log.info("Fetching details for challengeId: {}", challengeId);
 
          // 해당 challengeId를 가진 엔티티 조회
@@ -107,7 +133,6 @@ public class ChallengeService {
             throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
         }
 
-        // 빌더 객체 생성
         ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()
                 .title(challengeDto.getTitle())
                 .description(challengeDto.getDescription())
@@ -119,7 +144,6 @@ public class ChallengeService {
                 .endTime(challengeDto.getEndTime())
                 .url(challengeDto.getUrl());
 
-        // 카테고리 설정: challengeDto.getCategory()가 제공된 경우 처리
         if (challengeDto.getCategory() != null && !challengeDto.getCategory().isBlank()) {
             try {
                 builder.category(com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase()));
@@ -127,7 +151,6 @@ public class ChallengeService {
                 throw new RestApiException(ErrorCode.BAD_REQUEST, "유효하지 않은 카테고리입니다.");
             }
         } else {
-            // 기본값 설정 (예: MISC)
             builder.category(com.mjsec.ctf.type.ChallengeCategory.MISC);
         }
 
@@ -246,8 +269,14 @@ public class ChallengeService {
             ChallengeEntity challenge = challengeRepository.findById(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
-            if (historyRepository.findWithLockByLoginIdAndChallengeId(user.getLoginId(), challengeId).isPresent()) {
-                return "Submitted";
+            if (user.getCurrentTeamId() == null) {
+                throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
+            }
+            else {
+                Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
+                if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
+                    return "Submitted";
+                }
             }
 
             SubmissionEntity submission = submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId)
@@ -268,8 +297,8 @@ public class ChallengeService {
                 submission.setLastAttemptTime(LocalDateTime.now());
                 submissionRepository.save(submission);
                 return "Wrong";
-            } else {
-                // 히스토리 저장
+            }
+            else {
                 HistoryEntity history = HistoryEntity.builder()
                         .loginId(user.getLoginId())
                         .challengeId(challenge.getChallengeId())
@@ -278,7 +307,11 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
+                if (user.getCurrentTeamId() != null) {
+                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints());
+                }
 
+                // firstBloodLock 안전하게 처리
                 String firstBloodLockKey = "firstBloodLock:" + challengeId;
                 RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
                 boolean firstBloodLocked = false;
@@ -291,11 +324,15 @@ public class ChallengeService {
                             sendFirstBloodNotification(challenge, user);
                         }
                     }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 } finally {
-                    if (firstBloodLocked) {
+                    if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
                         firstBloodLock.unlock();
                     }
                 }
+
+                userRepository.save(user);
 
                 // 문제 점수 업데이트
                 updateChallengeScore(challenge);
@@ -316,7 +353,7 @@ public class ChallengeService {
             Thread.currentThread().interrupt();
             return "Error while processing";
         } finally {
-            if (locked) {
+            if (locked && lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
         }
