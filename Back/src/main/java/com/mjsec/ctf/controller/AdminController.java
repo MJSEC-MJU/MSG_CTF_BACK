@@ -3,7 +3,7 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.ChallengeDto;
-import com.mjsec.ctf.dto.user.UserDto;
+import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.service.TeamService;
 import com.mjsec.ctf.service.UserService;

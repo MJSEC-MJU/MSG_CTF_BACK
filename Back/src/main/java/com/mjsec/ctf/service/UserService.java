@@ -5,7 +5,7 @@ import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.HistoryDto;
-import com.mjsec.ctf.dto.user.UserDto;
+import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;

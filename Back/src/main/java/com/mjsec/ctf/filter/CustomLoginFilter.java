@@ -1,7 +1,7 @@
 package com.mjsec.ctf.filter;
 
 import com.mjsec.ctf.domain.RefreshEntity;
-import com.mjsec.ctf.dto.user.UserDto;
+import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;
