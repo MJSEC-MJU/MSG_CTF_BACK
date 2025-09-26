@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
 
     @Configuration
     @EnableWebSecurity
@@ -30,6 +31,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,PasswordEncoder passwordEncoder,BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtService = jwtService;
@@ -52,7 +56,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
                             /*configuration.setAllowedOrigins(
                                     Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
                              */
-                        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msg.mjsec.kr"));
+                        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+                        configuration.setAllowedOriginPatterns(origins);
                         //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                         configuration.setAllowCredentials(true);
