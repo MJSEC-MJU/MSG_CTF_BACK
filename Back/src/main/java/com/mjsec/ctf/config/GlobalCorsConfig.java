@@ -6,15 +6,21 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.List;
 
 @Configuration
 public class GlobalCorsConfig {
+
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         // 허용할 출처를 명시합니다.
-        config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "https://msg.mjsec.kr"));
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        config.setAllowedOriginPatterns(origins);
         config.setAllowCredentials(true);
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
