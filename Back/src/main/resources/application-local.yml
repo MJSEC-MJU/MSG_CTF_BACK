@@ -45,9 +45,6 @@ spring:
         jdbc:
           time_zone: Asia/Seoul
 
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS}
-
 management:
   endpoints:
     web:

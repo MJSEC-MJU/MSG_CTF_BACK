@@ -13,16 +13,11 @@ import java.util.List;
 @Configuration
 public class GlobalCorsConfig {
 
-    @Value("${cors.allowed-origins}")
-    private String allowedOrigins;
-
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         // 허용할 출처를 명시합니다.
-        List<String> origins = new ArrayList<>(Arrays.asList(allowedOrigins.split(",")));
-        origins.add("http://localhost:3000");
-        config.setAllowedOriginPatterns(origins);
+        config.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
         config.setAllowCredentials(true);
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
