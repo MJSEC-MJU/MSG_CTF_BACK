@@ -1,5 +1,6 @@
 package com.mjsec.ctf.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +20,8 @@ public class GlobalCorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         // 허용할 출처를 명시합니다.
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        List<String> origins = new ArrayList<>(Arrays.asList(allowedOrigins.split(",")));
+        origins.add("http://localhost:3000");
         config.setAllowedOriginPatterns(origins);
         config.setAllowCredentials(true);
         config.addAllowedHeader("*");
