@@ -47,9 +47,6 @@ spring:
 app:
   code-json-path: classpath:/codes.json
 
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS}
-
 management:
   endpoints:
     web:

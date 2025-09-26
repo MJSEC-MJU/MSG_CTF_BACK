@@ -35,9 +35,6 @@ import org.springframework.beans.factory.annotation.Value;
     private final PasswordEncoder passwordEncoder;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-    @Value("${cors.allowed-origins}")
-    private String allowedOrigins;
-
     public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,PasswordEncoder passwordEncoder,BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtService = jwtService;
         this.refreshRepository = refreshRepository;
@@ -59,9 +56,7 @@ import org.springframework.beans.factory.annotation.Value;
                             /*configuration.setAllowedOrigins(
                                     Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
                              */
-                        List<String> origins = new ArrayList<>(Arrays.asList(allowedOrigins.split(",")));
-                        origins.add("http://localhost:3000");
-                        configuration.setAllowedOriginPatterns(origins);
+                            configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
                         //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                         configuration.setAllowCredentials(true);
