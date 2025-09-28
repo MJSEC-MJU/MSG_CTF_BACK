@@ -10,6 +10,7 @@ import org.springframework.web.filter.CorsFilter;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
 
+/*
 @Configuration
 public class GlobalCorsConfig {
 
@@ -27,3 +28,5 @@ public class GlobalCorsConfig {
         return new CorsFilter(source);
     }
 }
+
+ */
