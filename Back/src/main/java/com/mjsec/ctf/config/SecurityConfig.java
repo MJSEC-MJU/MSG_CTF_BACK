@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
@@ -43,6 +44,7 @@ import org.springframework.beans.factory.annotation.Value;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
+
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -67,6 +69,18 @@ import org.springframework.beans.factory.annotation.Value;
                         configuration.setExposedHeaders(Arrays.asList("Authorization", "access", "X-Custom-Header"));
 
                         return configuration;
+                            configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
+
+                            //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
+                            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+                            configuration.setAllowCredentials(true);
+                            configuration.setAllowedHeaders(Collections.singletonList("*")); //CORS 설정으로 인해 잠시 부활
+                            //configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie", "X-Requested-With", "Accept", "Origin"));
+                            configuration.setMaxAge(3600L); // 브라우저가 CORS 관련 정보를 캐시할 시간을 설정
+                            configuration.setExposedHeaders(Arrays.asList("Authorization", "access", "X-Custom-Header"));
+
+                            return configuration;
                     }
                 }));
         // csrf disable (RESTful API는 일반적으로 상태가 없고, 세션을 사용하지 않기 때문에 CSRF 공격에 덜 취약하기 때문)
