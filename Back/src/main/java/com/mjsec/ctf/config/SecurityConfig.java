@@ -56,12 +56,12 @@ import org.springframework.beans.factory.annotation.Value;
                             System.out.println("🔍 CORS Bean 생성 중...");
                             CorsConfiguration configuration = new CorsConfiguration();
 
-                            /*configuration.setAllowedOrigins(
-                                    Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
-                             */
-                            configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
+                            //configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
+                            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+
                             //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
                             configuration.setAllowCredentials(true);
                             configuration.setAllowedHeaders(Collections.singletonList("*")); //CORS 설정으로 인해 잠시 부활
                             //configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie", "X-Requested-With", "Accept", "Origin"));
