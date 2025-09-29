@@ -7,8 +7,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${GMAIL_USERNAME}  # Gmail 주소
-    password: ${GMAIL_APP_PASSWORD}   # 앱 비밀번호 사용
+    username: ${GMAIL_USERNAME}  
+    password: ${GMAIL_APP_PASSWORD}   
     properties:
       mail:
         debug: true
