@@ -53,11 +53,9 @@ import org.springframework.beans.factory.annotation.Value;
                         @Override
                         public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
 
-                            System.out.println("🔍 CORS Bean 생성 중...");
                             CorsConfiguration configuration = new CorsConfiguration();
 
-                            //configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
-                            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+                            configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr", "https://www.msgctf.kr"));
 
                             //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
