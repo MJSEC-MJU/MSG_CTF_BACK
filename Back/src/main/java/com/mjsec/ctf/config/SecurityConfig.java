@@ -52,7 +52,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
                             /*configuration.setAllowedOrigins(
                                     Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
                              */
-                        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msg.mjsec.kr"));
+                        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr","https://www.msgctf.kr"));
                         //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                         configuration.setAllowCredentials(true);
