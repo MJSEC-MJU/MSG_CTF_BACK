@@ -24,6 +24,11 @@ public class HistoryService {
      * HistoryEntity들을 조회하여, 각 기록에 해당하는 ChallengeEntity의 최신 동적 점수(ChallengeEntity.points)를 HistoryDto에 반영합니다.
      * @return List of HistoryDto sorted by solvedTime ascending.
      */
+
+    /*
+    getHistoryDtos -> 전체 멤버 (삭제 유저 포함) 조회로 수정.
+    실질적인 삭제 안 된 유저는 getActiveUserHistoryDtos 로 바꿈.
+     */
     public List<HistoryDto> getHistoryDtos() {
         List<HistoryEntity> histories = historyRepository.findAllByOrderBySolvedTimeAsc();
         return histories.stream().map(history -> {
@@ -36,12 +41,35 @@ public class HistoryService {
 
             // HistoryDto의 challengeId 타입이 String인 경우 문자열로 변환합니다.
             return new HistoryDto(
-                    history.getUserId(),
+                    history.getLoginId(),
                     String.valueOf(history.getChallengeId()),
                     challenge.getTitle(),
                     history.getSolvedTime(),
                     dynamicScore,
                     univ //univ 포함
+            );
+        }).collect(Collectors.toList());
+    }
+
+    //삭제되지 않은 유저들만 조회
+    public List<HistoryDto> getActiveUserHistoryDtos() {
+        List<HistoryEntity> histories = historyRepository.findAllByOrderBySolvedTimeAsc()
+                .stream()
+                .filter(h -> !h.isUserDeleted() && h.getLoginId() != null)
+                .toList();
+
+        return histories.stream().map(history -> {
+            ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())
+                    .orElse(null);
+            int dynamicScore = (challenge != null) ? challenge.getPoints() : 0;
+
+            return new HistoryDto(
+                    history.getLoginId(),
+                    String.valueOf(history.getChallengeId()),
+                    challenge != null ? challenge.getTitle() : "Unknown Challenge",
+                    history.getSolvedTime(),
+                    dynamicScore,
+                    history.getUniv()
             );
         }).collect(Collectors.toList());
     }

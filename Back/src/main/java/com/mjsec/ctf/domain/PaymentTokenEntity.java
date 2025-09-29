@@ -1,7 +1,10 @@
 package com.mjsec.ctf.domain;
 
-import jakarta.persistence.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,25 +18,21 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubmissionEntity {
+public class PaymentTokenEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long paymentTokenId;
+
+    @Column
+    private String paymentToken;
 
     @Column
     private String loginId;
 
     @Column
-    private Long challengeId;
+    private LocalDateTime expiry;
 
     @Column
-    private int attemptCount;
-
-    @Column
-    private LocalDateTime lastAttemptTime;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "loginId", referencedColumnName = "loginId", insertable=false, updatable=false)
-    private UserEntity user;
+    private LocalDateTime createdAt;
 }

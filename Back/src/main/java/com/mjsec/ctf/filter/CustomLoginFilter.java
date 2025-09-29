@@ -1,7 +1,7 @@
 package com.mjsec.ctf.filter;
 
 import com.mjsec.ctf.domain.RefreshEntity;
-import com.mjsec.ctf.dto.user.UserDTO;
+import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;
@@ -59,9 +59,9 @@ public class CustomLoginFilter extends GenericFilterBean {
         }
 
         // 요청 본문에서 JSON 데이터 추출
-        UserDTO.SignIn loginRequest;
+        UserDto.SignIn loginRequest;
         try {
-            loginRequest = objectMapper.readValue(request.getInputStream(), UserDTO.SignIn.class);
+            loginRequest = objectMapper.readValue(request.getInputStream(), UserDto.SignIn.class);
         } catch (IOException e) {
             log.error("Invalid login request format: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -85,10 +85,10 @@ public class CustomLoginFilter extends GenericFilterBean {
         }
 
         // JWT 토큰 발급
-        final long ACCESS_TOKEN_EXPIRY = 3_600_000L; // 1분
+        final long ACCESS_TOKEN_EXPIRY = 3_600_000L; // 1시간
         final long REFRESH_TOKEN_EXPIRY = 43_200_000L; // 12시간
 
-        String role = user.getRoles();
+        String role = user.getRole();
         // 다중 Role 지원 시, 적절하게 List로 변환 필요
         String accessToken = jwtService.createJwt("accessToken", user.getLoginId(), List.of(role), ACCESS_TOKEN_EXPIRY);
         String refreshToken = jwtService.createJwt("refreshToken", user.getLoginId(), List.of(role), REFRESH_TOKEN_EXPIRY);

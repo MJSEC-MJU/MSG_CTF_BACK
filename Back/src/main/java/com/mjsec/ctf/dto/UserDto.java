@@ -1,4 +1,4 @@
-package com.mjsec.ctf.dto.user;
+package com.mjsec.ctf.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -6,13 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.util.List;
 import java.time.LocalDateTime;
 
-public class UserDTO {
+public class UserDto {
 
     @Data
     public static class SignIn {
+
         @NotBlank(message = "로그인 아이디를 입력해주세요.")
         private String loginId;
 
@@ -22,6 +22,7 @@ public class UserDTO {
 
     @Data
     public static class SignUp {
+
         @NotBlank(message = "로그인 아이디를 입력해주세요.") //비밀번호 규칙 있으면 수정할 예정
         private String loginId;
 
@@ -34,13 +35,14 @@ public class UserDTO {
         @NotBlank(message = "학교명을 입력해주세요.")
         private String univ;
         //"ROLE_USER" 또는 "ROLE_ADMIN"
-        private String roles; 
+        private String role;
 
     }
+
     //어드민으로 계정 변경시
     @Data
     public static class Update {
-        // 업데이트 시 필요한 필드
+
         @NotBlank(message = "이메일은 필수입니다.")
         @Email(message = "올바른 이메일 형식이 아닙니다.")
         private String email;
@@ -55,16 +57,18 @@ public class UserDTO {
         private String password;
         
         // 역할 업데이트
-        private String roles;
+        private String role;
     }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Response {
+
         private Long userId;
         private String email;
         private String loginId;
-        private String roles;
+        private String role;
         private Integer totalPoint;
         private String univ;
         private LocalDateTime createdAt;

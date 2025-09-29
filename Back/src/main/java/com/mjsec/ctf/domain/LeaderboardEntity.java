@@ -1,5 +1,6 @@
 package com.mjsec.ctf.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,8 +19,13 @@ public class LeaderboardEntity {
     @Column(name = "id")  // DB 컬럼명 매칭
     private Long id;
 
-    @Column(name = "userId")  // userId// 컬럼 매핑
-    private String userId;
+    @Column(name = "loginId") // 컬럼 매핑 <-loginId 로 수정
+    private String loginId;
+
+    @JsonIgnore
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loginId", referencedColumnName = "loginId", insertable=false, updatable=false)
+    private UserEntity user;
 
     @Column(name = "total_point")  // total_point 컬럼 매핑
     private int totalPoint;

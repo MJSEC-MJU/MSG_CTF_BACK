@@ -1,12 +1,9 @@
 package com.mjsec.ctf.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mjsec.ctf.type.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
-
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -37,12 +34,40 @@ public class UserEntity extends BaseEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     @Fetch(FetchMode.JOIN)
-    private List<UserRole> roles;
+    private List<UserRole> role;
      */
 
     @Column(nullable = false)
-    private String roles;
+    private String role;
 
     @Column(nullable = false)
     private int totalPoint;
+
+    @Column
+    private Long currentTeamId;
+
+    @JsonIgnore
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private LeaderboardEntity leaderboard;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<SubmissionEntity> submissions;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<RefreshEntity> refreshTokens;
+
+    public boolean hasTeam() {
+
+        return currentTeamId != null;
+    }
+
+    public void joinTeam(Long teamId) {
+
+        this.currentTeamId = teamId;
+    }
+
+    public void leaveTeam() {
+
+        this.currentTeamId = null;
+    }
 }

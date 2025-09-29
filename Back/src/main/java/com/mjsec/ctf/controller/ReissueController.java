@@ -64,10 +64,10 @@ public class ReissueController {
         }
 
         String loginId = jwtService.getLoginId(refreshToken);
-        List<String> roles = jwtService.getRoles(refreshToken);
+        List<String> role = jwtService.getRole(refreshToken);
 
-        String newAccess = jwtService.createJwt("accessToken", loginId, roles, 3_600_000L);
-        String newRefresh = jwtService.createJwt("refreshToken",loginId,roles,43_200_000L);
+        String newAccess = jwtService.createJwt("accessToken", loginId, role, 3_600_000L);
+        String newRefresh = jwtService.createJwt("refreshToken",loginId,role,43_200_000L);
 
         refreshRepository.deleteByRefresh(refreshToken);
         addRefreshEntity(loginId, newRefresh, 86400000L);

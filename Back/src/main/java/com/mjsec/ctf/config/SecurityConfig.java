@@ -8,7 +8,10 @@ import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.filter.JwtFilter;
 import com.mjsec.ctf.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
 
     @Configuration
     @EnableWebSecurity
@@ -53,6 +57,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
                                     Arrays.asList("http://localhost:3000","https://msg.mjsec.kr")); // 배포시에는 변경될 주소 (테스트 비활성화)
                              */
                         configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "https://msgctf.kr","https://www.msgctf.kr"));
+
                         //configuration.setAllowedMethods(Collections.singletonList("*")); //테스트로 잠시 비활성화
                         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                         configuration.setAllowCredentials(true);
@@ -87,12 +92,15 @@ import org.springframework.web.cors.CorsConfigurationSource;
                         .requestMatchers("/api/users/**").permitAll() // 임시로 회원가입 테스트용 허용
                         //.requestMatchers("/api/users/logout").authenticated() // 로그아웃은 인증된 사용자만 가능
                         .requestMatchers("/api/leaderboard/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민 접근근
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  //어드민만 접근
                         .requestMatchers("/api/users/profile").authenticated()
                         .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/reissue").permitAll() //토큰 재생성
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/payment/qr-token").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
+                        .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
                         
                 );
 
