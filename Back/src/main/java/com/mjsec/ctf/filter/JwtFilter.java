@@ -34,8 +34,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         log.info("Starting JWTFilter for request: {}", request.getRequestURI());
 
+        //OPTIONS 우회
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // JWT 검증을 건너뛸 public 엔드포인트 설정
-        if (request.getRequestURI().equals("/api/users/sign-up") ||
+        if (request.getRequestURI().equals("/api/users/sign-in")|| request.getRequestURI().equals("/api/users/sign-up") ||
                 request.getRequestURI().equals("/api/leaderboard") ||
                 request.getRequestURI().equals("/api/leaderboard/graph") ||
                 request.getRequestURI().equals("/api/leaderboard/stream")) {
@@ -79,11 +85,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // 사용자 정보 추출 및 SecurityContext에 설정
         String loginId = jwtService.getLoginId(accessToken);
-        List<String> roles = jwtService.getRoles(accessToken);
+        List<String> role = jwtService.getRole(accessToken);
 
-        log.info("Token validated. loginId: {}, Roles: {}", loginId, roles);
+        log.info("Token validated. loginId: {}, Role: {}", loginId, role);
 
-        List<SimpleGrantedAuthority> authorities = roles.stream()
+        List<SimpleGrantedAuthority> authorities = role.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
 

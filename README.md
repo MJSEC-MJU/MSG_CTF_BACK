@@ -303,7 +303,7 @@ cd discord-bot
 | <img width="1470" src="https://github.com/user-attachments/assets/8aae8bb7-4eb6-4aab-b5a4-f1f373ca1490" /> | <img width="1470" src="https://github.com/user-attachments/assets/96f3abae-b99e-4691-9739-1d470050f134" /> |
 
 ## 🤖 DISCORD BOT
-
+-
 <table>
   <tr>
     <td align="center"><b>🎟️ Ticket BOT</b></td>

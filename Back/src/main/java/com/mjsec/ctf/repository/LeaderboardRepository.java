@@ -2,7 +2,11 @@ package com.mjsec.ctf.repository;
 
 import com.mjsec.ctf.domain.LeaderboardEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.List;
@@ -14,5 +18,10 @@ public interface LeaderboardRepository extends JpaRepository<LeaderboardEntity, 
     List<LeaderboardEntity> findAllByOrderByTotalPointDescLastSolvedTimeAsc();
     
     // 특정 회원의 Leaderboard 정보를 조회하는 메서드 추가
-    Optional<LeaderboardEntity> findByUserId(String userId);
+    Optional<LeaderboardEntity> findByLoginId(String loginId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM leaderboard_entity WHERE login_id = :loginId", nativeQuery = true)
+    int deleteByLoginIdNative(@Param("loginId") String loginId);
 }

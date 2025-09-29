@@ -1,10 +1,7 @@
 package com.mjsec.ctf.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import java.time.LocalDateTime;
 
@@ -20,12 +17,24 @@ public class HistoryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String userId;
+    private String loginId;
 
     private Long challengeId;
 
     private LocalDateTime solvedTime;
 
-    @Column(name = "univ")
-    private String univ; //univ 추가
+    @Column(name = "univ", nullable=false)
+    private String univ;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean userDeleted = false;
+
+    //사용자 삭제 처리
+    public void anonymizeUser() {
+        //loginId null처리
+        this.loginId = null;
+        //삭제 처리
+        this.userDeleted = true;
+    }
 }
