@@ -51,11 +51,6 @@ public class CustomLoginFilter extends GenericFilterBean {
     private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws IOException, ServletException {
 
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         // 로그인 요청이 아닐 경우, 다음 필터로 넘김
         if (!request.getServletPath().equalsIgnoreCase("/api/users/sign-in")) {
             filterChain.doFilter(request, response);
