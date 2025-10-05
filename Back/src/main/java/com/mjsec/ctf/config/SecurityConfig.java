@@ -96,7 +96,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
                         .requestMatchers("/api/payment/qr-token").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
                         .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
-                        
+                        .requestMatchers("/api/check-code").permitAll()
+
                 );
 
         return http.build();

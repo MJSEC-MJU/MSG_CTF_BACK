@@ -62,7 +62,11 @@ public enum ErrorCode {
     ALREADY_HAVE_TEAM(HttpStatus.BAD_REQUEST, "이미 팀에 소속된 사용자 입니다."),
     TEAM_ALREADY_EXIST(HttpStatus.BAD_REQUEST, "사용 중인 팀 이름 입니다."),
     TEAM_MISMATCH(HttpStatus.BAD_REQUEST, "해당 팀의 팀원이 아닙니다."),
-    TEAM_FULL(HttpStatus.BAD_REQUEST, "팀원 정원 초과입니다.")
+    TEAM_FULL(HttpStatus.BAD_REQUEST, "팀원 정원 초과입니다."),
+
+    // 시그니처 코드 관련
+    INVALID_SIGNATURE(HttpStatus.BAD_REQUEST, "시그니처 코드는 영문/숫자 6자리여야 합니다."),
+    INVALID_SIGNATURE_CLUB(HttpStatus.BAD_REQUEST, "동아리 정보는 필수입니다."),
     ;
 
     private final HttpStatus httpStatus;

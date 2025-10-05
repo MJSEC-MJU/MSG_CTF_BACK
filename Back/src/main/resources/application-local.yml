@@ -44,6 +44,8 @@ spring:
         show-sql: false
         jdbc:
           time_zone: Asia/Seoul
+app:
+  code-json-path: classpath:/codes.json
 
 management:
   endpoints:
