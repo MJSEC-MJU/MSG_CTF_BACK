@@ -88,7 +88,7 @@ public class TeamService {
         TeamEntity team = teamRepository.findByTeamName(teamName)
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
-        if(team.isMember(user.getUserId())) {
+        if(!team.isMember(user.getUserId())) {
             throw new RestApiException(ErrorCode.TEAM_MISMATCH);
         }
 
