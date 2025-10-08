@@ -51,6 +51,11 @@ public class TeamService {
         teamRepository.save(team);
     }
 
+    public void saveTeam(TeamEntity team) {
+        teamRepository.save(team);
+    }   //메서드 추가 (10/6)
+
+
     @Transactional
     public void addMember(String teamName, String email) {
 
@@ -114,6 +119,7 @@ public class TeamService {
         return !team.hasSolvedChallenge(challengeId);
     }
 
+    @Transactional
     public void recordTeamSolution(Long userId, Long challengeId, int points) {
 
         UserEntity user = userRepository.findById(userId)

@@ -6,24 +6,24 @@ import com.mjsec.ctf.domain.SubmissionEntity;
 import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
-import com.mjsec.ctf.domain.LeaderboardEntity;
+//import com.mjsec.ctf.domain.LeaderboardEntity;    //개인용 주석처리
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.SubmissionRepository;
 import com.mjsec.ctf.repository.UserRepository;
-import com.mjsec.ctf.repository.LeaderboardRepository;
+//import com.mjsec.ctf.repository.LeaderboardRepository;    //개인용 주석처리
 import com.mjsec.ctf.type.ErrorCode;
 import io.micrometer.common.util.StringUtils;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -36,7 +36,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,7 +52,7 @@ public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
     private final HistoryRepository historyRepository;
-    private final LeaderboardRepository leaderboardRepository;
+    //private final LeaderboardRepository leaderboardRepository;
     private final SubmissionRepository submissionRepository;
 
     /*
@@ -60,7 +60,7 @@ public class ChallengeService {
     BcryptPasswordEncoder -> PasswordEncoder로 변경해서 진행했음.
     (혹시 몰라 메모해둠)
      */
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private final RedissonClient redissonClient;
 
     @Value("${api.key}")
@@ -133,7 +133,7 @@ public class ChallengeService {
             throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
         }
 
-        ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()
+        ChallengeEntity.ChallengeEntityBuilder<?, ?> builder = ChallengeEntity.builder()
                 .title(challengeDto.getTitle())
                 .description(challengeDto.getDescription())
                 .flag(passwordEncoder.encode(challengeDto.getFlag()))
@@ -226,7 +226,7 @@ public class ChallengeService {
         historyRepository.deleteByChallengeId(challengeId);
 
         // 점수 재계산
-        updateTotalPoints();
+        updateAllTeamTotalPoints(); //메서드 팀단위 변경으로 인한 변경
         log.info("문제 삭제 완료: challengeId = {}", challengeId);
     }
 
@@ -272,12 +272,12 @@ public class ChallengeService {
             if (user.getCurrentTeamId() == null) {
                 throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
             }
-            else {
-                Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
-                if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
-                    return "Submitted";
-                }
+            //위 if에서 예외처리 되었으므로 else문 굳이 필요없어 삭제
+            Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
+            if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
+                return "Submitted";
             }
+
 
             SubmissionEntity submission = submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId)
                     .orElseGet(() -> SubmissionEntity.builder()
@@ -307,6 +307,7 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
+                //팀 점수로 업데이트
                 if (user.getCurrentTeamId() != null) {
                     teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints());
                 }
@@ -332,18 +333,22 @@ public class ChallengeService {
                     }
                 }
 
-                userRepository.save(user);
+                //userRepository.save(user);    //user의totalpoint미사용으로 인한 주석처리
 
                 // 문제 점수 업데이트
                 updateChallengeScore(challenge);
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
 
+                /* 개인점수가 아닌 팀점수 계산으로 인한 주석처리
+
                 // 개별 유저 즉시 업데이트 (새 유저도 즉시 리더보드에 반영)
                 updateUserTotalPointsIndividual(user);
-
                 // 전체 점수 재계산 (기존)
-                updateTotalPoints();
+                updateTotalPoints();    */
+
+                //팀 점수로 재게산 업데이트 (다이나믹 스코어 반영)
+                team.ifPresent(this::recalculateTeamPoints);
 
                 submissionRepository.delete(submission);
 
@@ -359,6 +364,7 @@ public class ChallengeService {
         }
     }
 
+    /* 개인별은 모두 주석처리
     // Leaderboard 업데이트 메서드 <- 현재는 사용하지 않음.
     private void updateLeaderboard(UserEntity user, LocalDateTime solvedTime) {
         // 이미 존재하는 Leaderboard 레코드를 조회
@@ -423,7 +429,7 @@ public class ChallengeService {
                 leaderboardRepository.delete(leaderboardEntity);
             }
         }
-    }
+    }   */
 
     // 문제 점수 계산기 (updateChallengeScore 메서드 수정 - 삭제된 사용자 제외)
     public void updateChallengeScore(ChallengeEntity challenge) {
@@ -467,7 +473,7 @@ public class ChallengeService {
         }
     }
 
-    //전체 유저 TotalPoints 재계산
+    /*  //전체 유저 TotalPoints 재계산
     public void updateTotalPoints() {
         log.info("전체 유저 점수 재계산 시작");
 
@@ -521,5 +527,81 @@ public class ChallengeService {
         }
 
         log.info("전체 유저 점수 재계산 완료");
+    }*/ //유저대신 팀단위로 재계산을 위해 주석처리
+
+    // 전체 팀 점수 재계산
+    @Transactional
+    public void updateAllTeamTotalPoints() {
+        log.info("전체 팀 점수 재계산 시작");
+
+        List<TeamEntity> allTeams = teamService.getTeamRanking(); // 모든 팀 조회
+
+        for (TeamEntity team : allTeams) {
+            recalculateTeamPoints(team);
+        }
+
+        log.info("전체 팀 점수 재계산 완료");
     }
+
+    @Transactional
+    public void recalculateTeamPoints(TeamEntity team) {
+        // 1. 팀이 푼 모든 문제를 한 번에 조회 (IN 쿼리)
+        List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
+        if (solvedChallengeIds.isEmpty()) {
+            team.setTotalPoint(0);
+            teamService.saveTeam(team);
+            return;
+        }
+
+        // [최적화] 한 번의 쿼리로 모든 문제 조회
+        List<ChallengeEntity> challenges = challengeRepository.findAllById(solvedChallengeIds);
+        Map<Long, ChallengeEntity> challengeMap = challenges.stream()
+                .collect(Collectors.toMap(ChallengeEntity::getChallengeId, Function.identity()));
+
+        // [최적화] 한 번의 쿼리로 관련 히스토리 모두 조회
+        List<HistoryEntity> histories = historyRepository.findByChallengeIdIn(solvedChallengeIds);
+
+        // [최적화] 팀원 ID로 한 번에 조회
+        List<UserEntity> teamMembers = userRepository.findAllById(team.getMemberUserIds());
+        Set<String> memberLoginIds = teamMembers.stream()
+                .map(UserEntity::getLoginId)
+                .collect(Collectors.toSet());
+
+        // 2. 메모리에서 계산
+        int totalPoints = 0;
+        LocalDateTime lastSolvedTime = null;
+
+        for (Long challengeId : solvedChallengeIds) {
+            ChallengeEntity challenge = challengeMap.get(challengeId);
+            if (challenge == null) continue;
+
+            totalPoints += challenge.getPoints();
+
+            Optional<LocalDateTime> latestForThisChallenge = histories.stream()
+                    .filter(h -> h.getChallengeId().equals(challengeId))
+                    .filter(h -> memberLoginIds.contains(h.getLoginId()))
+                    .map(HistoryEntity::getSolvedTime)
+                    .max(Comparator.naturalOrder());
+
+            if (latestForThisChallenge.isPresent()) {
+                LocalDateTime solved = latestForThisChallenge.get();
+                if (lastSolvedTime == null || solved.isAfter(lastSolvedTime)) {
+                    lastSolvedTime = solved;
+                }
+            }
+        }
+
+        team.setTotalPoint(totalPoints);
+        if (lastSolvedTime != null) {
+            team.setLastSolvedTime(lastSolvedTime);
+        }
+        teamService.saveTeam(team);
+    }
+
+    /*// 개별 팀 즉시 업데이트 (문제 풀이 시) 작성은 했으나 필요없으면 주석처리
+    @Transactional
+    public void updateTeamPointsImmediate(TeamEntity team, LocalDateTime solvedTime) {
+        recalculateTeamPoints(team);
+        log.info("팀 {} 점수 즉시 업데이트 완료", team.getTeamName());
+    }*/
 }

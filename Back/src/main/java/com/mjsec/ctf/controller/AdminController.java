@@ -225,7 +225,7 @@ public class AdminController {
     public ResponseEntity<String> recalculatePoints() {
         try {
             log.info("Manual points recalculation started by admin");
-            challengeService.updateTotalPoints();
+            challengeService.updateAllTeamTotalPoints();    //개인용포인트 처리에서 팀포인트처리로 변경처리
             log.info("Manual points recalculation completed");
             return ResponseEntity.ok("점수 재계산 완료");
         } catch (Exception e) {
