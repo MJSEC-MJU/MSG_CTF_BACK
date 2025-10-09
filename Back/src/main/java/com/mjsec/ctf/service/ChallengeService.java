@@ -36,6 +36,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -268,6 +269,17 @@ public class ChallengeService {
 
             ChallengeEntity challenge = challengeRepository.findById(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+            if (user.getRole() != null && user.getRole().equals("ROLE_ADMIN")) {
+                // Admin은 플래그 검증만 하고 점수/기록은 남기지 않음
+                if (passwordEncoder.matches(flag, challenge.getFlag())) {
+                    log.info("Admin {} verified challenge {} - Correct", loginId, challengeId);
+                    return "Correct";
+                } else {
+                    log.info("Admin {} verified challenge {} - Wrong", loginId, challengeId);
+                    return "Wrong";
+                }
+            }
 
             if (user.getCurrentTeamId() == null) {
                 throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);

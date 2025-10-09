@@ -35,7 +35,7 @@ public class JwtFilter extends OncePerRequestFilter {
         log.info("Starting JWTFilter for request: {}", request.getRequestURI());
 
         // JWT 검증을 건너뛸 public 엔드포인트 설정
-        if (request.getRequestURI().equals("/api/users/sign-up") ||
+        if (request.getRequestURI().equals("/api/users/sign-in")|| request.getRequestURI().equals("/api/users/sign-up") ||
                 request.getRequestURI().equals("/api/leaderboard") ||
                 request.getRequestURI().equals("/api/leaderboard/graph") ||
                 request.getRequestURI().equals("/api/leaderboard/stream")) {
