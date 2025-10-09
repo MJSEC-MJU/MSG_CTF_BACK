@@ -34,6 +34,7 @@ public class UserDto {
 
         @NotBlank(message = "학교명을 입력해주세요.")
         private String univ;
+
         //"ROLE_USER" 또는 "ROLE_ADMIN"
         private String role;
 

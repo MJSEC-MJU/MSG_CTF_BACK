@@ -189,6 +189,7 @@ public class AdminController {
         );
     }
 
+    //팀원 추가
     @PostMapping("/team/member/{teamName}")
     public ResponseEntity<SuccessResponse<Void>> addMember(
             @PathVariable String teamName,
@@ -204,6 +205,7 @@ public class AdminController {
         );
     }
 
+    //팀원 삭제
     @DeleteMapping("/team/member/{teamName}")
     public ResponseEntity<SuccessResponse<String>> deleteMember(
             @PathVariable String teamName,

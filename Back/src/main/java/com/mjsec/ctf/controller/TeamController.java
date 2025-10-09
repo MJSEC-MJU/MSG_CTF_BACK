@@ -20,6 +20,7 @@ public class TeamController {
     private final TeamService teamService;
     private final JwtService jwtService;
 
+    //팀 프로필 확인
     @GetMapping("/profile")
     public ResponseEntity<SuccessResponse<TeamProfileDto>> getTeamProfile(
             @RequestHeader("Authorization") String authHeader) {
