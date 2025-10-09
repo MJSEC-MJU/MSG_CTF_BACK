@@ -104,7 +104,7 @@ public class ChallengeService {
                     throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
                 }
                 else {
-                    Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
+                    Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());   //마찬가지로 user개인이 아닌 team단위로 확인해야됨.
                     if (team.isPresent()) {
                         solved = team.get().hasSolvedChallenge(challenge.getChallengeId());
                     }
@@ -284,8 +284,8 @@ public class ChallengeService {
             if (user.getCurrentTeamId() == null) {
                 throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
             }
-            //위 if에서 예외처리 되었으므로 else문 굳이 필요없어 삭제
-            Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
+            //팀이 문제를 풀었는지 확인해야되는데 개인이 풀었는지 확인하고 있었음.
+            Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());
             if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
                 return "Submitted";
             }
@@ -334,7 +334,7 @@ public class ChallengeService {
                     if (firstBloodLocked) {
                         long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
                         if (solvedCount == 1) {
-                            sendFirstBloodNotification(challenge, user);
+                            sendFirstBloodNotification(challenge, user);  //테스트 진행을 위한 퍼블 주석처리
                         }
                     }
                 } catch (InterruptedException e) {
