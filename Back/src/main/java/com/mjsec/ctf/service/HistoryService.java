@@ -28,7 +28,7 @@ public class HistoryService {
     /*
     getHistoryDtos -> 전체 멤버 (삭제 유저 포함) 조회로 수정.
     실질적인 삭제 안 된 유저는 getActiveUserHistoryDtos 로 바꿈.
-     */
+
     public List<HistoryDto> getHistoryDtos() {
         List<HistoryEntity> histories = historyRepository.findAllByOrderBySolvedTimeAsc();
         return histories.stream().map(history -> {
@@ -50,6 +50,7 @@ public class HistoryService {
             );
         }).collect(Collectors.toList());
     }
+     */
 
     //삭제되지 않은 유저들만 조회
     public List<HistoryDto> getActiveUserHistoryDtos() {
