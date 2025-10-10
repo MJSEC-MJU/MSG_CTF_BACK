@@ -227,9 +227,6 @@ public class UserService {
             });
             historyRepository.saveAll(historyEntities);
             log.info("History Entity list : {}", historyEntities.size());
-
-            // 회원의 로그인 ID를 기준으로 히스토리 삭제
-            historyRepository.deleteByLoginId(user.getLoginId());
         }
 
         userRepository.delete(user);
