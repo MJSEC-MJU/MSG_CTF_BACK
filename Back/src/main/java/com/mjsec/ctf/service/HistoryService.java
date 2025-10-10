@@ -24,7 +24,6 @@ public class HistoryService {
      * HistoryEntity들을 조회하여, 각 기록에 해당하는 ChallengeEntity의 최신 동적 점수(ChallengeEntity.points)를 HistoryDto에 반영합니다.
      * @return List of HistoryDto sorted by solvedTime ascending.
      */
-
     /*
     getHistoryDtos -> 전체 멤버 (삭제 유저 포함) 조회로 수정.
     실질적인 삭제 안 된 유저는 getActiveUserHistoryDtos 로 바꿈.
