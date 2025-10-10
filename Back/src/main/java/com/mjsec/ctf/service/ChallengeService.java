@@ -285,7 +285,7 @@ public class ChallengeService {
                 throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
             }
             else {
-                Optional<TeamEntity> team = teamService.getUserTeam(user.getUserId());
+                Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());
                 if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
                     return "Submitted";
                 }
