@@ -4,6 +4,7 @@ import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.TeamPaymentHistoryEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.TeamProfileDto;
+import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.TeamPaymentHistoryRepository;
 import com.mjsec.ctf.repository.TeamRepository;
@@ -93,7 +94,7 @@ public class TeamService {
         TeamEntity team = teamRepository.findByTeamName(teamName)
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
-        if(team.isMember(user.getUserId())) {
+        if(!team.isMember(user.getUserId())) {
             throw new RestApiException(ErrorCode.TEAM_MISMATCH);
         }
 
@@ -213,6 +214,19 @@ public class TeamService {
         return userRepository.findAllById(memberUserIds).stream()
                 .map(UserEntity::getLoginId)
                 .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    public List<TeamSummaryDto> getAllTeams() {
+
+        List<TeamEntity> teams = teamRepository.findAll();
+
+        return teams.stream()
+                .map(team -> TeamSummaryDto.builder()
+                        .teamName(team.getTeamName())
+                        .teamTotalPoint(team.getTotalPoint())
+                        .teamMileage(team.getMileage())
+                        .build())
                 .collect(Collectors.toList());
     }
 }
