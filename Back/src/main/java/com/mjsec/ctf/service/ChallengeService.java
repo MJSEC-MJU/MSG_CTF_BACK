@@ -284,6 +284,7 @@ public class ChallengeService {
             if (user.getCurrentTeamId() == null) {
                 throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
             }
+          
             //팀이 문제를 풀었는지 확인해야되는데 개인이 풀었는지 확인하고 있었음.
             Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());
             if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {

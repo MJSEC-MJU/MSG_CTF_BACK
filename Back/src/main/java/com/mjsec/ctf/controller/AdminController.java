@@ -3,6 +3,7 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.ChallengeDto;
+import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.service.TeamService;
@@ -177,6 +178,20 @@ public class AdminController {
         return ResponseEntity.ok("admin");
     }
 
+    @Operation(summary = "모든 팀 반환", description = "관리자 권한으로 모든 팀의 정보를 반환합니다.")
+    @GetMapping("/team/all")
+    public ResponseEntity<SuccessResponse<List<TeamSummaryDto>>> getAllTeams() {
+
+        List<TeamSummaryDto> teams = teamService.getAllTeams();
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.GET_ALL_TEAMS_SUCCESS,
+                        teams
+                )
+        );
+    }
+
     @PostMapping("/team/create")
     public ResponseEntity<SuccessResponse<Void>> createTeam(@RequestParam String teamName) {
 
@@ -189,6 +204,7 @@ public class AdminController {
         );
     }
 
+    //팀원 추가
     @PostMapping("/team/member/{teamName}")
     public ResponseEntity<SuccessResponse<Void>> addMember(
             @PathVariable String teamName,
@@ -204,6 +220,7 @@ public class AdminController {
         );
     }
 
+    //팀원 삭제
     @DeleteMapping("/team/member/{teamName}")
     public ResponseEntity<SuccessResponse<String>> deleteMember(
             @PathVariable String teamName,
