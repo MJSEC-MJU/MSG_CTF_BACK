@@ -1,7 +1,8 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.HistoryDto;
-import com.mjsec.ctf.domain.LeaderboardEntity;
+//import com.mjsec.ctf.domain.LeaderboardEntity;    //개인용 주석처리
+import com.mjsec.ctf.dto.TeamLeaderboardDto;    //팀단위 추가
 import com.mjsec.ctf.service.HistoryService;
 import com.mjsec.ctf.service.LeaderboardService;
 import org.slf4j.Logger;
@@ -67,7 +68,7 @@ public class LeaderboardController {
 
         scheduleSseTask(emitter, () -> {
             try {
-                List<LeaderboardEntity> leaderboardEntities = leaderboardService.getLeaderboard();
+                List<TeamLeaderboardDto> leaderboardEntities = leaderboardService.getTeamLeaderboard(); //Team리더보드로 타입변경
                 emitter.send(leaderboardEntities, MediaType.APPLICATION_JSON);
             } catch (IOException ex) {
                 logger.error("Error sending leaderboard SSE event", ex);

@@ -1,3 +1,4 @@
+//개인용이므로 지금현재는 주석처리해도 상관없음.
 package com.mjsec.ctf.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
