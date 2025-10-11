@@ -134,7 +134,7 @@ public class ChallengeService {
             throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
         }
 
-        ChallengeEntity.ChallengeEntityBuilder<?, ?> builder = ChallengeEntity.builder()
+        ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()  //유지보수어려워 다시 원복
                 .title(challengeDto.getTitle())
                 .description(challengeDto.getDescription())
                 .flag(passwordEncoder.encode(challengeDto.getFlag()))
@@ -335,7 +335,7 @@ public class ChallengeService {
                     if (firstBloodLocked) {
                         long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
                         if (solvedCount == 1) {
-                            sendFirstBloodNotification(challenge, user);  //테스트 진행을 위한 퍼블 주석처리
+                            //sendFirstBloodNotification(challenge, user);  //테스트 진행을 위한 퍼블 주석처리
                         }
                     }
                 } catch (InterruptedException e) {
