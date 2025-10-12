@@ -38,7 +38,8 @@ public class JwtFilter extends OncePerRequestFilter {
         if (request.getRequestURI().equals("/api/users/sign-in")|| request.getRequestURI().equals("/api/users/sign-up") ||
                 request.getRequestURI().equals("/api/leaderboard") ||
                 request.getRequestURI().equals("/api/leaderboard/graph") ||
-                request.getRequestURI().equals("/api/leaderboard/stream")) {
+                request.getRequestURI().equals("/api/leaderboard/stream") ||
+                request.getRequestURI().equals("/api/server-time")) {
             log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
