@@ -1,3 +1,4 @@
+//개인용으로 현재 팀단위는 필요없음.
 package com.mjsec.ctf.repository;
 
 import com.mjsec.ctf.domain.LeaderboardEntity;
