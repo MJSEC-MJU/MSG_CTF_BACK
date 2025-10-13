@@ -264,7 +264,7 @@ public class AdminController {
         log.info("대회 시간 설정 완료: 시작={}, 종료={}", request.getStartTime(), request.getEndTime());
 
         return ResponseEntity.ok(SuccessResponse.of(
-                ResponseMessage.UPDATE_SUCCESS,
+                ResponseMessage.UPDATE_CONTEST_TIME_SUCCESS,
                 updatedConfig
         ));
     }
