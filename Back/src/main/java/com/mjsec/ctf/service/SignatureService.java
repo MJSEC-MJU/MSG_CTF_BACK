@@ -25,10 +25,10 @@ public class SignatureService {
 
     @Transactional
     public SignatureDto.InsertResponse insertCode(SignatureDto.Request request) {
-        boolean exists = signatureRepository.existsByNameAndSignatureAndClub(
+        boolean ok = signatureRepository.existsByNameAndSignatureAndClub(
                 request.getName(), request.getSignature(), request.getClub());
 
-        if (exists) {
+        if (ok) {
             return SignatureDto.InsertResponse.builder()
                     .result(false)
                     .id(null)

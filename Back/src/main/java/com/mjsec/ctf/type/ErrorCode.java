@@ -66,6 +66,7 @@ public enum ErrorCode {
 
     // 시그니처 코드 관련
     SIGNATURE_DUPLICATE(HttpStatus.BAD_REQUEST, "중복된 시그니처 코드입니다."),
+    INVALID_SIGNATURE(HttpStatus.BAD_REQUEST, "잘못된 시그니처 코드입니다."),
     ;
 
     private final HttpStatus httpStatus;

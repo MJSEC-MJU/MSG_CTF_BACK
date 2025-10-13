@@ -29,23 +29,31 @@ public class SignatureController {
 
         var data = signatureService.checkCode(request);
 
-        return ResponseEntity.ok(
-                SuccessResponse.of(ResponseMessage.SIGNATURE_CHECK_SUCCESS, data)
-        );
+        if (data.isResult()){
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    SuccessResponse.of(
+                            ResponseMessage.SIGNATURE_CHECK_SUCCESS
+                    )
+            );
+        } else {
+            throw new RestApiException(ErrorCode.SIGNATURE_DUPLICATE);
+        }
     }
 
     @Operation(summary = "시그니처 삽입", description = "시그니처 코드 삽입")
     @PostMapping("/insert-code")
-    public ResponseEntity<String> insertCode(@RequestBody @Valid SignatureDto.Request request) {
+    public ResponseEntity<SuccessResponse<SignatureDto.InsertResponse>> insertCode(
+            @RequestBody @Valid SignatureDto.Request request) {
 
         var data = signatureService.insertCode(request); // result=true/false, id 반환
 
         if (data.isResult()) {
-            // 생성 의미를 살리려면 201, verify 스타일과 완전 동일하게 하려면 200으로 바꿔도 됨
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("시그니처가 등록되었습니다. (id=" + data.getId() + ")");
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    SuccessResponse.of(
+                            ResponseMessage.SIGNATURE_INSERT_SUCCESS
+                    )
+            );
         } else {
-            // 중복 → 예외 던짐 (글로벌 예외 핸들러가 409 등으로 변환)
             throw new RestApiException(ErrorCode.SIGNATURE_DUPLICATE);
         }
     }

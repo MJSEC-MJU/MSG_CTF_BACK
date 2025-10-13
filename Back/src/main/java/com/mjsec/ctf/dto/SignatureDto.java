@@ -2,30 +2,41 @@ package com.mjsec.ctf.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 public class SignatureDto {
 
-    @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+    @Data
     public static class Request {
-        @NotBlank private String name;
-        @NotBlank private String signature;
-        @NotBlank private String club;
+        @NotBlank(message = "이름은 공백일 수 없습니다.")
+        private String name;
+
+        @NotBlank(message = "시그니처는 공백일 수 없습니다.")
+        private String signature;
+
+        @NotBlank(message = "클럽은 공백일 수 없습니다.")
+        private String club;
     }
 
-    @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
     public static class CheckResponse {
-        // JSON 키를 기존과 동일하게 유지 ("return")
-        @JsonProperty("return")
         private boolean result;
     }
 
-    @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
     public static class InsertResponse {
-        // 성공/중복 여부 표시 (기존 호환)
-        @JsonProperty("return")
         private boolean result;
-        // 생성된 엔티티 id까지 주면 추후 추적에 유용
+
+        // 생성된 엔티티 id (성공 시)
         private Long id;
     }
 }
