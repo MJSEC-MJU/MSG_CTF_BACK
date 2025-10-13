@@ -18,10 +18,10 @@ public class ContestConfigDto {
 
     private Long id;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private ZonedDateTime startTime;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private ZonedDateTime endTime;
 
     private Boolean isActive;
@@ -41,10 +41,10 @@ public class ContestConfigDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Request {
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private ZonedDateTime startTime;
 
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private ZonedDateTime endTime;
     }
 
@@ -53,13 +53,13 @@ public class ContestConfigDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private ZonedDateTime startTime;
 
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private ZonedDateTime endTime;
 
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
         private ZonedDateTime currentTime;
 
         public static Response fromEntity(ContestConfigEntity entity, ZonedDateTime currentTime) {
