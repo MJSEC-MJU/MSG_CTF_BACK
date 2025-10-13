@@ -8,10 +8,7 @@ import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 //import com.mjsec.ctf.domain.LeaderboardEntity;    //개인용 주석처리
 import com.mjsec.ctf.exception.RestApiException;
-import com.mjsec.ctf.repository.ChallengeRepository;
-import com.mjsec.ctf.repository.HistoryRepository;
-import com.mjsec.ctf.repository.SubmissionRepository;
-import com.mjsec.ctf.repository.UserRepository;
+import com.mjsec.ctf.repository.*;
 //import com.mjsec.ctf.repository.LeaderboardRepository;    //개인용 주석처리
 import com.mjsec.ctf.type.ErrorCode;
 import io.micrometer.common.util.StringUtils;
@@ -63,6 +60,7 @@ public class ChallengeService {
      */
     private final PasswordEncoder passwordEncoder;
     private final RedissonClient redissonClient;
+    private final TeamRepository teamRepository;
 
     @Value("${api.key}")
     private String apiKey;
@@ -222,13 +220,25 @@ public class ChallengeService {
         challengeRepository.delete(challenge);
         challengeRepository.flush();
 
-        // 관련 데이터 삭제
+        //관련 데이터 삭제
         submissionRepository.deleteByChallengeId(challengeId);
         historyRepository.deleteByChallengeId(challengeId);
 
-        // 점수 재계산
-        updateAllTeamTotalPoints(); //메서드 팀단위 변경으로 인한 변경
-        log.info("문제 삭제 완료: challengeId = {}", challengeId);
+        // 해당 문제를 푼 팀들만 찾아서 재계산
+        List<TeamEntity> affectedTeams = teamRepository.findTeamsBySolvedChallengeId(
+                String.valueOf(challengeId)
+        );
+
+        for (TeamEntity team : affectedTeams) {
+            // solvedChallengeIds에서 제거
+            team.getSolvedChallengeIds().remove(challengeId);
+
+            // 전체 재계산
+            recalculateTeamPoints(team);
+        }
+
+        log.info("문제 삭제 완료: challengeId = {}, 영향받은 팀: {}",
+                challengeId, affectedTeams.size());
     }
 
     // 문제 파일 다운로드
@@ -346,22 +356,27 @@ public class ChallengeService {
                     }
                 }
 
-                //userRepository.save(user);    //user의totalpoint미사용으로 인한 주석처리
-
                 // 문제 점수 업데이트
                 updateChallengeScore(challenge);
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
 
-                /* 개인점수가 아닌 팀점수 계산으로 인한 주석처리
-
-                // 개별 유저 즉시 업데이트 (새 유저도 즉시 리더보드에 반영)
-                updateUserTotalPointsIndividual(user);
-                // 전체 점수 재계산 (기존)
-                updateTotalPoints();    */
-
                 //팀 점수로 재게산 업데이트 (다이나믹 스코어 반영)
-                team.ifPresent(this::recalculateTeamPoints);
+                /*
+                log.info("Before running method: recalculateTeamPoints");
+                long startTime = System.currentTimeMillis();
+
+                -> 트랜잭션 중첩과 데드락 이슈가 보임. (대기 시간이 10초가 넘어가서 서버에서 504 에러를 반환함)
+                이게 문제가 맞는지 테스트용으로 주석처리함.
+
+                //team.ifPresent(this::recalculateTeamPoints);
+
+                long endTime = System.currentTimeMillis();
+                long duration = endTime - startTime;
+
+                log.info("After running method: recalculateTeamPoints took {} ms ({} seconds)",
+                        duration, duration / 1000.0);
+                 */
 
                 submissionRepository.delete(submission);
 
@@ -562,6 +577,7 @@ public class ChallengeService {
         List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
         if (solvedChallengeIds.isEmpty()) {
             team.setTotalPoint(0);
+            team.setLastSolvedTime(null);
             teamService.saveTeam(team);
             return;
         }
@@ -605,9 +621,7 @@ public class ChallengeService {
         }
 
         team.setTotalPoint(totalPoints);
-        if (lastSolvedTime != null) {
-            team.setLastSolvedTime(lastSolvedTime);
-        }
+        team.setLastSolvedTime(lastSolvedTime);
         teamService.saveTeam(team);
     }
 
