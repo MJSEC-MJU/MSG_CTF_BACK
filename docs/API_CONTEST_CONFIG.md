@@ -12,16 +12,13 @@ GET /api/contest-time
 
 ### Request
 
-**Headers**
 ```json
 {
-  "Content-Type": "application/json"
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": null
 }
-```
-
-**Body**
-```
-없음
 ```
 
 ### Query Params
@@ -48,13 +45,6 @@ GET /api/contest-time
 
 - 대회 설정을 찾을 수 없음
 
-```json
-{
-  "httpStatus": "NOT_FOUND",
-  "description": "대회 설정을 찾을 수 없습니다."
-}
-```
-
 ### Response 500
 
 - 서버 에러
@@ -73,26 +63,18 @@ PUT /api/admin/contest-time
 
 ### Request
 
-**Headers**
 ```json
 {
-  "Content-Type": "application/json",
-  "Authorization": "Bearer <JWT_TOKEN>"
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <JWT_TOKEN>"
+  },
+  "body": {
+    "startTime": "2025-03-29 10:00:00", // 대회 시작 시간 (yyyy-MM-dd HH:mm:ss)
+    "endTime": "2025-03-29 22:00:00"    // 대회 종료 시간 (yyyy-MM-dd HH:mm:ss)
+  }
 }
 ```
-
-**Body**
-```json
-{
-  "startTime": "2025-03-29 10:00:00",
-  "endTime": "2025-03-29 22:00:00"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| startTime | String | Yes | 대회 시작 시간 (yyyy-MM-dd HH:mm:ss) |
-| endTime | String | Yes | 대회 종료 시간 (yyyy-MM-dd HH:mm:ss) |
 
 ### Query Params
 
@@ -112,46 +94,17 @@ PUT /api/admin/contest-time
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| message | String | 응답 메시지 |
-| data.id | Integer | 대회 설정 ID |
-| data.startTime | String | 대회 시작 시간 (yyyy-MM-dd HH:mm:ss) |
-| data.endTime | String | 대회 종료 시간 (yyyy-MM-dd HH:mm:ss) |
-| data.isActive | Boolean | 활성화 여부 |
-
 ### Response 400
 
 - 유효하지 않은 body 데이터
-
-```json
-{
-  "httpStatus": "BAD_REQUEST",
-  "description": "잘못된 요청입니다."
-}
-```
 
 ### Response 401
 
 - 인증되지 않음 (JWT 토큰 없음 또는 만료)
 
-```json
-{
-  "httpStatus": "UNAUTHORIZED",
-  "description": "인증이 필요합니다."
-}
-```
-
 ### Response 403
 
 - 권한 없음 (관리자 권한 필요)
-
-```json
-{
-  "httpStatus": "FORBIDDEN",
-  "description": "권한이 없습니다."
-}
-```
 
 ### Response 500
 
@@ -173,18 +126,6 @@ PUT /api/admin/contest-time
 2. 시작 시간은 종료 시간보다 이전이어야 합니다.
 3. 날짜 형식이 올바르지 않으면 400 에러가 발생합니다.
 4. 관리자 권한(ROLE_ADMIN)이 필요합니다.
-
-### DB 테이블: contest_config
-
-| Column | Type | Null | Key | Description |
-|--------|------|------|-----|-------------|
-| id | BIGINT | NO | PRI | 기본 키 (자동 증가) |
-| start_time | TIMESTAMP | YES | | 대회 시작 시간 |
-| end_time | TIMESTAMP | YES | | 대회 종료 시간 |
-| is_active | BOOLEAN | YES | | 활성화 여부 |
-| created_at | TIMESTAMP | YES | | 생성 시간 |
-| updated_at | TIMESTAMP | YES | | 수정 시간 |
-| deleted_at | TIMESTAMP | YES | | 삭제 시간 |
 
 ---
 
@@ -268,11 +209,3 @@ data = {
 response = requests.put(url, headers=headers, json=data)
 print(response.json())
 ```
-
----
-
-## 변경 이력
-
-| 버전 | 날짜 | 변경 내용 |
-|------|------|-----------|
-| 1.0.0 | 2025-10-13 | 초기 API 명세 작성 |
