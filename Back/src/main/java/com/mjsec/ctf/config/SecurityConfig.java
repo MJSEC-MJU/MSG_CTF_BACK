@@ -101,6 +101,7 @@ import org.springframework.beans.factory.annotation.Value;
                         .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
                         .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/check-code").permitAll()
+                        .requestMatchers("/api/server-time").permitAll()
 
                 );
 
