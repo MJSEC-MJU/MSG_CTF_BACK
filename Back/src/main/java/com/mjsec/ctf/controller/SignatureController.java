@@ -36,7 +36,7 @@ public class SignatureController {
                     )
             );
         } else {
-            throw new RestApiException(ErrorCode.SIGNATURE_DUPLICATE);
+            throw new RestApiException(ErrorCode.INVALID_SIGNATURE);
         }
     }
 

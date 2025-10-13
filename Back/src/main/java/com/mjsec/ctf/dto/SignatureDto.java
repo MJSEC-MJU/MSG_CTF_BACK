@@ -37,6 +37,6 @@ public class SignatureDto {
         private boolean result;
 
         // 생성된 엔티티 id (성공 시)
-        private Long id;
+        private String signature;
     }
 }

@@ -25,28 +25,16 @@ public class SignatureService {
 
     @Transactional
     public SignatureDto.InsertResponse insertCode(SignatureDto.Request request) {
-        boolean ok = signatureRepository.existsByNameAndSignatureAndClub(
-                request.getName(), request.getSignature(), request.getClub());
-
-        if (ok) {
-            return SignatureDto.InsertResponse.builder()
-                    .result(false)
-                    .id(null)
-                    .build();
+        // signature 자체가 PK이므로 먼저 이걸로 막기
+        if (signatureRepository.existsById(request.getSignature())) {
+            return new SignatureDto.InsertResponse(false, null);
         }
-
-        SignatureEntity saved = signatureRepository.save(
-                SignatureEntity.builder()
-                        .name(request.getName())
-                        .signature(request.getSignature())
-                        .club(request.getClub())
-                        .build()
-        );
-
-        return SignatureDto.InsertResponse.builder()
-                .result(true)
-                .id(saved.getSignatureId())
-                .build();
+        var saved = signatureRepository.save(SignatureEntity.builder()
+                .signature(request.getSignature()) // PK 직접 할당
+                .name(request.getName())
+                .club(request.getClub())
+                .build());
+        return new SignatureDto.InsertResponse(true, saved.getSignature());
     }
 }
 

@@ -18,16 +18,12 @@ import org.hibernate.annotations.SQLRestriction;
 public class SignatureEntity extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "signature_id")
-    private Long signatureId;
-
-    @Column(nullable = false, length = 100)
-    private String name;
-
-    @Column(nullable = false, length = 300)
+    @Column(nullable = false, unique = true)
     private String signature;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
     private String club;
 }
