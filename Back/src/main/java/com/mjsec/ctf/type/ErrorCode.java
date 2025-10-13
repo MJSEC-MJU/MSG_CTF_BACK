@@ -62,7 +62,10 @@ public enum ErrorCode {
     ALREADY_HAVE_TEAM(HttpStatus.BAD_REQUEST, "이미 팀에 소속된 사용자 입니다."),
     TEAM_ALREADY_EXIST(HttpStatus.BAD_REQUEST, "사용 중인 팀 이름 입니다."),
     TEAM_MISMATCH(HttpStatus.BAD_REQUEST, "해당 팀의 팀원이 아닙니다."),
-    TEAM_FULL(HttpStatus.BAD_REQUEST, "팀원 정원 초과입니다.")
+    TEAM_FULL(HttpStatus.BAD_REQUEST, "팀원 정원 초과입니다."),
+
+    // 대회 설정 관련
+    CONTEST_CONFIG_NOT_FOUND(HttpStatus.NOT_FOUND, "대회 설정을 찾을 수 없습니다.")
     ;
 
     private final HttpStatus httpStatus;

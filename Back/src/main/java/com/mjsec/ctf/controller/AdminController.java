@@ -1,11 +1,13 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.ContestConfigDto;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
+import com.mjsec.ctf.service.ContestConfigService;
 import com.mjsec.ctf.service.TeamService;
 import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ResponseMessage;
@@ -31,6 +33,7 @@ public class AdminController {
     private final UserService userService;
     private final ChallengeService challengeService;
     private final TeamService teamService;
+    private final ContestConfigService contestConfigService;
 
     @Operation(summary = "문제 생성", description = "관리자 권한으로 문제를 생성합니다.")
     @PreAuthorize("hasRole('ADMIN')")
@@ -249,5 +252,20 @@ public class AdminController {
             log.error("점수 재계산 중 오류 발생: ", e);
             return ResponseEntity.status(500).body("점수 재계산 실패: " + e.getMessage());
         }
+    }
+
+    @Operation(summary = "대회 시간 설정", description = "관리자 권한으로 대회 시작/종료 시간을 설정합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/contest-time")
+    public ResponseEntity<SuccessResponse<ContestConfigDto>> updateContestTime(
+            @RequestBody @Valid ContestConfigDto.Request request) {
+
+        ContestConfigDto updatedConfig = contestConfigService.updateContestTime(request);
+        log.info("대회 시간 설정 완료: 시작={}, 종료={}", request.getStartTime(), request.getEndTime());
+
+        return ResponseEntity.ok(SuccessResponse.of(
+                ResponseMessage.UPDATE_SUCCESS,
+                updatedConfig
+        ));
     }
 }
