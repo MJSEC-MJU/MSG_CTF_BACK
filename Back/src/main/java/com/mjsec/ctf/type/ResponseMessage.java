@@ -29,7 +29,9 @@ public enum ResponseMessage {
     ADD_TEAM_MEMBER_SUCCESS("팀원 추가 성공"),
     DELETE_TEAM_MEMBER_SUCCESS("팀원 삭제 성공"),
     GET_TEAM_PROFILE_SUCCESS("팀 프로필 조회 성공"),
-    GET_ALL_TEAMS_SUCCESS("모든 팀 조회 성공")
+    GET_ALL_TEAMS_SUCCESS("모든 팀 조회 성공"),
+    SIGNATURE_CHECK_SUCCESS("시그니처 코드 확인"),
+
     ;
 
     private final String message;
