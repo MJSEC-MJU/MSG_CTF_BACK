@@ -65,8 +65,7 @@ public enum ErrorCode {
     TEAM_FULL(HttpStatus.BAD_REQUEST, "팀원 정원 초과입니다."),
 
     // 시그니처 코드 관련
-    INVALID_SIGNATURE(HttpStatus.BAD_REQUEST, "시그니처 코드는 영문/숫자 6자리여야 합니다."),
-    INVALID_SIGNATURE_CLUB(HttpStatus.BAD_REQUEST, "동아리 정보는 필수입니다."),
+    SIGNATURE_DUPLICATE(HttpStatus.BAD_REQUEST, "중복된 시그니처 코드입니다."),
     ;
 
     private final HttpStatus httpStatus;
