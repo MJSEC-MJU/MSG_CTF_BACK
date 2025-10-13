@@ -12,7 +12,7 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@Table(name = "signature")
+@Table(name = "signature_entity")
 @SQLDelete(sql = "UPDATE signature SET deleted_at = NOW() WHERE signature_id = ?")
 @SQLRestriction("deleted_at is null")
 public class SignatureEntity extends BaseEntity {
