@@ -2,8 +2,10 @@ package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.SignatureDto;
 import com.mjsec.ctf.dto.SuccessResponse;
+import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.service.SignatureService;
 import com.mjsec.ctf.type.ResponseMessage;
+import com.mjsec.ctf.type.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,14 +31,13 @@ public class SignatureController {
         var data = signatureService.checkAndUnlock(challengeId, request);
 
         if (data.isValid()) {
+            // ✅ 성공 시: 프로젝트에 존재하는 메시지 사용
             return ResponseEntity.ok(
                 SuccessResponse.of(ResponseMessage.SIGNATURE_CHECK_SUCCESS, data)
             );
         } else {
-            // 정책 불일치 → 400
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                SuccessResponse.of(ResponseMessage.SIGNATURE_CHECK_FAIL, data)
-            );
+            // ❌ 실패 시: 존재하지 않는 SIGNATURE_CHECK_FAIL 대신 예외 던짐
+            throw new RestApiException(ErrorCode.INVALID_SIGNATURE);
         }
     }
 
@@ -44,6 +45,7 @@ public class SignatureController {
     @GetMapping("/{challengeId}/status")
     public ResponseEntity<SuccessResponse<SignatureDto.StatusResponse>> status(@PathVariable Long challengeId) {
         var data = signatureService.status(challengeId);
-        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.OK, data));
+        // ✅ OK 상수 대신 존재하는 메시지 재사용
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.SIGNATURE_CHECK_SUCCESS, data));
     }
 }
