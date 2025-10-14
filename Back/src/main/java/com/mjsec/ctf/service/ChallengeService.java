@@ -132,26 +132,35 @@ public class ChallengeService {
             throw new RestApiException(ErrorCode.REQUIRED_FIELD_NULL);
         }
 
-        ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()  //유지보수어려워 다시 원복
-                .title(challengeDto.getTitle())
-                .description(challengeDto.getDescription())
-                .flag(passwordEncoder.encode(challengeDto.getFlag()))
-                .points(challengeDto.getPoints())
-                .minPoints(challengeDto.getMinPoints())
-                .initialPoints(challengeDto.getInitialPoints())
-                .startTime(challengeDto.getStartTime())
-                .endTime(challengeDto.getEndTime())
-                .url(challengeDto.getUrl());
-
+        // 카테고리 확인
+        com.mjsec.ctf.type.ChallengeCategory category;
         if (challengeDto.getCategory() != null && !challengeDto.getCategory().isBlank()) {
             try {
-                builder.category(com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase()));
+                category = com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase());
             } catch (IllegalArgumentException e) {
                 throw new RestApiException(ErrorCode.BAD_REQUEST, "유효하지 않은 카테고리입니다.");
             }
         } else {
-            builder.category(com.mjsec.ctf.type.ChallengeCategory.MISC);
+            category = com.mjsec.ctf.type.ChallengeCategory.MISC;
         }
+
+        // 시그니처 문제는 점수 필드를 0으로 설정
+        boolean isSignature = category == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
+        int points = isSignature ? 0 : challengeDto.getPoints();
+        int minPoints = isSignature ? 0 : challengeDto.getMinPoints();
+        int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
+
+        ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()  //유지보수어려워 다시 원복
+                .title(challengeDto.getTitle())
+                .description(challengeDto.getDescription())
+                .flag(passwordEncoder.encode(challengeDto.getFlag()))
+                .points(points)
+                .minPoints(minPoints)
+                .initialPoints(initialPoints)
+                .startTime(challengeDto.getStartTime())
+                .endTime(challengeDto.getEndTime())
+                .url(challengeDto.getUrl())
+                .category(category);
 
         ChallengeEntity challenge = builder.build();
 
@@ -171,29 +180,38 @@ public class ChallengeService {
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
         if(challengeDto != null) {
+            // 카테고리 확인
+            com.mjsec.ctf.type.ChallengeCategory category;
+            if (challengeDto.getCategory() != null && !challengeDto.getCategory().isBlank()) {
+                try {
+                    category = com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new RestApiException(ErrorCode.BAD_REQUEST, "유효하지 않은 카테고리입니다.");
+                }
+            } else {
+                category = challenge.getCategory();
+            }
+
+            // 시그니처 문제는 점수 필드를 0으로 설정
+            boolean isSignature = category == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
+            int points = isSignature ? 0 : challengeDto.getPoints();
+            int minPoints = isSignature ? 0 : challengeDto.getMinPoints();
+            int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
+
             // 새 빌더를 이용해 수정된 엔티티 생성 (ID는 유지)
             ChallengeEntity updatedChallenge = ChallengeEntity.builder()
                     .challengeId(challenge.getChallengeId())
                     .title(challengeDto.getTitle())
                     .description(challengeDto.getDescription())
                     .flag(passwordEncoder.encode(challengeDto.getFlag()))
-                    .points(challengeDto.getPoints())
-                    .minPoints(challengeDto.getMinPoints())
-                    .initialPoints(challengeDto.getInitialPoints())
+                    .points(points)
+                    .minPoints(minPoints)
+                    .initialPoints(initialPoints)
                     .startTime(challengeDto.getStartTime())
                     .endTime(challengeDto.getEndTime())
                     .url(challengeDto.getUrl())
+                    .category(category)
                     .build();
-            // 카테고리 설정
-            if (challengeDto.getCategory() != null && !challengeDto.getCategory().isBlank()) {
-                try {
-                    updatedChallenge.setCategory(com.mjsec.ctf.type.ChallengeCategory.valueOf(challengeDto.getCategory().toUpperCase()));
-                } catch (IllegalArgumentException e) {
-                    throw new RestApiException(ErrorCode.BAD_REQUEST, "유효하지 않은 카테고리입니다.");
-                }
-            } else {
-                updatedChallenge.setCategory(challenge.getCategory());
-            }
 
             // 기존 파일 URL 유지
             updatedChallenge.setFileUrl(challenge.getFileUrl());
@@ -329,8 +347,11 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
-                //팀 점수로 업데이트
-                if (user.getCurrentTeamId() != null) {
+                // 시그니처 문제는 점수 계산에서 제외
+                boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
+
+                //팀 점수로 업데이트 (시그니처 제외)
+                if (user.getCurrentTeamId() != null && !isSignature) {
                     teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints());
                 }
 
@@ -343,7 +364,7 @@ public class ChallengeService {
                     firstBloodLocked = firstBloodLock.tryLock(5, 5, TimeUnit.SECONDS);
                     if (firstBloodLocked) {
                         long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
-                        if (solvedCount == 1) {
+                        if (solvedCount == 1 && !isSignature) {
                             //sendFirstBloodNotification(challenge, user);  //테스트 진행을 위한 퍼블 주석처리
                         }
                     }
@@ -355,8 +376,10 @@ public class ChallengeService {
                     }
                 }
 
-                // 문제 점수 업데이트
-                updateChallengeScore(challenge);
+                // 문제 점수 업데이트 (시그니처는 다이나믹 스코어링 제외)
+                if (!isSignature) {
+                    updateChallengeScore(challenge);
+                }
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
 
@@ -595,13 +618,18 @@ public class ChallengeService {
                 .map(UserEntity::getLoginId)
                 .collect(Collectors.toSet());
 
-        // 2. 메모리에서 계산
+        // 2. 메모리에서 계산 (시그니처 문제 제외)
         int totalPoints = 0;
         LocalDateTime lastSolvedTime = null;
 
         for (Long challengeId : solvedChallengeIds) {
             ChallengeEntity challenge = challengeMap.get(challengeId);
             if (challenge == null) continue;
+
+            // 시그니처 문제는 점수 계산에서 제외
+            if (challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE) {
+                continue;
+            }
 
             totalPoints += challenge.getPoints();
 
