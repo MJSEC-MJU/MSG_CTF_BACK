@@ -5,6 +5,7 @@ import com.mjsec.ctf.domain.ChallengeEntity;
 import lombok.*;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
+import jakarta.validation.constraints.NotBlank;
 
 @Getter
 @Setter
@@ -62,7 +63,7 @@ public class ChallengeDto {
                     .build();
         }
     }
-
+    private SignaturePolicyDto signaturePolicy;
     @Getter
     @Builder
     @NoArgsConstructor
