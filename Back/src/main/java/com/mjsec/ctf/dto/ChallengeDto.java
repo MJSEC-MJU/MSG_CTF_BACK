@@ -3,7 +3,7 @@ package com.mjsec.ctf.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mjsec.ctf.domain.ChallengeEntity;
 import lombok.*;
-
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Getter

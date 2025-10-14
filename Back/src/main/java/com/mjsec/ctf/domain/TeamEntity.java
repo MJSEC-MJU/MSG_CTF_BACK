@@ -1,22 +1,16 @@
 package com.mjsec.ctf.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import lombok.Builder;              // @Builder.Default 사용을 위해 필요
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.Type;
@@ -28,7 +22,7 @@ import io.hypersistence.utils.hibernate.type.json.JsonType;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@Inheritance(strategy = InheritanceType.JOINED)
+@Table(name = "team") // @SQLDelete의 테이블명과 일치시킴
 @SQLDelete(sql = "UPDATE team SET deleted_at = NOW() WHERE team_id = ?")
 @SQLRestriction("deleted_at is null")
 public class TeamEntity extends BaseEntity {
@@ -49,10 +43,12 @@ public class TeamEntity extends BaseEntity {
 
     @Type(JsonType.class)
     @Column(name = "member_user_ids", columnDefinition = "json")
+    @Builder.Default
     private List<Long> memberUserIds = new ArrayList<>();
 
     @Type(JsonType.class)
     @Column(name = "solved_challenge_ids", columnDefinition = "json")
+    @Builder.Default
     private List<Long> solvedChallengeIds = new ArrayList<>();
 
     @Column(name = "last_solved_time")
@@ -61,7 +57,6 @@ public class TeamEntity extends BaseEntity {
     @PrePersist
     @PreUpdate
     public void ensureNonNullCollections() {
-
         if (memberUserIds == null) {
             memberUserIds = new ArrayList<>();
         }
@@ -71,7 +66,6 @@ public class TeamEntity extends BaseEntity {
     }
 
     public List<Long> getMemberUserIds() {
-
         if (memberUserIds == null) {
             memberUserIds = new ArrayList<>();
         }
@@ -79,29 +73,24 @@ public class TeamEntity extends BaseEntity {
     }
 
     public boolean isMember(Long userId) {
-
         return memberUserIds.contains(userId);
     }
 
     public void addMember(Long userId) {
-
         if (!memberUserIds.contains(userId)) {
             memberUserIds.add(userId);
         }
     }
 
     public void removeMember(Long userId) {
-
         memberUserIds.remove(userId);
     }
 
     public boolean hasSolvedChallenge(Long challengeId) {
-
         return solvedChallengeIds.contains(challengeId);
     }
 
     public void addSolvedChallenge(Long challengeId, int points) {
-
         if (!solvedChallengeIds.contains(challengeId)) {
             solvedChallengeIds.add(challengeId);
             this.totalPoint += points;
@@ -111,12 +100,10 @@ public class TeamEntity extends BaseEntity {
     }
 
     public void addMileage() {
-
         this.mileage += 100;
     }
 
     public boolean deductMileage(int amount) {
-
         if (this.mileage >= amount) {
             this.mileage -= amount;
             return true;
@@ -125,7 +112,6 @@ public class TeamEntity extends BaseEntity {
     }
 
     public int getSolvedCount() {
-
         return solvedChallengeIds.size();
     }
 }
