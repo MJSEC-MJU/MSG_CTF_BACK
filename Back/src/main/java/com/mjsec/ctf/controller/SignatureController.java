@@ -1,18 +1,15 @@
 package com.mjsec.ctf.controller;
 
-import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.SignatureDto;
-import com.mjsec.ctf.exception.RestApiException;
+import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.service.SignatureService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import com.mjsec.ctf.type.ErrorCode;
 
 @Slf4j
 @RestController
@@ -22,39 +19,31 @@ public class SignatureController {
 
     private final SignatureService signatureService;
 
-    @Operation(summary = "시그니처 대조", description = "시그니처 코드 대조")
-    @PostMapping("/check-code")
+    @Operation(summary = "문제별 시그니처 대조 & 팀 잠금 해제",
+               description = "challengeId 기준으로 시그니처 코드 대조 후 현재 팀을 UNLOCK")
+    @PostMapping("/{challengeId}/check-code")
     public ResponseEntity<SuccessResponse<SignatureDto.CheckResponse>> checkCode(
+            @PathVariable Long challengeId,
             @RequestBody @Valid SignatureDto.Request request) {
 
-        var data = signatureService.checkCode(request);
+        var data = signatureService.checkAndUnlock(challengeId, request);
 
-        if (data.isResult()){
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SIGNATURE_CHECK_SUCCESS
-                    )
+        if (data.isValid()) {
+            return ResponseEntity.ok(
+                SuccessResponse.of(ResponseMessage.SIGNATURE_CHECK_SUCCESS, data)
             );
         } else {
-            throw new RestApiException(ErrorCode.INVALID_SIGNATURE);
+            // 정책 불일치 → 400
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                SuccessResponse.of(ResponseMessage.SIGNATURE_CHECK_FAIL, data)
+            );
         }
     }
 
-    @Operation(summary = "시그니처 삽입", description = "시그니처 코드 삽입")
-    @PostMapping("/insert-code")
-    public ResponseEntity<SuccessResponse<SignatureDto.InsertResponse>> insertCode(
-            @RequestBody @Valid SignatureDto.Request request) {
-
-        var data = signatureService.insertCode(request); // result=true/false, id 반환
-
-        if (data.isResult()) {
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SIGNATURE_INSERT_SUCCESS
-                    )
-            );
-        } else {
-            throw new RestApiException(ErrorCode.SIGNATURE_DUPLICATE);
-        }
+    @Operation(summary = "문제별 팀 잠금 해제 상태", description = "challengeId 기준 UNLOCK 여부 조회")
+    @GetMapping("/{challengeId}/status")
+    public ResponseEntity<SuccessResponse<SignatureDto.StatusResponse>> status(@PathVariable Long challengeId) {
+        var data = signatureService.status(challengeId);
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.OK, data));
     }
 }
