@@ -149,6 +149,7 @@ public class ChallengeService {
         int points = isSignature ? 0 : challengeDto.getPoints();
         int minPoints = isSignature ? 0 : challengeDto.getMinPoints();
         int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
+        int mileage = challengeDto.getMileage();
 
         ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()  //유지보수어려워 다시 원복
                 .title(challengeDto.getTitle())
@@ -160,7 +161,8 @@ public class ChallengeService {
                 .startTime(challengeDto.getStartTime())
                 .endTime(challengeDto.getEndTime())
                 .url(challengeDto.getUrl())
-                .category(category);
+                .category(category)
+                .mileage(mileage);
 
         ChallengeEntity challenge = builder.build();
 
@@ -197,6 +199,7 @@ public class ChallengeService {
             int points = isSignature ? 0 : challengeDto.getPoints();
             int minPoints = isSignature ? 0 : challengeDto.getMinPoints();
             int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
+            int mileage =  challengeDto.getMileage();
 
             // 새 빌더를 이용해 수정된 엔티티 생성 (ID는 유지)
             ChallengeEntity updatedChallenge = ChallengeEntity.builder()
@@ -211,6 +214,7 @@ public class ChallengeService {
                     .endTime(challengeDto.getEndTime())
                     .url(challengeDto.getUrl())
                     .category(category)
+                    .mileage(mileage)
                     .build();
 
             // 기존 파일 URL 유지
@@ -352,7 +356,7 @@ public class ChallengeService {
 
                 //팀 점수로 업데이트 (시그니처 제외)
                 if (user.getCurrentTeamId() != null && !isSignature) {
-                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints());
+                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints(), challenge.getMileage());
                 }
 
                 // firstBloodLock 안전하게 처리

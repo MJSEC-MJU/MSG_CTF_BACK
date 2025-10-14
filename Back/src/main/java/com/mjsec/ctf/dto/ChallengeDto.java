@@ -37,6 +37,8 @@ public class ChallengeDto {
 
     private String category;
 
+    private int mileage;
+
     //모든 문제 조회용
     @Getter
     @Builder

@@ -65,4 +65,9 @@ public class ChallengeEntity extends BaseEntity {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ChallengeCategory category;
+
+    // 문제 풀이 시 지급되는 마일리지
+    @Column(nullable = false)
+    @Builder.Default
+    private int mileage = 0;
 }
