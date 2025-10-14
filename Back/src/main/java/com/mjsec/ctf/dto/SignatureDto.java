@@ -1,42 +1,29 @@
 package com.mjsec.ctf.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
-import lombok.Data;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 public class SignatureDto {
 
     @Data
     public static class Request {
-        @NotBlank(message = "이름은 공백일 수 없습니다.")
-        private String name;
-
-        @NotBlank(message = "시그니처는 공백일 수 없습니다.")
-        private String signature;
-
-        @NotBlank(message = "클럽은 공백일 수 없습니다.")
-        private String club;
+        @NotBlank private String name;
+        @NotBlank private String signature;
+        @NotBlank private String club;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
+    @Data @AllArgsConstructor @NoArgsConstructor @Builder
     public static class CheckResponse {
-        private boolean result;
+        private boolean valid;       // 정책과 일치 여부
+        private boolean unlocked;    // 팀×문제 잠금 해제 여부
+        private Long teamId;
+        private Long challengeId;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
-    public static class InsertResponse {
-        private boolean result;
-
-        // 생성된 엔티티 id (성공 시)
-        private String signature;
+    @Data @AllArgsConstructor @NoArgsConstructor @Builder
+    public static class StatusResponse {
+        private boolean unlocked;
+        private Long teamId;
+        private Long challengeId;
     }
 }

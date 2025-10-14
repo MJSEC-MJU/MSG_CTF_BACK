@@ -89,5 +89,34 @@ public class ChallengeDto {
                     .build();
         }
     }
+    @Data
+    public static class SignaturePolicyDto {
+        @NotBlank(message = "시그니처 이름은 공백일 수 없습니다.")
+        private String name;
+
+        @NotBlank(message = "시그니처 코드는 공백일 수 없습니다.")
+        private String signature;
+
+        @NotBlank(message = "소속 클럽은 공백일 수 없습니다.")
+        private String club;
+    }
+
+    @Data
+    public static class Request {
+        // 기존 생성/수정 입력 필드들 (title, description, flag, start/endTime, url, points 등)
+        private String title;
+        private String description;
+        private String flag;
+        private String category;
+        private Integer points;
+        private Integer minPoints;
+        private Integer initialPoints;
+        private String url;
+        private java.time.LocalDateTime startTime;
+        private java.time.LocalDateTime endTime;
+
+        // 카테고리 == SIGNATURE 일 때만 필수
+        private SignaturePolicyDto signaturePolicy;
+    }
 }
 
