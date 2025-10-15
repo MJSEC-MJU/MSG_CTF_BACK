@@ -1,20 +1,14 @@
 package com.mjsec.ctf.controller;
 
-import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.SignatureDto;
-import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.service.SignatureService;
-import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.mjsec.ctf.type.ErrorCode;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/signature")
 @RequiredArgsConstructor
@@ -22,39 +16,20 @@ public class SignatureController {
 
     private final SignatureService signatureService;
 
-    @Operation(summary = "시그니처 대조", description = "시그니처 코드 대조")
-    @PostMapping("/check-code")
-    public ResponseEntity<SuccessResponse<SignatureDto.CheckResponse>> checkCode(
-            @RequestBody @Valid SignatureDto.Request request) {
-
-        var data = signatureService.checkCode(request);
-
-        if (data.isResult()){
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SIGNATURE_CHECK_SUCCESS
-                    )
-            );
-        } else {
-            throw new RestApiException(ErrorCode.INVALID_SIGNATURE);
-        }
+    @Operation(summary = "시그니처 검증 + 언락")
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{challengeId}/check")
+    public ResponseEntity<SignatureDto.CheckResponse> check(
+            @PathVariable Long challengeId,
+            @RequestBody @Valid SignatureDto.Request req
+    ) {
+        return ResponseEntity.ok(signatureService.checkAndUnlock(challengeId, req));
     }
 
-    @Operation(summary = "시그니처 삽입", description = "시그니처 코드 삽입")
-    @PostMapping("/insert-code")
-    public ResponseEntity<SuccessResponse<SignatureDto.InsertResponse>> insertCode(
-            @RequestBody @Valid SignatureDto.Request request) {
-
-        var data = signatureService.insertCode(request); // result=true/false, id 반환
-
-        if (data.isResult()) {
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SIGNATURE_INSERT_SUCCESS
-                    )
-            );
-        } else {
-            throw new RestApiException(ErrorCode.SIGNATURE_DUPLICATE);
-        }
+    @Operation(summary = "시그니처 언락 상태 조회")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/{challengeId}/status")
+    public ResponseEntity<SignatureDto.StatusResponse> status(@PathVariable Long challengeId) {
+        return ResponseEntity.ok(signatureService.status(challengeId));
     }
 }

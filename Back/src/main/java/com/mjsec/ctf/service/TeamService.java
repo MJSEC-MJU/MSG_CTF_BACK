@@ -222,11 +222,21 @@ public class TeamService {
         List<TeamEntity> teams = teamRepository.findAll();
 
         return teams.stream()
-                .map(team -> TeamSummaryDto.builder()
-                        .teamName(team.getTeamName())
-                        .teamTotalPoint(team.getTotalPoint())
-                        .teamMileage(team.getMileage())
-                        .build())
+                .map(team -> {
+                    List<String> memberEmails = new ArrayList<>();
+                    if (team.getMemberUserIds() != null && !team.getMemberUserIds().isEmpty()) {
+                        memberEmails = userRepository.findAllById(team.getMemberUserIds()).stream()
+                                .map(UserEntity::getEmail)
+                                .collect(Collectors.toList());
+                    }
+
+                    return TeamSummaryDto.builder()
+                            .teamName(team.getTeamName())
+                            .teamTotalPoint(team.getTotalPoint())
+                            .teamMileage(team.getMileage())
+                            .memberEmails(memberEmails)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 }

@@ -1,42 +1,39 @@
 package com.mjsec.ctf.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
-import lombok.Data;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Pattern;
+import lombok.*;
 
 public class SignatureDto {
 
-    @Data
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class Request {
-        @NotBlank(message = "이름은 공백일 수 없습니다.")
-        private String name;
-
-        @NotBlank(message = "시그니처는 공백일 수 없습니다.")
+        /** 팀명/클럽은 더이상 필요 없음. 6자리 코드만 받음 */
+        @NotBlank
+        @Pattern(regexp = "^[0-9]{6}$", message = "시그니처 코드는 6자리 숫자여야 합니다.")
+        @JsonAlias({"code","signature"})
         private String signature;
-
-        @NotBlank(message = "클럽은 공백일 수 없습니다.")
-        private String club;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
+    @Data @AllArgsConstructor @NoArgsConstructor @Builder
     public static class CheckResponse {
-        private boolean result;
+        private boolean valid;
+        private boolean unlocked;
+        private Long teamId;
+        private Long challengeId;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
-    public static class InsertResponse {
-        private boolean result;
+    @Data @AllArgsConstructor @NoArgsConstructor @Builder
+    public static class StatusResponse {
+        private boolean unlocked;
+        private Long teamId;
+        private Long challengeId;
+    }
 
-        // 생성된 엔티티 id (성공 시)
-        private String signature;
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class UnlockedListResponse {
+        private Long teamId;
+        private java.util.List<Long> challengeIds;
     }
 }
