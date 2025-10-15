@@ -9,12 +9,23 @@ import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @SuperBuilder
 @Table(
     name = "team_signature_unlock",
-    uniqueConstraints = @UniqueConstraint(name = "uk_unlock_team_challenge", columnNames = {"team_id","challenge_id"})
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_unlock_team_challenge",
+            columnNames = {"team_id", "challenge_id"}
+        )
+    },
+    indexes = {
+        @Index(name = "idx_unlock_team", columnList = "team_id"),
+        @Index(name = "idx_unlock_challenge", columnList = "challenge_id")
+    }
 )
 @SQLDelete(sql = "UPDATE team_signature_unlock SET deleted_at = NOW() WHERE id = ?")
 @SQLRestriction("deleted_at is null")
@@ -30,15 +41,6 @@ public class TeamSignatureUnlockEntity extends BaseEntity {
     @Column(name = "challenge_id", nullable = false)
     private Long challengeId;
 
-    @Column(nullable = false, length = 255)
-    private String signature;
-
-    @Column(nullable = false, length = 100)
-    private String name;
-
-    @Column(nullable = false, length = 100)
-    private String club;
-
-    @Column(nullable = false)
+    @Column(name = "unlocked_at", nullable = false)
     private LocalDateTime unlockedAt;
 }

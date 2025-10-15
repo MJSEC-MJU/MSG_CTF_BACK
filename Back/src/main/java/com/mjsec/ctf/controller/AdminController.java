@@ -1,9 +1,9 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.ContestConfigDto;
 import com.mjsec.ctf.dto.SuccessResponse;
-import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
@@ -13,16 +13,19 @@ import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ResponseMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.stream.Collectors;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -35,75 +38,66 @@ public class AdminController {
     private final TeamService teamService;
     private final ContestConfigService contestConfigService;
 
+    // -------------------------------
+    // Challenge 관리
+    // -------------------------------
+
     @Operation(summary = "문제 생성", description = "관리자 권한으로 문제를 생성합니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/create/challenge")
+    @PostMapping(value = "/create/challenge", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SuccessResponse<Void>> createChallenge(
             @RequestPart("file") MultipartFile file,
-            @RequestPart("challenge") ChallengeDto challengeDto) throws IOException {
-
+            @RequestPart("challenge") ChallengeDto challengeDto
+    ) throws IOException {
         challengeService.createChallenge(file, challengeDto);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.CREATE_CHALLENGE_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.CREATE_CHALLENGE_SUCCESS));
     }
 
+    @Operation(summary = "문제 생성(파일 없이)", description = "관리자 권한으로 문제를 생성합니다. 첨부파일 없이 JSON만 보냅니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/create/challenge-no-file")
+    @PostMapping(value = "/create/challenge-no-file", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SuccessResponse<Void>> createChallengeWithoutFile(
-            @RequestBody @Valid ChallengeDto challengeDto) throws IOException {
-
-        // 기존 서비스 메소드를 재사용하되, 파일을 null로 전달
+            @RequestBody @Valid ChallengeDto challengeDto
+    ) throws IOException {
         challengeService.createChallenge(null, challengeDto);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.CREATE_CHALLENGE_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.CREATE_CHALLENGE_SUCCESS));
     }
 
     @Operation(summary = "문제 수정", description = "관리자 권한으로 문제를 수정합니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/update/challenge/{challengeId}")
+    @PutMapping(value = "/update/challenge/{challengeId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SuccessResponse<Void>> updateChallenge(
             @PathVariable Long challengeId,
             @RequestPart(value = "file", required = false) MultipartFile file,
-            @RequestPart("challenge") ChallengeDto challengeDto) throws IOException {
-
+            @RequestPart("challenge") ChallengeDto challengeDto
+    ) throws IOException {
         challengeService.updateChallenge(challengeId, file, challengeDto);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.UPDATE_CHALLENGE_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.UPDATE_CHALLENGE_SUCCESS));
     }
 
     @Operation(summary = "문제 삭제", description = "관리자 권한으로 문제를 삭제합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/challenge/{challengeId}")
     public ResponseEntity<SuccessResponse<Void>> deleteChallenge(@PathVariable Long challengeId) {
-
         challengeService.deleteChallenge(challengeId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.DELETE_CHALLENGE_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.DELETE_CHALLENGE_SUCCESS));
     }
+
+    // -------------------------------
+    // User 관리
+    // -------------------------------
 
     @Operation(summary = "회원 정보 변경 (관리자)", description = "관리자 권한으로 특정 회원의 정보를 수정합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/change/member/{userId}")
     public ResponseEntity<SuccessResponse<UserDto.Response>> changeMember(
             @PathVariable Long userId,
-            @RequestBody @Valid UserDto.Update updateDto) {
-
+            @RequestBody @Valid UserDto.Update updateDto
+    ) {
         UserEntity updatedUser = userService.updateMember(userId, updateDto);
         UserDto.Response responseDto = new UserDto.Response(
                 updatedUser.getUserId(),
@@ -115,48 +109,43 @@ public class AdminController {
                 updatedUser.getCreatedAt(),
                 updatedUser.getUpdatedAt()
         );
-
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.UPDATE_SUCCESS, responseDto));
     }
 
-    @Operation(summary = "회원 삭제 (관리자)", description = "관리자 권한으로 회원 계정을 삭제제합니다. (관리자 계정도 삭제 가능)")
+    @Operation(summary = "회원 삭제 (관리자)", description = "관리자 권한으로 회원 계정을 삭제합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/delete/member/{userId}")
     public ResponseEntity<SuccessResponse<Void>> deleteMember(@PathVariable Long userId) {
-
         userService.deleteMember(userId);
         log.info("관리자에 의해 회원 {} 삭제 완료", userId);
-
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.DELETE_SUCCESS));
     }
 
-    @Operation(summary = "회원 추가 (관리자)", description = "관리자 권한으로 이메일 인증 없이 새로운 회원 계정을 생성합니다. (관리자 계정도 추가 가능)")
+    @Operation(summary = "회원 추가 (관리자)", description = "관리자 권한으로 이메일 인증 없이 새로운 회원 계정을 생성합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/add/member")
     public ResponseEntity<SuccessResponse<Void>> addMember(@RequestBody @Valid UserDto.SignUp newUser) {
-
         userService.adminSignUp(newUser);
         log.info("관리자에 의해 새로운 회원 추가 완료: {}", newUser.getLoginId());
-
-        return ResponseEntity.status(201).body(SuccessResponse.of(ResponseMessage.SIGNUP_SUCCESS));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(SuccessResponse.of(ResponseMessage.SIGNUP_SUCCESS));
     }
 
-    @Operation(summary = "전체 사용자 조회", description = "관리자 권한으로 전체 회원 목록을 JSON 형식으로 반환합니다.")
+    @Operation(summary = "전체 사용자 조회", description = "관리자 권한으로 전체 회원 목록을 반환합니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @ResponseBody
     @GetMapping("/member")
     public ResponseEntity<List<UserDto.Response>> getAllMembers() {
-
         List<UserEntity> users = userService.getAllUsers();
-
-        List<UserDto.Response> responseList = users.stream().map(user ->
-            new UserDto.Response(user.getUserId(), user.getEmail(), user.getLoginId(), user.getRole(), user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt())
-
-        ).collect(Collectors.toList());
+        List<UserDto.Response> responseList = users.stream()
+                .map(user -> new UserDto.Response(
+                        user.getUserId(), user.getEmail(), user.getLoginId(), user.getRole(),
+                        user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt()
+                ))
+                .collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
 
-    @Operation(summary = "회원 정보 조회", description = "관리자 권한으로 특정 회원의 정보를 조회하여 수정을 위한 데이터를 반환합니다.")
+    @Operation(summary = "회원 정보 조회", description = "관리자 권한으로 특정 회원의 정보를 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/member/{userId}")
     public ResponseEntity<UserDto.Response> getMember(@PathVariable Long userId) {
@@ -174,78 +163,74 @@ public class AdminController {
         return ResponseEntity.ok(responseDto);
     }
 
-    @Operation(summary = "관리자 권한 검증", description = "현재 인증된 사용자가 관리자임을 확인하는 API입니다.")
+    // -------------------------------
+    // Admin 검증
+    // -------------------------------
+
+    @Operation(summary = "관리자 권한 검증", description = "현재 사용자가 관리자임을 확인합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/validate")
     public ResponseEntity<String> validateAdmin() {
         return ResponseEntity.ok("admin");
     }
 
-    @Operation(summary = "모든 팀 반환", description = "관리자 권한으로 모든 팀의 정보를 반환합니다.")
+    // -------------------------------
+    // 팀 관리
+    // -------------------------------
+
+    @Operation(summary = "모든 팀 반환", description = "관리자 권한으로 모든 팀의 요약 정보를 반환합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/team/all")
     public ResponseEntity<SuccessResponse<List<TeamSummaryDto>>> getAllTeams() {
-
         List<TeamSummaryDto> teams = teamService.getAllTeams();
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.GET_ALL_TEAMS_SUCCESS,
-                        teams
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.GET_ALL_TEAMS_SUCCESS, teams));
     }
 
+    @Operation(summary = "팀 생성", description = "관리자 권한으로 팀을 생성합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/team/create")
     public ResponseEntity<SuccessResponse<Void>> createTeam(@RequestParam String teamName) {
-
         teamService.createTeam(teamName);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.CREATE_TEAM_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.CREATE_TEAM_SUCCESS));
     }
 
-    //팀원 추가
+    @Operation(summary = "팀원 추가", description = "관리자 권한으로 팀원(이메일)을 추가합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/team/member/{teamName}")
     public ResponseEntity<SuccessResponse<Void>> addMember(
             @PathVariable String teamName,
             @RequestParam String email
     ) {
-
         teamService.addMember(teamName, email);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.ADD_TEAM_MEMBER_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.ADD_TEAM_MEMBER_SUCCESS));
     }
 
-    //팀원 삭제
+    @Operation(summary = "팀원 삭제", description = "관리자 권한으로 팀원(이메일)을 삭제합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/team/member/{teamName}")
-    public ResponseEntity<SuccessResponse<String>> deleteMember(
+    public ResponseEntity<SuccessResponse<Void>> deleteMember(
             @PathVariable String teamName,
             @RequestParam String email
     ) {
-
         teamService.deleteMember(teamName, email);
-
-        return ResponseEntity.status(HttpStatus.OK).body(
-                SuccessResponse.of(
-                        ResponseMessage.DELETE_TEAM_MEMBER_SUCCESS
-                )
-        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.DELETE_TEAM_MEMBER_SUCCESS));
     }
 
-    @Operation(summary = "점수 재계산", description = "관리자 권한으로 모든 유저의 점수를 재계산합니다.")
+    // -------------------------------
+    // 점수 재계산
+    // -------------------------------
+
+    @Operation(summary = "점수 재계산", description = "관리자 권한으로 모든 팀의 점수를 재계산합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/recalculate-points")
     public ResponseEntity<String> recalculatePoints() {
         try {
             log.info("Manual points recalculation started by admin");
-            challengeService.updateAllTeamTotalPoints();    //개인용포인트 처리에서 팀포인트처리로 변경처리
+            challengeService.updateAllTeamTotalPoints();
             log.info("Manual points recalculation completed");
             return ResponseEntity.ok("점수 재계산 완료");
         } catch (Exception e) {
@@ -254,18 +239,27 @@ public class AdminController {
         }
     }
 
+    // -------------------------------
+    // 대회 시간 설정
+    // -------------------------------
+
     @Operation(summary = "대회 시간 설정", description = "관리자 권한으로 대회 시작/종료 시간을 설정합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/contest-time")
     public ResponseEntity<SuccessResponse<ContestConfigDto>> updateContestTime(
-            @RequestBody @Valid ContestConfigDto.Request request) {
-
+            @RequestBody @Valid ContestConfigDto.Request request
+    ) {
         ContestConfigDto updatedConfig = contestConfigService.updateContestTime(request);
         log.info("대회 시간 설정 완료: 시작={}, 종료={}", request.getStartTime(), request.getEndTime());
-
         return ResponseEntity.ok(SuccessResponse.of(
-                ResponseMessage.UPDATE_CONTEST_TIME_SUCCESS,
-                updatedConfig
+                ResponseMessage.UPDATE_CONTEST_TIME_SUCCESS, updatedConfig
         ));
+    }
+
+    // 파일명 한글 대응
+    private String encodeFilename(String filename) {
+        // RFC 5987
+        return java.net.URLEncoder.encode(filename, StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
     }
 }

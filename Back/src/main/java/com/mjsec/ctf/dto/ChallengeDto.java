@@ -2,10 +2,10 @@ package com.mjsec.ctf.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mjsec.ctf.domain.ChallengeEntity;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-import jakarta.validation.constraints.NotBlank;
+
 import java.time.LocalDateTime;
-import jakarta.validation.constraints.NotBlank;
 
 @Getter
 @Setter
@@ -14,18 +14,13 @@ import jakarta.validation.constraints.NotBlank;
 @AllArgsConstructor
 public class ChallengeDto {
 
-    private Long ChallengeId;
-
+    private Long challengeId;   // 대소문자 정리
     private String title;
-
     private String description;
-
     private String flag;
 
     private int points;
-
     private int minPoints;
-
     private int initialPoints;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -35,22 +30,26 @@ public class ChallengeDto {
     private LocalDateTime endTime;
 
     private String url;
-
     private String category;
 
-    //모든 문제 조회용
+    /** 시그니처 문제 표시용 클럽명 (SIGNATURE일 때 필수) */
+    private String club;
+
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /** 리스트 응답용 DTO */
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Simple {
-
         private Long challengeId;
         private int points;
         private int solvers;
         private String title;
         private String category;
         private boolean solved;
+        private String club;
 
         public static Simple fromEntity(ChallengeEntity challenge, boolean solved) {
             return Simple.builder()
@@ -60,16 +59,17 @@ public class ChallengeDto {
                     .solvers(challenge.getSolvers())
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
                     .solved(solved)
+                    .club(challenge.getClub())
                     .build();
         }
     }
-    private SignaturePolicyDto signaturePolicy;
+
+    /** 상세 응답용 DTO */
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Detail {
-
         private Long challengeId;
         private String title;
         private String description;
@@ -77,6 +77,7 @@ public class ChallengeDto {
         private int points;
         private int solvers;
         private String category;
+        private String club;
 
         public static Detail fromEntity(ChallengeEntity challenge) {
             return Detail.builder()
@@ -87,9 +88,12 @@ public class ChallengeDto {
                     .url(challenge.getUrl())
                     .solvers(challenge.getSolvers())
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
+                    .club(challenge.getClub())
                     .build();
         }
     }
+
+    /** (기존 유지) 시그니처 정책 입력 DTO - 현재는 미사용 가능 */
     @Data
     public static class SignaturePolicyDto {
         @NotBlank(message = "시그니처 이름은 공백일 수 없습니다.")
@@ -102,9 +106,9 @@ public class ChallengeDto {
         private String club;
     }
 
+    /** (기존 유지) 별도 Request DTO가 필요한 경우 사용 */
     @Data
     public static class Request {
-        // 기존 생성/수정 입력 필드들 (title, description, flag, start/endTime, url, points 등)
         private String title;
         private String description;
         private String flag;
@@ -113,11 +117,9 @@ public class ChallengeDto {
         private Integer minPoints;
         private Integer initialPoints;
         private String url;
-        private java.time.LocalDateTime startTime;
-        private java.time.LocalDateTime endTime;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
 
-        // 카테고리 == SIGNATURE 일 때만 필수
         private SignaturePolicyDto signaturePolicy;
     }
 }
-

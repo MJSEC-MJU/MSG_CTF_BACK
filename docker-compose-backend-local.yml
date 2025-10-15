@@ -49,6 +49,15 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      GMAIL_USERNAME: ${GMAIL_USERNAME}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      API_KEY: ${API_KEY}
+      API_URL: ${API_URL}
+      BUCKET: ${BUCKET}
+      LOCATION: ${LOCATION}
+      PROJECT_ID: ${PROJECT_ID}
+      GCP_JSON_FILE: ${GCP_JSON_FILE}
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp_service_account.json
     ports:
       - "8080:8080"
     networks:
