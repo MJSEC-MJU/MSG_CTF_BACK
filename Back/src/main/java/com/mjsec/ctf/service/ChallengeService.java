@@ -151,18 +151,19 @@ public class ChallengeService {
             category = com.mjsec.ctf.type.ChallengeCategory.MISC;
         }
 
-        // 시그니처 문제는 점수 필드를 0으로 설정 + club 필수
+        // 시그니처 문제는 club 필수
         boolean isSignature = category == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
         if (isSignature && (challengeDto.getClub() == null || challengeDto.getClub().isBlank())) {
             throw new RestApiException(ErrorCode.BAD_REQUEST, "시그니처 문제는 club을 반드시 지정해야 합니다.");
         }
 
+        // 시그니처도 mileage 값은 허용. 점수 필드는 0으로 두는 게 보통이지만(선택), 현재 로직상 제출 시 포인트는 무시됨.
         int points = isSignature ? 0 : challengeDto.getPoints();
         int minPoints = isSignature ? 0 : challengeDto.getMinPoints();
         int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
         int mileage = challengeDto.getMileage();
 
-        ChallengeEntity.ChallengeEntityBuilder builder = ChallengeEntity.builder()
+        ChallengeEntity challenge = ChallengeEntity.builder()
                 .title(challengeDto.getTitle())
                 .description(challengeDto.getDescription())
                 .flag(passwordEncoder.encode(challengeDto.getFlag()))
@@ -176,9 +177,6 @@ public class ChallengeService {
                 .mileage(mileage)
                 .club(challengeDto.getClub())
                 .build(); // 저장
-
-
-        ChallengeEntity challenge = builder.build();
 
         if (file != null) {
             String fileUrl = fileService.store(file);
@@ -391,54 +389,59 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
-                // 시그니처 문제는 점수 계산/퍼스트블러드 제외
                 boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
                 boolean isFirstBlood = false;
 
-                // FirstBlood (시그니처 제외)
-                if (!isSignature) {
-                    String firstBloodLockKey = "firstBloodLock:" + challengeId;
-                    RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
-                    boolean firstBloodLocked = false;
+                //  퍼스트블러드 판정: 카테고리 무관하게 '보너스 계산'을 위해 판정
+                String firstBloodLockKey = "firstBloodLock:" + challengeId;
+                RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
+                boolean firstBloodLocked = false;
 
-                    try {
-                        firstBloodLocked = firstBloodLock.tryLock(5, 5, TimeUnit.SECONDS);
-                        if (firstBloodLocked) {
-                            long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
-                            if (solvedCount == 1) {
+                try {
+                    firstBloodLocked = firstBloodLock.tryLock(5, 5, TimeUnit.SECONDS);
+                    if (firstBloodLocked) {
+                        long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
+                        if (solvedCount == 1) {
+                            isFirstBlood = true; 
+                            // 알림은 정책상 일반 문제만(원래대로 유지). 시그니처에도 보내고 싶으면 if 제거.
+                            if (!isSignature) {
                                 sendFirstBloodNotification(challenge, user);
                             }
                         }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } finally {
-                        if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
-                            firstBloodLock.unlock();
-                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
+                        firstBloodLock.unlock();
                     }
                 }
-                // ── 팀 점수/마일리지 반영 (시그니처 제외)
-                if (user.getCurrentTeamId() != null && !isSignature) {
-                    int baseMileage = challenge.getMileage();
 
-                    // +30% 보너스 (ceil) — base가 0이면 보너스도 0
+                // ── 팀 마일리지/점수 반영
+                //    - 시그니처: 마일리지만 적립(점수 0으로 전달)
+                //    - 일반 문제: 점수 + 마일리지 적립
+                if (user.getCurrentTeamId() != null) {
+                    int baseMileage = challenge.getMileage();
                     int bonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
                     int finalMileage = baseMileage + bonus;
 
+                    int awardedPoints = isSignature ? 0 : challenge.getPoints(); // 시그니처는 점수 0
                     teamService.recordTeamSolution(
                             user.getUserId(),
                             challengeId,
-                            challenge.getPoints(),
+                            awardedPoints,
                             finalMileage
                     );
+
+                    log.info("Mileage award: challengeId={}, base={}, isFirstBlood={}, final={}, teamId={}, isSignature={}",
+                            challengeId, baseMileage, isFirstBlood, finalMileage, user.getCurrentTeamId(), isSignature);
                 }
 
-                
-
-                // 문제 점수 업데이트 (시그니처는 다이나믹 스코어링 제외)
+                // 문제 점수 업데이트(다이나믹 스코어링): 시그니처는 제외 유지
                 if (!isSignature) {
                     updateChallengeScore(challenge);
                 }
+
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
 
@@ -499,7 +502,7 @@ public class ChallengeService {
         }
     }
 
-    // 전체 팀 점수 재계산
+    // 전체 팀 점수 재계산(여기서는 기존대로 시그니처 제외)
     @Transactional
     public void updateAllTeamTotalPoints() {
         log.info("전체 팀 점수 재계산 시작");
@@ -538,23 +541,22 @@ public class ChallengeService {
                 .map(UserEntity::getLoginId)
                 .collect(Collectors.toSet());
 
-        // 2. 메모리에서 계산 (시그니처 문제 제외)
+        // 2. 메모리에서 계산 — 시그니처는 점수 계산에서 제외(마일리지는 별도 필드라 여기서 건들 것 없음)
         int totalPoints = 0;
         LocalDateTime lastSolvedTime = null;
 
-        for (Long challengeId : solvedChallengeIds) {
-            ChallengeEntity challenge = challengeMap.get(challengeId);
-            if (challenge == null) continue;
+        for (Long cid : solvedChallengeIds) {
+            ChallengeEntity c = challengeMap.get(cid);
+            if (c == null) continue;
 
-            // 시그니처 문제는 점수 계산에서 제외
-            if (challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE) {
-                continue;
+            if (c.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE) {
+                continue; // 점수 제외
             }
 
-            totalPoints += challenge.getPoints();
+            totalPoints += c.getPoints();
 
             Optional<LocalDateTime> latestForThisChallenge = histories.stream()
-                    .filter(h -> h.getChallengeId().equals(challengeId))
+                    .filter(h -> h.getChallengeId().equals(cid))
                     .filter(h -> memberLoginIds.contains(h.getLoginId()))
                     .map(HistoryEntity::getSolvedTime)
                     .max(Comparator.naturalOrder());
