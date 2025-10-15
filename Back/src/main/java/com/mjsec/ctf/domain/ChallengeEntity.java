@@ -65,4 +65,8 @@ public class ChallengeEntity extends BaseEntity {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ChallengeCategory category;
+
+    //클럽명 추가
+    @Column(name = "club", length = 64)        // ← 추가
+    private String club;
 }
