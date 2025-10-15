@@ -173,8 +173,9 @@ public class ChallengeService {
                 .endTime(challengeDto.getEndTime())
                 .url(challengeDto.getUrl())
                 .category(category)
-                .mileage(mileage);
-                .club(challengeDto.getClub()); // 저장
+                .mileage(mileage)
+                .club(challengeDto.getClub())
+                .build(); // 저장
 
 
         ChallengeEntity challenge = builder.build();
@@ -392,11 +393,7 @@ public class ChallengeService {
 
                 // 시그니처 문제는 점수 계산/퍼스트블러드 제외
                 boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
-
-                // 팀 점수 업데이트 (시그니처 제외)
-                if (user.getCurrentTeamId() != null && !isSignature) {
-                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints(), challenge.getMileage());
-                }
+                boolean isFirstBlood = false;
 
                 // FirstBlood (시그니처 제외)
                 if (!isSignature) {
@@ -420,6 +417,23 @@ public class ChallengeService {
                         }
                     }
                 }
+                // ── 팀 점수/마일리지 반영 (시그니처 제외)
+                if (user.getCurrentTeamId() != null && !isSignature) {
+                    int baseMileage = challenge.getMileage();
+
+                    // +30% 보너스 (ceil) — base가 0이면 보너스도 0
+                    int bonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
+                    int finalMileage = baseMileage + bonus;
+
+                    teamService.recordTeamSolution(
+                            user.getUserId(),
+                            challengeId,
+                            challenge.getPoints(),
+                            finalMileage
+                    );
+                }
+
+                
 
                 // 문제 점수 업데이트 (시그니처는 다이나믹 스코어링 제외)
                 if (!isSignature) {
