@@ -25,6 +25,7 @@ import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 
     @Configuration
     @EnableWebSecurity
@@ -101,6 +102,8 @@ import org.springframework.beans.factory.annotation.Value;
                         .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
                         .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/server-time").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/signature/*/check").hasAnyRole("USER","ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/signature/*/unlock").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/api/signature/**").hasRole("ADMIN")
                         .requestMatchers("/api/contest-time").permitAll()
 
