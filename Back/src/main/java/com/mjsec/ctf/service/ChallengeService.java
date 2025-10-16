@@ -466,6 +466,8 @@ public class ChallengeService {
                 // 기존 제출 기록만 삭제 (신규 객체는 저장도 안 했으니 삭제 불필요)
                 existingOpt.ifPresent(submissionRepository::delete);
 
+                updateAllTeamTotalPoints();
+
                 return "Correct";
             }
         } catch (InterruptedException e) {
