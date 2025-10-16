@@ -32,11 +32,14 @@ public class ChallengeDto {
     private String url;
     private String category;
 
+    private int mileage;
+
+    //모든 문제 조회용
+
     /** 시그니처 문제 표시용 클럽명 (SIGNATURE일 때 필수) */
     private String club;
 
     // ─────────────────────────────────────────────────────────────────────────────
-
     /** 리스트 응답용 DTO */
     @Getter
     @Builder
@@ -45,6 +48,7 @@ public class ChallengeDto {
     public static class Simple {
         private Long challengeId;
         private int points;
+        private int mileage;
         private int solvers;
         private String title;
         private String category;
@@ -56,6 +60,7 @@ public class ChallengeDto {
                     .challengeId(challenge.getChallengeId())
                     .title(challenge.getTitle())
                     .points(challenge.getPoints())
+                    .mileage(challenge.getMileage())
                     .solvers(challenge.getSolvers())
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
                     .solved(solved)
@@ -75,6 +80,7 @@ public class ChallengeDto {
         private String description;
         private String url;
         private int points;
+        private int mileage;
         private int solvers;
         private String category;
         private String club;
@@ -85,6 +91,7 @@ public class ChallengeDto {
                     .title(challenge.getTitle())
                     .description(challenge.getDescription())
                     .points(challenge.getPoints())
+                    .mileage(challenge.getMileage())
                     .url(challenge.getUrl())
                     .solvers(challenge.getSolvers())
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)

@@ -66,7 +66,14 @@ public class ChallengeEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ChallengeCategory category;
 
+
+    // 문제 풀이 시 지급되는 마일리지
+    @Column(nullable = false)
+    @Builder.Default
+    private int mileage = 0;
+
     //클럽명 추가
     @Column(name = "club", length = 64)        // ← 추가
     private String club;
+
 }

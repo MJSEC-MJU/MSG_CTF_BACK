@@ -121,7 +121,7 @@ public class TeamService {
     }
 
     @Transactional
-    public void recordTeamSolution(Long userId, Long challengeId, int points) {
+    public void recordTeamSolution(Long userId, Long challengeId, int points, int mileage) {
 
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
@@ -133,7 +133,7 @@ public class TeamService {
         TeamEntity team = teamRepository.findById(user.getCurrentTeamId())
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
-        team.addSolvedChallenge(challengeId, points);
+        team.addSolvedChallenge(challengeId, points, mileage);
         teamRepository.save(team);
     }
 
