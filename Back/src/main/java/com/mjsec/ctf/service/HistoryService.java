@@ -2,9 +2,12 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
+import com.mjsec.ctf.domain.TeamHistoryEntity;
 import com.mjsec.ctf.dto.HistoryDto;
+import com.mjsec.ctf.dto.TeamHistoryDto;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
+import com.mjsec.ctf.repository.TeamHistoryRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,11 +15,11 @@ import java.util.stream.Collectors;
 @Service
 public class HistoryService {
 
-    private final HistoryRepository historyRepository;
+    private final TeamHistoryRepository teamHistoryRepository;
     private final ChallengeRepository challengeRepository;
 
-    public HistoryService(HistoryRepository historyRepository, ChallengeRepository challengeRepository) {
-        this.historyRepository = historyRepository;
+    public HistoryService(TeamHistoryRepository teamHistoryRepository, ChallengeRepository challengeRepository) {
+        this.teamHistoryRepository = teamHistoryRepository;
         this.challengeRepository = challengeRepository;
     }
 
@@ -51,25 +54,22 @@ public class HistoryService {
     }
      */
 
-    //삭제되지 않은 유저들만 조회
-    public List<HistoryDto> getActiveUserHistoryDtos() {
-        List<HistoryEntity> histories = historyRepository.findAllByOrderBySolvedTimeAsc()
-                .stream()
-                .filter(h -> !h.isUserDeleted() && h.getLoginId() != null)
-                .toList();
+
+    public List<TeamHistoryDto> getActiveUserHistoryDtos() {
+        List<TeamHistoryEntity> histories = teamHistoryRepository.findAllByOrderBySolvedTimeAsc();
 
         return histories.stream().map(history -> {
             ChallengeEntity challenge = challengeRepository.findById(history.getChallengeId())
                     .orElse(null);
             int dynamicScore = (challenge != null) ? challenge.getPoints() : 0;
 
-            return new HistoryDto(
-                    history.getLoginId(),
+            return new TeamHistoryDto(
+                    history.getHistoryid(),
+                    history.getTeamName(),
                     String.valueOf(history.getChallengeId()),
                     challenge != null ? challenge.getTitle() : "Unknown Challenge",
                     history.getSolvedTime(),
-                    dynamicScore,
-                    history.getUniv()
+                    dynamicScore
             );
         }).collect(Collectors.toList());
     }
