@@ -47,10 +47,7 @@ public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
     private final HistoryRepository historyRepository;
-<<<<<<< HEAD
     private final TeamHistoryRepository teamHistoryRepository;
-=======
->>>>>>> b112be6be80bb754430ce88ea6609b5c97a4f076
     private final SubmissionRepository submissionRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -394,7 +391,6 @@ public class ChallengeService {
                         .build();
                 historyRepository.save(history);
 
-<<<<<<< HEAD
 
                 if (team.isPresent()) {
                     TeamHistoryEntity teamHistory = TeamHistoryEntity.builder()
@@ -411,10 +407,8 @@ public class ChallengeService {
                 if (user.getCurrentTeamId() != null) {
                     teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints());
                 }
-=======
                 boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
                 boolean isFirstBlood = false;
->>>>>>> b112be6be80bb754430ce88ea6609b5c97a4f076
 
                 //  퍼스트블러드 판정: 카테고리 무관하게 '보너스 계산'을 위해 판정
                 String firstBloodLockKey = "firstBloodLock:" + challengeId;
