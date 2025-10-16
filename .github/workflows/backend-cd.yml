@@ -177,6 +177,19 @@ jobs:
             sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
 
+      # ✅ 항상 백엔드 이미지를 최신으로 갱신하고 재기동
+      - name: Update backend image (pull + recreate)
+        run: |
+          ssh "$REMOTE_HOST" <<'EOSSH'
+            set -euo pipefail
+            cd '${{ env.REMOTE_DIR }}'
+            # compose에 설정된 이미지(보통 ${IMAGE_TAG}) 기준으로 pull & recreate
+            sudo docker compose pull backend
+            sudo docker compose up -d --no-deps --pull always backend
+            echo "Running backend image:"
+            sudo docker inspect $(sudo docker compose ps -q backend) --format '{{.Config.Image}}'
+          EOSSH
+
       # (옵션) GCP 키 업로드
       - name: Upload GCP Service Account (optional)
         env:
@@ -203,7 +216,7 @@ jobs:
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            # HTTP 설정으로 nginx 시작
+            # HTTP 설정으로 nginx 시작/리로드
             sudo docker compose exec nginx sh -c '
             envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
                     > /etc/nginx/conf.d/default.conf \

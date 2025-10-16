@@ -33,6 +33,7 @@ public class AdminChallengeController {
             map.put("title", challenge.getTitle());
             map.put("points", challenge.getPoints());
             map.put("category", challenge.getCategory().toString());
+            map.put("mileage", challenge.getMileage());
             return map;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(summaryList);
