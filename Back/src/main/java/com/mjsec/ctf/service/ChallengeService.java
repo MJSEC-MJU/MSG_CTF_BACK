@@ -405,7 +405,7 @@ public class ChallengeService {
 
                 //팀 점수로 업데이트
                 if (user.getCurrentTeamId() != null) {
-                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints());
+                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints(),challenge.getMileage());
                 }
                 boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
                 boolean isFirstBlood = false;
