@@ -2,6 +2,7 @@ package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.HistoryEntity;
+import com.mjsec.ctf.domain.TeamHistoryEntity;
 import com.mjsec.ctf.domain.SubmissionEntity;
 import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
@@ -50,7 +51,7 @@ public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final UserRepository userRepository;
     private final HistoryRepository historyRepository;
-    //private final LeaderboardRepository leaderboardRepository;
+    private final TeamHistoryRepository teamHistoryRepository;
     private final SubmissionRepository submissionRepository;
 
     /*
@@ -329,6 +330,18 @@ public class ChallengeService {
                         .univ(user.getUniv())
                         .build();
                 historyRepository.save(history);
+
+
+                if (team.isPresent()) {
+                    TeamHistoryEntity teamHistory = TeamHistoryEntity.builder()
+                            .teamName(team.get().getTeamName())
+                            .challengeId(challenge.getChallengeId())
+                            .solvedTime(LocalDateTime.now())
+                            .build();
+
+                    teamHistoryRepository.save(teamHistory);
+                }
+
 
                 //팀 점수로 업데이트
                 if (user.getCurrentTeamId() != null) {

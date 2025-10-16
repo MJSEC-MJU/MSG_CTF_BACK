@@ -2,6 +2,7 @@ package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.HistoryDto;
 //import com.mjsec.ctf.domain.LeaderboardEntity;    //개인용 주석처리
+import com.mjsec.ctf.dto.TeamHistoryDto;
 import com.mjsec.ctf.dto.TeamLeaderboardDto;    //팀단위 추가
 import com.mjsec.ctf.service.HistoryService;
 import com.mjsec.ctf.service.LeaderboardService;
@@ -88,11 +89,11 @@ public class LeaderboardController {
 
         scheduleSseTask(emitter, () -> {
             try {
-                List<HistoryDto> historyDtos = historyService.getActiveUserHistoryDtos();
+                List<TeamHistoryDto> teamHistoryDtos = historyService.getActiveUserHistoryDtos();
                 emitter.send(
                         SseEmitter.event()
                                 .name("update")
-                                .data(historyDtos, MediaType.APPLICATION_JSON)
+                                .data(teamHistoryDtos, MediaType.APPLICATION_JSON)
                 );
             } catch (IOException ex) {
                 logger.error("Error sending history SSE event", ex);
