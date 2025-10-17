@@ -3,6 +3,7 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.ContestConfigDto;
+import com.mjsec.ctf.dto.GrantMileageDto;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.TeamPaymentHistoryDto;
 import com.mjsec.ctf.dto.TeamSummaryDto;
@@ -227,9 +228,9 @@ public class AdminController {
     @PostMapping("/team/mileage/{teamId}")
     public ResponseEntity<SuccessResponse<Void>> grantMileageToTeam(
             @PathVariable Long teamId,
-            @RequestParam int mileage
+            @RequestBody GrantMileageDto grantMileageDto
     ) {
-        teamService.grantMileageToTeam(teamId, mileage);
+        teamService.grantMileageToTeam(teamId, grantMileageDto.getMileage());
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(ResponseMessage.GRANT_MILEAGE_SUCCESS));
     }
