@@ -239,4 +239,21 @@ public class TeamService {
                 })
                 .collect(Collectors.toList());
     }
+
+    // 관리자가 팀에 마일리지 부여
+    @Transactional
+    public void grantMileageToTeam(Long teamId, int mileage) {
+        TeamEntity team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        if (mileage < 0) {
+            throw new RestApiException(ErrorCode.BAD_REQUEST, "마일리지는 0 이상이어야 합니다.");
+        }
+
+        team.addMileage(mileage);
+        teamRepository.save(team);
+
+        log.info("Admin granted mileage: teamId={}, teamName={}, mileageGranted={}",
+                teamId, team.getTeamName(), mileage);
+    }
 }
