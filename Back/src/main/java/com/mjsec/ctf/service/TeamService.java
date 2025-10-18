@@ -1,11 +1,16 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.domain.ChallengeEntity;
 import com.mjsec.ctf.domain.TeamEntity;
+import com.mjsec.ctf.domain.TeamHistoryEntity;
 import com.mjsec.ctf.domain.TeamPaymentHistoryEntity;
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.TeamHistoryDto;
 import com.mjsec.ctf.dto.TeamProfileDto;
 import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.exception.RestApiException;
+import com.mjsec.ctf.repository.ChallengeRepository;
+import com.mjsec.ctf.repository.TeamHistoryRepository;
 import com.mjsec.ctf.repository.TeamPaymentHistoryRepository;
 import com.mjsec.ctf.repository.TeamRepository;
 import com.mjsec.ctf.repository.UserRepository;
@@ -28,13 +33,19 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final TeamPaymentHistoryRepository teamPaymentHistoryRepository;
+    private final TeamHistoryRepository teamHistoryRepository;
+    private final ChallengeRepository challengeRepository;
 
     public TeamService(TeamRepository teamRepository, UserRepository userRepository,
-                       TeamPaymentHistoryRepository teamPaymentHistoryRepository) {
+                       TeamPaymentHistoryRepository teamPaymentHistoryRepository,
+                       TeamHistoryRepository teamHistoryRepository,
+                       ChallengeRepository challengeRepository) {
 
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.teamPaymentHistoryRepository = teamPaymentHistoryRepository;
+        this.teamHistoryRepository = teamHistoryRepository;
+        this.challengeRepository = challengeRepository;
     }
 
     public void createTeam(String teamName) {
@@ -256,5 +267,47 @@ public class TeamService {
 
         log.info("Admin granted mileage: teamId={}, teamName={}, mileageGranted={}",
                 team.getTeamId(), teamName, mileage);
+    }
+
+    // 팀 히스토리 조회 (자기 팀의 풀이 기록)
+    public List<TeamHistoryDto> getTeamHistory(String loginId) {
+        log.info("팀 히스토리 조회 시작: loginId={}", loginId);
+
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getCurrentTeamId() == null) {
+            throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
+        }
+
+        TeamEntity team = teamRepository.findById(user.getCurrentTeamId())
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        List<TeamHistoryEntity> histories = teamHistoryRepository.findByTeamNameOrderBySolvedTimeAsc(team.getTeamName());
+
+        List<TeamHistoryDto> historyDtos = histories.stream()
+                .map(history -> {
+                    Optional<ChallengeEntity> challengeOpt = challengeRepository.findById(history.getChallengeId());
+                    if (!challengeOpt.isPresent()) {
+                        return null;
+                    }
+
+                    ChallengeEntity challenge = challengeOpt.get();
+                    return new TeamHistoryDto(
+                            team.getTeamId(),
+                            team.getTeamName(),
+                            String.valueOf(challenge.getChallengeId()),
+                            challenge.getTitle(),
+                            history.getSolvedTime(),
+                            challenge.getPoints()
+                    );
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        log.info("팀 히스토리 조회 완료: loginId={}, teamName={}, recordCount={}",
+                loginId, team.getTeamName(), historyDtos.size());
+
+        return historyDtos;
     }
 }

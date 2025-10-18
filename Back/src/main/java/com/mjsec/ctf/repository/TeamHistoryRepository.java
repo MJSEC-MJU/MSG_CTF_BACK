@@ -17,4 +17,7 @@ public interface TeamHistoryRepository extends JpaRepository<TeamHistoryEntity, 
 
     // 특정 팀의 특정 문제 제출 기록 조회
     List<TeamHistoryEntity> findByTeamNameAndChallengeId(String teamName, Long challengeId);
+
+    // 특정 팀의 모든 제출 기록 조회 (시간순 정렬)
+    List<TeamHistoryEntity> findByTeamNameOrderBySolvedTimeAsc(String teamName);
 }
