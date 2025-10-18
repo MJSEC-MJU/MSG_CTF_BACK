@@ -47,6 +47,14 @@ public class AdminChallengeController {
         return ResponseEntity.ok(detail);
     }
 
+    @Operation(summary = "전체 제출 기록 조회", description = "관리자 권한으로 모든 문제의 제출 기록을 조회합니다. 시간순 정렬, 퍼스트 블러드 정보 포함.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/solve-records")
+    public ResponseEntity<List<AdminSolveRecordDto>> getAllSolveRecords() {
+        List<AdminSolveRecordDto> records = challengeService.getAllSolveRecords();
+        return ResponseEntity.ok(records);
+    }
+
     @Operation(summary = "문제별 제출 기록 조회", description = "관리자 권한으로 특정 문제의 모든 제출 기록을 조회합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{challengeId}/solve-records")

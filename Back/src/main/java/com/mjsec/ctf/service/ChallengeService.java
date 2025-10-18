@@ -595,6 +595,83 @@ public class ChallengeService {
         teamService.saveTeam(team);
     }
 
+    // 관리자: 전체 제출 기록 조회
+    public List<AdminSolveRecordDto> getAllSolveRecords() {
+        log.info("관리자: 전체 제출 기록 조회 시작");
+
+        List<HistoryEntity> allHistories = historyRepository.findAllByOrderBySolvedTimeAsc();
+        Map<Long, ChallengeEntity> challengeMap = new HashMap<>();
+        Map<Long, Long> firstBloodMap = new HashMap<>(); // challengeId -> firstBloodHistoryId
+
+        // 모든 문제별 퍼스트 블러드 계산
+        allHistories.stream()
+                .filter(h -> h.getLoginId() != null)
+                .collect(Collectors.groupingBy(HistoryEntity::getChallengeId))
+                .forEach((challengeId, histories) -> {
+                    Optional<HistoryEntity> firstBlood = histories.stream()
+                            .min(Comparator.comparing(HistoryEntity::getSolvedTime));
+                    firstBlood.ifPresent(h -> firstBloodMap.put(challengeId, h.getId()));
+                });
+
+        List<AdminSolveRecordDto> records = new ArrayList<>();
+
+        for (HistoryEntity history : allHistories) {
+            if (history.getLoginId() == null) continue;
+
+            Optional<UserEntity> userOpt = userRepository.findByLoginId(history.getLoginId());
+            if (!userOpt.isPresent()) continue;
+
+            // 문제 정보 캐싱
+            ChallengeEntity challenge = challengeMap.computeIfAbsent(
+                    history.getChallengeId(),
+                    id -> challengeRepository.findById(id).orElse(null)
+            );
+            if (challenge == null) continue;
+
+            UserEntity user = userOpt.get();
+            Long teamId = user.getCurrentTeamId();
+            String teamName = null;
+
+            if (teamId != null) {
+                Optional<TeamEntity> teamOpt = teamRepository.findById(teamId);
+                teamName = teamOpt.map(TeamEntity::getTeamName).orElse(null);
+            }
+
+            // 퍼스트 블러드 여부 확인
+            Long firstBloodHistoryId = firstBloodMap.get(history.getChallengeId());
+            boolean isFirstBlood = firstBloodHistoryId != null && firstBloodHistoryId.equals(history.getId());
+
+            // 점수와 마일리지 계산
+            int pointsAwarded = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE ? 0 : challenge.getPoints();
+            int baseMileage = challenge.getMileage();
+            int mileageBonus = 0;
+
+            if (isFirstBlood && baseMileage > 0) {
+                mileageBonus = (int) Math.ceil(baseMileage * 0.30);
+            }
+
+            AdminSolveRecordDto record = AdminSolveRecordDto.builder()
+                    .historyId(history.getId())
+                    .challengeId(challenge.getChallengeId())
+                    .challengeTitle(challenge.getTitle())
+                    .loginId(history.getLoginId())
+                    .teamName(teamName)
+                    .teamId(teamId)
+                    .univ(history.getUniv())
+                    .solvedTime(history.getSolvedTime())
+                    .pointsAwarded(pointsAwarded)
+                    .mileageAwarded(baseMileage)
+                    .mileageBonus(mileageBonus)
+                    .isFirstBlood(isFirstBlood)
+                    .build();
+
+            records.add(record);
+        }
+
+        log.info("관리자: 전체 제출 기록 {} 건 조회 완료", records.size());
+        return records;
+    }
+
     // 관리자: 특정 문제의 모든 제출 기록 조회
     public List<AdminSolveRecordDto> getSolveRecordsByChallenge(Long challengeId) {
         log.info("관리자: 문제 {}의 제출 기록 조회 시작", challengeId);
