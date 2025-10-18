@@ -66,4 +66,10 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
     List<HistoryEntity> findByLoginIdAndUserDeletedFalseAndChallengeNotDeleted(@Param("loginId") String loginId);
 
     List<HistoryEntity> findByChallengeIdIn(List<Long> solvedChallengeIds);
+
+    // 특정 문제의 모든 제출 기록 조회 (관리자용)
+    List<HistoryEntity> findByChallengeId(Long challengeId);
+
+    // 특정 사용자의 특정 문제 제출 기록 조회
+    Optional<HistoryEntity> findByLoginIdAndChallengeId(String loginId, Long challengeId);
 }

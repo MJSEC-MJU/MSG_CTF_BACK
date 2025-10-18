@@ -6,6 +6,7 @@ import com.mjsec.ctf.domain.TeamHistoryEntity;
 import com.mjsec.ctf.domain.SubmissionEntity;
 import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
+import com.mjsec.ctf.dto.AdminSolveRecordDto;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.*;
@@ -592,5 +593,121 @@ public class ChallengeService {
         team.setTotalPoint(totalPoints);
         team.setLastSolvedTime(lastSolvedTime);
         teamService.saveTeam(team);
+    }
+
+    // 관리자: 특정 문제의 모든 제출 기록 조회
+    public List<AdminSolveRecordDto> getSolveRecordsByChallenge(Long challengeId) {
+        log.info("관리자: 문제 {}의 제출 기록 조회 시작", challengeId);
+
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        List<HistoryEntity> histories = historyRepository.findByChallengeId(challengeId);
+        List<AdminSolveRecordDto> records = new ArrayList<>();
+
+        for (HistoryEntity history : histories) {
+            if (history.getLoginId() == null) continue; // 삭제된 유저는 스킵
+
+            Optional<UserEntity> userOpt = userRepository.findByLoginId(history.getLoginId());
+            if (!userOpt.isPresent()) continue;
+
+            UserEntity user = userOpt.get();
+            Long teamId = user.getCurrentTeamId();
+            String teamName = null;
+
+            if (teamId != null) {
+                Optional<TeamEntity> teamOpt = teamRepository.findById(teamId);
+                teamName = teamOpt.map(TeamEntity::getTeamName).orElse(null);
+            }
+
+            // 당시 획득한 점수와 마일리지 계산 (현재 문제 점수와 마일리지 사용)
+            int pointsAwarded = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE ? 0 : challenge.getPoints();
+            int mileageAwarded = challenge.getMileage();
+
+            AdminSolveRecordDto record = AdminSolveRecordDto.builder()
+                    .historyId(history.getId())
+                    .challengeId(challenge.getChallengeId())
+                    .challengeTitle(challenge.getTitle())
+                    .loginId(history.getLoginId())
+                    .teamName(teamName)
+                    .teamId(teamId)
+                    .univ(history.getUniv())
+                    .solvedTime(history.getSolvedTime())
+                    .pointsAwarded(pointsAwarded)
+                    .mileageAwarded(mileageAwarded)
+                    .build();
+
+            records.add(record);
+        }
+
+        log.info("관리자: 문제 {}의 제출 기록 {} 건 조회 완료", challengeId, records.size());
+        return records;
+    }
+
+    // 관리자: 특정 사용자의 특정 문제 제출 기록 철회
+    @Transactional
+    public void revokeSolveRecord(Long challengeId, String loginId) {
+        log.info("관리자: 문제 {} 사용자 {} 제출 기록 철회 시작", challengeId, loginId);
+
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+        // 1. HistoryEntity 조회 및 삭제
+        Optional<HistoryEntity> historyOpt = historyRepository.findByLoginIdAndChallengeId(loginId, challengeId);
+        if (!historyOpt.isPresent()) {
+            throw new RestApiException(ErrorCode.BAD_REQUEST, "해당 사용자의 문제 풀이 기록이 없습니다.");
+        }
+
+        HistoryEntity history = historyOpt.get();
+        historyRepository.delete(history);
+        log.info("HistoryEntity 삭제 완료: historyId={}", history.getId());
+
+        // 2. TeamHistoryEntity 조회 및 삭제
+        if (user.getCurrentTeamId() != null) {
+            Optional<TeamEntity> teamOpt = teamRepository.findById(user.getCurrentTeamId());
+            if (teamOpt.isPresent()) {
+                TeamEntity team = teamOpt.get();
+                String teamName = team.getTeamName();
+
+                List<TeamHistoryEntity> teamHistories = teamHistoryRepository.findByTeamNameAndChallengeId(teamName, challengeId);
+                if (!teamHistories.isEmpty()) {
+                    // 가장 최근 것을 삭제 (또는 모두 삭제할 수도 있음)
+                    TeamHistoryEntity teamHistory = teamHistories.get(0);
+                    teamHistoryRepository.delete(teamHistory);
+                    log.info("TeamHistoryEntity 삭제 완료: teamHistoryId={}", teamHistory.getHistoryid());
+                }
+
+                // 3. 팀에서 해당 문제 제거 및 점수/마일리지 복구
+                int pointsToDeduct = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE ? 0 : challenge.getPoints();
+                int mileageToDeduct = challenge.getMileage();
+
+                // 퍼스트 블러드 보너스 고려 (간단하게 30% 추가 차감)
+                // 실제로는 퍼스트 블러드 여부를 기록에서 확인해야 하지만, 여기서는 단순화
+                // 정확한 구현을 위해서는 HistoryEntity에 isFirstBlood 필드를 추가하거나 별도 로직 필요
+
+                team.revokeSolvedChallenge(challengeId, pointsToDeduct, mileageToDeduct);
+                teamRepository.save(team);
+                log.info("팀 점수/마일리지 복구 완료: teamId={}, points={}, mileage={}", team.getTeamId(), pointsToDeduct, mileageToDeduct);
+            }
+        }
+
+        // 4. Challenge의 solvers 카운트 감소
+        challenge.setSolvers(Math.max(0, challenge.getSolvers() - 1));
+        challengeRepository.save(challenge);
+        log.info("Challenge solvers 감소 완료: challengeId={}, solvers={}", challengeId, challenge.getSolvers());
+
+        // 5. 다이나믹 스코어링 재계산 (SIGNATURE 제외)
+        if (challenge.getCategory() != com.mjsec.ctf.type.ChallengeCategory.SIGNATURE) {
+            updateChallengeScore(challenge);
+            log.info("다이나믹 스코어 재계산 완료: challengeId={}, newPoints={}", challengeId, challenge.getPoints());
+        }
+
+        // 6. 영향받은 모든 팀의 점수 재계산
+        updateAllTeamTotalPoints();
+
+        log.info("관리자: 문제 {} 사용자 {} 제출 기록 철회 완료", challengeId, loginId);
     }
 }

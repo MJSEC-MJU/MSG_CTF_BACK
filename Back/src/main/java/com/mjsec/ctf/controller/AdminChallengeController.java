@@ -1,6 +1,7 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
+import com.mjsec.ctf.dto.AdminSolveRecordDto;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,26 @@ public class AdminChallengeController {
     public ResponseEntity<ChallengeDto.Detail> getChallengeDetail(@PathVariable Long challengeId) {
         ChallengeDto.Detail detail = challengeService.getDetailChallenge(challengeId);
         return ResponseEntity.ok(detail);
+    }
+
+    @Operation(summary = "문제별 제출 기록 조회", description = "관리자 권한으로 특정 문제의 모든 제출 기록을 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{challengeId}/solve-records")
+    public ResponseEntity<List<AdminSolveRecordDto>> getSolveRecords(@PathVariable Long challengeId) {
+        List<AdminSolveRecordDto> records = challengeService.getSolveRecordsByChallenge(challengeId);
+        return ResponseEntity.ok(records);
+    }
+
+    @Operation(summary = "제출 기록 철회", description = "관리자 권한으로 특정 사용자의 문제 제출 기록을 철회합니다. 점수, 마일리지 반환 및 다이나믹 스코어 재계산이 이루어집니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{challengeId}/solve-records/{loginId}")
+    public ResponseEntity<Map<String, String>> revokeSolveRecord(
+            @PathVariable Long challengeId,
+            @PathVariable String loginId) {
+        challengeService.revokeSolveRecord(challengeId, loginId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "제출 기록이 성공적으로 철회되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
 }

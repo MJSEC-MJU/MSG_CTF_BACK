@@ -118,4 +118,13 @@ public class TeamEntity extends BaseEntity {
     public int getSolvedCount() {
         return solvedChallengeIds.size();
     }
+
+    // 문제 풀이 철회 (점수, 마일리지 반환)
+    public void revokeSolvedChallenge(Long challengeId, int points, int mileage) {
+        if (solvedChallengeIds.contains(challengeId)) {
+            solvedChallengeIds.remove(challengeId);
+            this.totalPoint = Math.max(0, this.totalPoint - points);
+            this.mileage = Math.max(0, this.mileage - mileage);
+        }
+    }
 }
