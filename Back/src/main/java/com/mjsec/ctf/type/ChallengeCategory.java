@@ -7,5 +7,6 @@ public enum ChallengeCategory {
     FORENSICS,
     PWN,
     WEB,
-    CRYPTO
+    CRYPTO,
+    SIGNATURE
 }

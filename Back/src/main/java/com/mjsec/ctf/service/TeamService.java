@@ -4,6 +4,7 @@ import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.TeamPaymentHistoryEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.TeamProfileDto;
+import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.TeamPaymentHistoryRepository;
 import com.mjsec.ctf.repository.TeamRepository;
@@ -51,6 +52,11 @@ public class TeamService {
         teamRepository.save(team);
     }
 
+    public void saveTeam(TeamEntity team) {
+        teamRepository.save(team);
+    }   //메서드 추가 (10/6)
+
+
     @Transactional
     public void addMember(String teamName, String email) {
 
@@ -88,7 +94,7 @@ public class TeamService {
         TeamEntity team = teamRepository.findByTeamName(teamName)
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
-        if(team.isMember(user.getUserId())) {
+        if(!team.isMember(user.getUserId())) {
             throw new RestApiException(ErrorCode.TEAM_MISMATCH);
         }
 
@@ -114,7 +120,8 @@ public class TeamService {
         return !team.hasSolvedChallenge(challengeId);
     }
 
-    public void recordTeamSolution(Long userId, Long challengeId, int points) {
+    @Transactional
+    public void recordTeamSolution(Long userId, Long challengeId, int points, int mileage) {
 
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
@@ -126,7 +133,7 @@ public class TeamService {
         TeamEntity team = teamRepository.findById(user.getCurrentTeamId())
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
-        team.addSolvedChallenge(challengeId, points);
+        team.addSolvedChallenge(challengeId, points, mileage);
         teamRepository.save(team);
     }
 
@@ -208,5 +215,46 @@ public class TeamService {
                 .map(UserEntity::getLoginId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    public List<TeamSummaryDto> getAllTeams() {
+
+        List<TeamEntity> teams = teamRepository.findAll();
+
+        return teams.stream()
+                .map(team -> {
+                    List<String> memberEmails = new ArrayList<>();
+                    if (team.getMemberUserIds() != null && !team.getMemberUserIds().isEmpty()) {
+                        memberEmails = userRepository.findAllById(team.getMemberUserIds()).stream()
+                                .map(UserEntity::getEmail)
+                                .collect(Collectors.toList());
+                    }
+
+                    return TeamSummaryDto.builder()
+                            .teamId(team.getTeamId())
+                            .teamName(team.getTeamName())
+                            .teamTotalPoint(team.getTotalPoint())
+                            .teamMileage(team.getMileage())
+                            .memberEmails(memberEmails)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    // 관리자가 팀에 마일리지 부여
+    @Transactional
+    public void grantMileageToTeam(String teamName, int mileage) {
+        TeamEntity team = teamRepository.findByTeamName(teamName)
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        if (mileage < 0) {
+            throw new RestApiException(ErrorCode.BAD_REQUEST, "마일리지는 0 이상이어야 합니다.");
+        }
+
+        team.addMileage(mileage);
+        teamRepository.save(team);
+
+        log.info("Admin granted mileage: teamId={}, teamName={}, mileageGranted={}",
+                team.getTeamId(), teamName, mileage);
     }
 }

@@ -64,4 +64,6 @@ public interface HistoryRepository extends JpaRepository<HistoryEntity, Long> {
             "AND h.userDeleted = false " +
             "AND c.deletedAt IS NULL")
     List<HistoryEntity> findByLoginIdAndUserDeletedFalseAndChallengeNotDeleted(@Param("loginId") String loginId);
+
+    List<HistoryEntity> findByChallengeIdIn(List<Long> solvedChallengeIds);
 }
