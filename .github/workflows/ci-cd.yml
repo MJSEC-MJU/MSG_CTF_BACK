@@ -27,7 +27,7 @@ jobs:
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
       GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
-      IMAGE_TAG: ci
+      IMAGE_TAG: latest
       SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION: /dev/null
       SPRING_CLOUD_GCP_STORAGE_BUCKET: ${{ secrets.BUCKET }}
       DOMAIN: localhost
@@ -68,6 +68,10 @@ jobs:
         run: |
           docker --version
           docker compose version
+
+      # backend 이미지 로컬 빌드
+      - name: Build Docker images
+        run: docker compose build backend
 
       - name: Docker Compose Up (db/redis/backend)
         run: |
