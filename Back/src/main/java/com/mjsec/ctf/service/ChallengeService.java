@@ -354,6 +354,12 @@ public class ChallengeService {
             if (user.getCurrentTeamId() == null) {
                 throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
             }
+
+            // 개인 중복 제출 방지
+            if (historyRepository.existsByLoginIdAndChallengeId(loginId, challengeId)) {
+                return "Submitted";
+            }
+
             // 팀 단위 중복 제출 방지
             Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());
             if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
