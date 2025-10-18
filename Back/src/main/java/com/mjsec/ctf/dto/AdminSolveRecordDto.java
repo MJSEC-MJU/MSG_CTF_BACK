@@ -23,5 +23,7 @@ public class AdminSolveRecordDto {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     private LocalDateTime solvedTime;
     private int pointsAwarded;  // 당시 획득한 점수
-    private int mileageAwarded; // 당시 획득한 마일리지
+    private int mileageAwarded; // 당시 획득한 마일리지 (기본)
+    private int mileageBonus;   // 퍼스트 블러드 보너스 마일리지
+    private boolean isFirstBlood; // 퍼스트 블러드 여부
 }

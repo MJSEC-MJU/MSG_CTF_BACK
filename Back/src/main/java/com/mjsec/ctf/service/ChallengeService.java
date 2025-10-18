@@ -605,6 +605,13 @@ public class ChallengeService {
         List<HistoryEntity> histories = historyRepository.findByChallengeId(challengeId);
         List<AdminSolveRecordDto> records = new ArrayList<>();
 
+        // 퍼스트 블러드 찾기 (가장 빠른 제출)
+        Optional<HistoryEntity> firstBloodOpt = histories.stream()
+                .filter(h -> h.getLoginId() != null)
+                .min(Comparator.comparing(HistoryEntity::getSolvedTime));
+
+        Long firstBloodHistoryId = firstBloodOpt.map(HistoryEntity::getId).orElse(null);
+
         for (HistoryEntity history : histories) {
             if (history.getLoginId() == null) continue; // 삭제된 유저는 스킵
 
@@ -620,9 +627,17 @@ public class ChallengeService {
                 teamName = teamOpt.map(TeamEntity::getTeamName).orElse(null);
             }
 
-            // 당시 획득한 점수와 마일리지 계산 (현재 문제 점수와 마일리지 사용)
+            // 퍼스트 블러드 여부 확인
+            boolean isFirstBlood = firstBloodHistoryId != null && firstBloodHistoryId.equals(history.getId());
+
+            // 당시 획득한 점수와 마일리지 계산
             int pointsAwarded = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE ? 0 : challenge.getPoints();
-            int mileageAwarded = challenge.getMileage();
+            int baseMileage = challenge.getMileage();
+            int mileageBonus = 0;
+
+            if (isFirstBlood && baseMileage > 0) {
+                mileageBonus = (int) Math.ceil(baseMileage * 0.30);
+            }
 
             AdminSolveRecordDto record = AdminSolveRecordDto.builder()
                     .historyId(history.getId())
@@ -634,7 +649,9 @@ public class ChallengeService {
                     .univ(history.getUniv())
                     .solvedTime(history.getSolvedTime())
                     .pointsAwarded(pointsAwarded)
-                    .mileageAwarded(mileageAwarded)
+                    .mileageAwarded(baseMileage)
+                    .mileageBonus(mileageBonus)
+                    .isFirstBlood(isFirstBlood)
                     .build();
 
             records.add(record);
@@ -655,13 +672,24 @@ public class ChallengeService {
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
 
-        // 1. HistoryEntity 조회 및 삭제
+        // 1. HistoryEntity 조회 및 퍼스트 블러드 여부 확인
         Optional<HistoryEntity> historyOpt = historyRepository.findByLoginIdAndChallengeId(loginId, challengeId);
         if (!historyOpt.isPresent()) {
             throw new RestApiException(ErrorCode.BAD_REQUEST, "해당 사용자의 문제 풀이 기록이 없습니다.");
         }
 
         HistoryEntity history = historyOpt.get();
+
+        // 퍼스트 블러드 여부 확인: 해당 문제의 모든 제출 기록 중 가장 빠른지 체크
+        List<HistoryEntity> allHistories = historyRepository.findByChallengeId(challengeId);
+        boolean isFirstBlood = allHistories.stream()
+                .filter(h -> h.getLoginId() != null)
+                .min(Comparator.comparing(HistoryEntity::getSolvedTime))
+                .map(h -> h.getId().equals(history.getId()))
+                .orElse(false);
+
+        log.info("퍼스트 블러드 여부: {}", isFirstBlood);
+
         historyRepository.delete(history);
         log.info("HistoryEntity 삭제 완료: historyId={}", history.getId());
 
@@ -682,15 +710,19 @@ public class ChallengeService {
 
                 // 3. 팀에서 해당 문제 제거 및 점수/마일리지 복구
                 int pointsToDeduct = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE ? 0 : challenge.getPoints();
-                int mileageToDeduct = challenge.getMileage();
+                int baseMileage = challenge.getMileage();
 
-                // 퍼스트 블러드 보너스 고려 (간단하게 30% 추가 차감)
-                // 실제로는 퍼스트 블러드 여부를 기록에서 확인해야 하지만, 여기서는 단순화
-                // 정확한 구현을 위해서는 HistoryEntity에 isFirstBlood 필드를 추가하거나 별도 로직 필요
+                // 퍼스트 블러드 보너스 계산 (30% 추가)
+                int mileageBonus = 0;
+                if (isFirstBlood && baseMileage > 0) {
+                    mileageBonus = (int) Math.ceil(baseMileage * 0.30);
+                }
+                int mileageToDeduct = baseMileage + mileageBonus;
 
                 team.revokeSolvedChallenge(challengeId, pointsToDeduct, mileageToDeduct);
                 teamRepository.save(team);
-                log.info("팀 점수/마일리지 복구 완료: teamId={}, points={}, mileage={}", team.getTeamId(), pointsToDeduct, mileageToDeduct);
+                log.info("팀 점수/마일리지 복구 완료: teamId={}, points={}, baseMileage={}, bonus={}, totalMileage={}",
+                        team.getTeamId(), pointsToDeduct, baseMileage, mileageBonus, mileageToDeduct);
             }
         }
 
