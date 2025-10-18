@@ -1,6 +1,7 @@
 package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
+import com.mjsec.ctf.dto.AdminSolveRecordDto;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,45 @@ public class AdminChallengeController {
     public ResponseEntity<ChallengeDto.Detail> getChallengeDetail(@PathVariable Long challengeId) {
         ChallengeDto.Detail detail = challengeService.getDetailChallenge(challengeId);
         return ResponseEntity.ok(detail);
+    }
+
+    @Operation(summary = "전체 제출 기록 조회", description = "관리자 권한으로 모든 문제의 제출 기록을 조회합니다. 시간순 정렬, 퍼스트 블러드 정보 포함.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/solve-records")
+    public ResponseEntity<List<AdminSolveRecordDto>> getAllSolveRecords() {
+        List<AdminSolveRecordDto> records = challengeService.getAllSolveRecords();
+        return ResponseEntity.ok(records);
+    }
+
+    @Operation(summary = "문제별 제출 기록 조회", description = "관리자 권한으로 특정 문제의 모든 제출 기록을 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{challengeId}/solve-records")
+    public ResponseEntity<List<AdminSolveRecordDto>> getSolveRecords(@PathVariable Long challengeId) {
+        List<AdminSolveRecordDto> records = challengeService.getSolveRecordsByChallenge(challengeId);
+        return ResponseEntity.ok(records);
+    }
+
+    @Operation(summary = "특정 문제의 특정 사용자 제출 기록 철회", description = "관리자 권한으로 특정 사용자의 특정 문제 제출 기록을 철회합니다. 점수, 마일리지 반환 및 다이나믹 스코어 재계산이 이루어집니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{challengeId}/solve-records/{loginId}")
+    public ResponseEntity<Map<String, String>> revokeSolveRecord(
+            @PathVariable Long challengeId,
+            @PathVariable String loginId) {
+        challengeService.revokeSolveRecord(challengeId, loginId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "제출 기록이 성공적으로 철회되었습니다.");
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "특정 사용자의 모든 제출 기록 삭제", description = "관리자 권한으로 특정 사용자의 모든 문제 제출 기록을 삭제합니다. 모든 점수, 마일리지 반환 및 다이나믹 스코어 재계산이 이루어집니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/solve-records/user/{loginId}")
+    public ResponseEntity<Map<String, Object>> revokeAllSolveRecordsByUser(@PathVariable String loginId) {
+        int deletedCount = challengeService.revokeAllSolveRecordsByUser(loginId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "사용자의 모든 제출 기록이 성공적으로 삭제되었습니다.");
+        response.put("deletedCount", deletedCount);
+        return ResponseEntity.ok(response);
     }
 
 }
