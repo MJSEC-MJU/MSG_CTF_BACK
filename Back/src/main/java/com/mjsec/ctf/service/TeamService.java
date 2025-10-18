@@ -231,6 +231,7 @@ public class TeamService {
                     }
 
                     return TeamSummaryDto.builder()
+                            .teamId(team.getTeamId())
                             .teamName(team.getTeamName())
                             .teamTotalPoint(team.getTotalPoint())
                             .teamMileage(team.getMileage())

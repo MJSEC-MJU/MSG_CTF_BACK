@@ -8,6 +8,8 @@ import lombok.Data;
 @Builder
 public class TeamSummaryDto {
 
+    private Long teamId;
+
     private String teamName;
 
     private int teamTotalPoint;
