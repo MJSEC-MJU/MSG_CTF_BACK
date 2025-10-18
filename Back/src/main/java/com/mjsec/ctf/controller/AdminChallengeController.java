@@ -63,7 +63,7 @@ public class AdminChallengeController {
         return ResponseEntity.ok(records);
     }
 
-    @Operation(summary = "제출 기록 철회", description = "관리자 권한으로 특정 사용자의 문제 제출 기록을 철회합니다. 점수, 마일리지 반환 및 다이나믹 스코어 재계산이 이루어집니다.")
+    @Operation(summary = "특정 문제의 특정 사용자 제출 기록 철회", description = "관리자 권한으로 특정 사용자의 특정 문제 제출 기록을 철회합니다. 점수, 마일리지 반환 및 다이나믹 스코어 재계산이 이루어집니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{challengeId}/solve-records/{loginId}")
     public ResponseEntity<Map<String, String>> revokeSolveRecord(
@@ -72,6 +72,17 @@ public class AdminChallengeController {
         challengeService.revokeSolveRecord(challengeId, loginId);
         Map<String, String> response = new HashMap<>();
         response.put("message", "제출 기록이 성공적으로 철회되었습니다.");
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "특정 사용자의 모든 제출 기록 삭제", description = "관리자 권한으로 특정 사용자의 모든 문제 제출 기록을 삭제합니다. 모든 점수, 마일리지 반환 및 다이나믹 스코어 재계산이 이루어집니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/solve-records/user/{loginId}")
+    public ResponseEntity<Map<String, Object>> revokeAllSolveRecordsByUser(@PathVariable String loginId) {
+        int deletedCount = challengeService.revokeAllSolveRecordsByUser(loginId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "사용자의 모든 제출 기록이 성공적으로 삭제되었습니다.");
+        response.put("deletedCount", deletedCount);
         return ResponseEntity.ok(response);
     }
 
