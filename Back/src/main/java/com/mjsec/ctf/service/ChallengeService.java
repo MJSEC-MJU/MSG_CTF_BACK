@@ -390,6 +390,7 @@ public class ChallengeService {
                 submissionRepository.save(submission);
                 return "Wrong";
             } else {
+
                 HistoryEntity history = HistoryEntity.builder()
                         .loginId(user.getLoginId())
                         .challengeId(challenge.getChallengeId())
@@ -397,7 +398,6 @@ public class ChallengeService {
                         .univ(user.getUniv())
                         .build();
                 historyRepository.save(history);
-
 
                 if (team.isPresent()) {
                     TeamHistoryEntity teamHistory = TeamHistoryEntity.builder()
@@ -409,15 +409,11 @@ public class ChallengeService {
                     teamHistoryRepository.save(teamHistory);
                 }
 
-
-                //팀 점수로 업데이트
-                if (user.getCurrentTeamId() != null) {
-                    teamService.recordTeamSolution(user.getUserId(), challengeId, challenge.getPoints(),challenge.getMileage());
-                }
+                // 첫 번째 recordTeamSolution 호출 제거 (퍼스트 블러드 판정 전에 호출하면 보너스가 무시되는 버그 발생)
                 boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
                 boolean isFirstBlood = false;
 
-                //  퍼스트블러드 판정: 카테고리 무관하게 '보너스 계산'을 위해 판정
+                // 퍼스트블러드 판정: 카테고리 무관하게 '보너스 계산'을 위해 판정
                 String firstBloodLockKey = "firstBloodLock:" + challengeId;
                 RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
                 boolean firstBloodLocked = false;
@@ -427,7 +423,7 @@ public class ChallengeService {
                     if (firstBloodLocked) {
                         long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
                         if (solvedCount == 1) {
-                            isFirstBlood = true; 
+                            isFirstBlood = true;
                             // 알림은 정책상 일반 문제만(원래대로 유지). 시그니처에도 보내고 싶으면 if 제거.
                             if (!isSignature) {
                                 sendFirstBloodNotification(challenge, user);
@@ -442,9 +438,9 @@ public class ChallengeService {
                     }
                 }
 
-                // ── 팀 마일리지/점수 반영
-                //    - 시그니처: 마일리지만 적립(점수 0으로 전달)
-                //    - 일반 문제: 점수 + 마일리지 적립
+                // 팀 마일리지/점수 반영
+                // - 시그니처: 마일리지만 적립(점수 0으로 전달)
+                // - 일반 문제: 점수 + 마일리지 적립
                 if (user.getCurrentTeamId() != null) {
                     int baseMileage = challenge.getMileage();
                     int bonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
@@ -458,8 +454,8 @@ public class ChallengeService {
                             finalMileage
                     );
 
-                    log.info("Mileage award: challengeId={}, base={}, isFirstBlood={}, final={}, teamId={}, isSignature={}",
-                            challengeId, baseMileage, isFirstBlood, finalMileage, user.getCurrentTeamId(), isSignature);
+                    log.info("Mileage award: challengeId={}, base={}, isFirstBlood={}, bonus={}, final={}, teamId={}, isSignature={}",
+                            challengeId, baseMileage, isFirstBlood, bonus, finalMileage, user.getCurrentTeamId(), isSignature);
                 }
 
                 // 문제 점수 업데이트(다이나믹 스코어링): 시그니처는 제외 유지
@@ -765,13 +761,13 @@ public class ChallengeService {
 
         // 퍼스트 블러드 여부 확인: 해당 문제의 모든 제출 기록 중 가장 빠른지 체크
         List<HistoryEntity> allHistories = historyRepository.findByChallengeId(challengeId);
-        boolean isFirstBlood = allHistories.stream()
+        boolean wasFirstBlood = allHistories.stream()
                 .filter(h -> h.getLoginId() != null)
                 .min(Comparator.comparing(HistoryEntity::getSolvedTime))
                 .map(h -> h.getId().equals(history.getId()))
                 .orElse(false);
 
-        log.info("퍼스트 블러드 여부: {}", isFirstBlood);
+        log.info("삭제 대상 퍼스트 블러드 여부: {}", wasFirstBlood);
 
         historyRepository.delete(history);
         log.info("HistoryEntity 삭제 완료: historyId={}", history.getId());
@@ -797,7 +793,7 @@ public class ChallengeService {
 
                 // 퍼스트 블러드 보너스 계산 (30% 추가)
                 int mileageBonus = 0;
-                if (isFirstBlood && baseMileage > 0) {
+                if (wasFirstBlood && baseMileage > 0) {
                     mileageBonus = (int) Math.ceil(baseMileage * 0.30);
                 }
                 int mileageToDeduct = baseMileage + mileageBonus;
@@ -822,6 +818,48 @@ public class ChallengeService {
 
         // 6. 영향받은 모든 팀의 점수 재계산
         updateAllTeamTotalPoints();
+
+        //새로운 퍼스트 블러드에게 보너스 지급
+        if (wasFirstBlood) {
+            // 삭제 후 남은 제출 기록 중 가장 빠른 것 찾기
+            List<HistoryEntity> remainingHistories = historyRepository.findByChallengeId(challengeId);
+
+            Optional<HistoryEntity> newFirstBloodOpt = remainingHistories.stream()
+                    .filter(h -> h.getLoginId() != null)
+                    .min(Comparator.comparing(HistoryEntity::getSolvedTime));
+
+            if (newFirstBloodOpt.isPresent()) {
+                HistoryEntity newFirstBloodHistory = newFirstBloodOpt.get();
+
+                Optional<UserEntity> newFirstUserOpt = userRepository.findByLoginId(newFirstBloodHistory.getLoginId());
+
+                if (newFirstUserOpt.isPresent()) {
+                    UserEntity newFirstUser = newFirstUserOpt.get();
+
+                    if (newFirstUser.getCurrentTeamId() != null) {
+                        Optional<TeamEntity> newFirstTeamOpt = teamRepository.findById(newFirstUser.getCurrentTeamId());
+
+                        if (newFirstTeamOpt.isPresent()) {
+                            TeamEntity newFirstTeam = newFirstTeamOpt.get();
+
+                            // 보너스 마일리지 계산 (30%)
+                            int baseMileage = challenge.getMileage();
+                            int bonus = (int) Math.ceil(baseMileage * 0.30);
+
+                            // 새 퍼스트 블러드 팀에게 보너스만 추가 지급
+                            // (기본 마일리지는 이미 받았으므로 보너스만 추가)
+                            newFirstTeam.addMileage(bonus);
+                            teamRepository.save(newFirstTeam);
+
+                            log.info("새 퍼스트 블러드 보너스 지급: teamId={}, teamName={}, bonus={}, loginId={}",
+                                    newFirstTeam.getTeamId(), newFirstTeam.getTeamName(), bonus, newFirstBloodHistory.getLoginId());
+                        }
+                    }
+                }
+            } else {
+                log.info("삭제 후 남은 제출 기록이 없음: challengeId={}", challengeId);
+            }
+        }
 
         log.info("관리자: 문제 {} 사용자 {} 제출 기록 철회 완료", challengeId, loginId);
     }
