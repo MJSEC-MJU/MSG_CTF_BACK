@@ -242,8 +242,8 @@ public class TeamService {
 
     // 관리자가 팀에 마일리지 부여
     @Transactional
-    public void grantMileageToTeam(Long teamId, int mileage) {
-        TeamEntity team = teamRepository.findById(teamId)
+    public void grantMileageToTeam(String teamName, int mileage) {
+        TeamEntity team = teamRepository.findByTeamName(teamName)
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
         if (mileage < 0) {
@@ -254,6 +254,6 @@ public class TeamService {
         teamRepository.save(team);
 
         log.info("Admin granted mileage: teamId={}, teamName={}, mileageGranted={}",
-                teamId, team.getTeamName(), mileage);
+                team.getTeamId(), teamName, mileage);
     }
 }

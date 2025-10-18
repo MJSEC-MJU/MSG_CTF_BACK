@@ -124,7 +124,7 @@ public class PaymentService {
     @Transactional
     public void refundPayment(Long paymentHistoryId) {
         TeamPaymentHistoryEntity history = teamPaymentHistoryRepository.findById(paymentHistoryId)
-                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "결제 히스토리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new RestApiException(ErrorCode.PAYMENT_HISTORY_NOT_FOUND));
 
         TeamEntity team = teamRepository.findById(history.getTeamId())
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));

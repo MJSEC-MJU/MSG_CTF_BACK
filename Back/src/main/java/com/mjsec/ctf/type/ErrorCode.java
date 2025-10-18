@@ -48,6 +48,7 @@ public enum ErrorCode {
     INVALID_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "만료된 토큰입니다."),
     NOT_ENOUGH_MILEAGE(HttpStatus.BAD_REQUEST, "마일리지가 부족합니다."),
+    PAYMENT_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 히스토리를 찾을 수 없습니다."),
 
     TEAM_NOT_FOUND(HttpStatus.BAD_REQUEST, "해당 팀을 찾을 수 없습니다."),
     MUST_BE_BELONG_TEAM(HttpStatus.BAD_REQUEST, "팀에 소속되지 않은 사용자 입니다."),

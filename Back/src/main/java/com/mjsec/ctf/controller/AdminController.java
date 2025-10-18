@@ -225,12 +225,12 @@ public class AdminController {
 
     @Operation(summary = "팀 마일리지 부여", description = "관리자 권한으로 특정 팀에 마일리지를 부여합니다.")
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/team/mileage/{teamId}")
+    @PostMapping("/team/mileage/{teamName}")
     public ResponseEntity<SuccessResponse<Void>> grantMileageToTeam(
-            @PathVariable Long teamId,
+            @PathVariable String teamName,
             @RequestBody GrantMileageDto grantMileageDto
     ) {
-        teamService.grantMileageToTeam(teamId, grantMileageDto.getMileage());
+        teamService.grantMileageToTeam(teamName, grantMileageDto.getMileage());
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(ResponseMessage.GRANT_MILEAGE_SUCCESS));
     }
