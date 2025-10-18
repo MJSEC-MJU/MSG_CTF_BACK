@@ -3,7 +3,9 @@ package com.mjsec.ctf.controller;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.ContestConfigDto;
+import com.mjsec.ctf.dto.GrantMileageDto;
 import com.mjsec.ctf.dto.SuccessResponse;
+import com.mjsec.ctf.dto.TeamPaymentHistoryDto;
 import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
@@ -37,6 +39,7 @@ public class AdminController {
     private final ChallengeService challengeService;
     private final TeamService teamService;
     private final ContestConfigService contestConfigService;
+    private final com.mjsec.ctf.service.PaymentService paymentService;
 
     // -------------------------------
     // Challenge 관리
@@ -218,6 +221,42 @@ public class AdminController {
         teamService.deleteMember(teamName, email);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(ResponseMessage.DELETE_TEAM_MEMBER_SUCCESS));
+    }
+
+    @Operation(summary = "팀 마일리지 부여", description = "관리자 권한으로 특정 팀에 마일리지를 부여합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/team/mileage/{teamId}")
+    public ResponseEntity<SuccessResponse<Void>> grantMileageToTeam(
+            @PathVariable Long teamId,
+            @RequestBody GrantMileageDto grantMileageDto
+    ) {
+        teamService.grantMileageToTeam(teamId, grantMileageDto.getMileage());
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.GRANT_MILEAGE_SUCCESS));
+    }
+
+    // -------------------------------
+    // 결제 관리
+    // -------------------------------
+
+    @Operation(summary = "모든 결제 히스토리 조회", description = "관리자 권한으로 모든 팀의 결제 히스토리를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/payment/history")
+    public ResponseEntity<SuccessResponse<List<TeamPaymentHistoryDto>>> getAllPaymentHistory() {
+        List<TeamPaymentHistoryDto> history = paymentService.getAllPaymentHistory();
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.GET_ALL_PAYMENT_HISTORY_SUCCESS, history));
+    }
+
+    @Operation(summary = "결제 철회", description = "관리자 권한으로 결제를 철회하고 마일리지를 환불합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/payment/refund/{paymentHistoryId}")
+    public ResponseEntity<SuccessResponse<Void>> refundPayment(
+            @PathVariable Long paymentHistoryId
+    ) {
+        paymentService.refundPayment(paymentHistoryId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.REFUND_PAYMENT_SUCCESS));
     }
 
     // -------------------------------

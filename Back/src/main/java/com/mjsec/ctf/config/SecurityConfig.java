@@ -88,6 +88,7 @@ public class SecurityConfig {
             .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/payment/qr-token").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
+            .requestMatchers("/api/payment/history").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/server-time").permitAll()
 
