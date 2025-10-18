@@ -1,12 +1,15 @@
 name: Docker Compose CI
 
 on:
-  push: { branches: [ dev ] }
-  pull_request: { branches: [ dev ] }
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
+
     env:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
@@ -19,11 +22,17 @@ jobs:
       GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       API_KEY: ${{ secrets.API_KEY }}
-      API_URL: ${{ secrets.API_URL }}             
+      API_URL: ${{ secrets.API_URL }}
       BUCKET: ${{ secrets.BUCKET }}
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
       GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
+      IMAGE_TAG: ci
+      SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION: /dev/null
+      SPRING_CLOUD_GCP_STORAGE_BUCKET: ${{ secrets.BUCKET }}
+      DOMAIN: localhost
+      WWW_DOMAIN: localhost
+
     steps:
       - uses: actions/checkout@v4
 
@@ -40,22 +49,26 @@ jobs:
             echo "GMAIL_USERNAME=${{ env.GMAIL_USERNAME }}"
             echo "GMAIL_APP_PASSWORD=${{ env.GMAIL_APP_PASSWORD }}"
             echo "API_KEY=${{ env.API_KEY }}"
-            echo "API_URL=${{ env.API_URL }}"        
+            echo "API_URL=${{ env.API_URL }}"
             echo "BUCKET=${{ env.BUCKET }}"
             echo "LOCATION=${{ env.LOCATION }}"
             echo "PROJECT_ID=${{ env.PROJECT_ID }}"
             echo "GCP_JSON_FILE=${{ env.GCP_JSON_FILE }}"
-            echo "HOST_GCP_JSON_PATH=/dev/null"       # 
+            echo "HOST_GCP_JSON_PATH=/dev/null"
+            echo "DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}"
+            echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
+            echo "SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION=${{ env.SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION }}"
+            echo "SPRING_CLOUD_GCP_STORAGE_BUCKET=${{ env.SPRING_CLOUD_GCP_STORAGE_BUCKET }}"
+            echo "DOMAIN=${{ env.DOMAIN }}"
+            echo "WWW_DOMAIN=${{ env.WWW_DOMAIN }}"
           } > .env
           cat .env | sed 's/^\(.*PASSWORD\|JWT_SECRET\|API_KEY\)=.*/\1=****/'
 
-      # ubuntu-latest는 Compose v2 기본 탑재 → 굳이 설치 불필요
       - name: Show Docker versions
         run: |
           docker --version
           docker compose version
 
-      # ✅ CI에서는 db/redis/backend만 기동 (nginx/certbot/frontend 미기동)
       - name: Docker Compose Up (db/redis/backend)
         run: |
           docker compose up -d db redis backend
@@ -65,11 +78,15 @@ jobs:
         run: |
           for i in $(seq 1 30); do
             if docker compose exec -T db mysqladmin ping -h 127.0.0.1 -uroot -p"${{ env.DB_PASSWORD }}" --silent; then
-              echo "MySQL is ready"; exit 0
+              echo "MySQL is ready"
+              exit 0
             fi
-            echo "Waiting for MySQL... ($i/30)"; sleep 2
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
           done
-          echo "MySQL did not become ready"; docker compose logs db; exit 1
+          echo "MySQL did not become ready"
+          docker compose logs db
+          exit 1
 
       - name: Run Gradle Tests in Docker
         run: docker compose run --rm test
