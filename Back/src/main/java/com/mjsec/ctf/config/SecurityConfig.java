@@ -90,6 +90,7 @@ public class SecurityConfig {
             .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
             .requestMatchers("/api/payment/history").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
+            .requestMatchers("/api/team/history").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/server-time").permitAll()
 
             // 🔐 Signature: 사용자용 엔드포인트 허용
