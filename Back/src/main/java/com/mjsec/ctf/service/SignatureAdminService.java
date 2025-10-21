@@ -7,6 +7,7 @@ import com.mjsec.ctf.dto.SignatureAdminDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.*;
 import com.mjsec.ctf.type.ErrorCode;
+import com.mjsec.ctf.type.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,7 +44,7 @@ public class SignatureAdminService {
     private void assertAdmin() {
         var user = userRepo.findByLoginId(currentLoginId())
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
-        if (!"ROLE_ADMIN".equals(user.getRole())) throw new RestApiException(ErrorCode.FORBIDDEN);
+        if (user.getRole() != UserRole.ROLE_ADMIN) throw new RestApiException(ErrorCode.FORBIDDEN);
     }
 
     private static String sha256Hex(String s) {

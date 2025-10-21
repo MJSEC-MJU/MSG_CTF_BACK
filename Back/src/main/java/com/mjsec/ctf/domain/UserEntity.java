@@ -30,15 +30,9 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false)
     private String univ;
 
-    /* 처음엔 UserRole로 설정했으나 ERD 설계로 String 타입으로 변경
-    @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @Fetch(FetchMode.JOIN)
-    private List<UserRole> role;
-     */
-
     @Column(nullable = false)
-    private String role;
+    private UserRole role;
 
     @Column(nullable = false)
     private int totalPoint;
