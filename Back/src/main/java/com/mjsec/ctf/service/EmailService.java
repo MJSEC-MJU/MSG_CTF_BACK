@@ -1,7 +1,5 @@
-// EmailService.java - 이메일 전송 서비스 (이메일 인증용)
 package com.mjsec.ctf.service;
 
-import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;

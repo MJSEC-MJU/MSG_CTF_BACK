@@ -3,8 +3,6 @@ package com.mjsec.ctf.service;
 import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.dto.TeamLeaderboardDto;    //팀단위 추가
 import com.mjsec.ctf.repository.TeamRepository; //TeamRepository참조
-//import com.mjsec.ctf.domain.LeaderboardEntity;    //개인용은 주석처리
-//import com.mjsec.ctf.repository.LeaderboardRepository;    //개인용 주석처리
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -104,7 +104,7 @@ public class UserService {
 
     //이메일 검사하기
     public void checkEmail(String email){
-        if(!isEmailExists(email)){
+        if(isEmailExists(email)){
             throw new RestApiException(ErrorCode.DUPLICATE_EMAIL);
         }
 
