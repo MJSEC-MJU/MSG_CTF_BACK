@@ -106,7 +106,7 @@ public class AdminController {
                 updatedUser.getUserId(),
                 updatedUser.getEmail(),
                 updatedUser.getLoginId(),
-                updatedUser.getRole(),
+                updatedUser.getRole().name(),
                 updatedUser.getTotalPoint(),
                 updatedUser.getUniv(),
                 updatedUser.getCreatedAt(),
@@ -141,7 +141,7 @@ public class AdminController {
         List<UserEntity> users = userService.getAllUsers();
         List<UserDto.Response> responseList = users.stream()
                 .map(user -> new UserDto.Response(
-                        user.getUserId(), user.getEmail(), user.getLoginId(), user.getRole(),
+                        user.getUserId(), user.getEmail(), user.getLoginId(), user.getRole().name(),
                         user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt()
                 ))
                 .collect(Collectors.toList());
@@ -157,7 +157,7 @@ public class AdminController {
                 user.getUserId(),
                 user.getEmail(),
                 user.getLoginId(),
-                user.getRole(),
+                user.getRole().name(),
                 user.getTotalPoint(),
                 user.getUniv(),
                 user.getCreatedAt(),
