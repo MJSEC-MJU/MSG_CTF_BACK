@@ -5,7 +5,9 @@ import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;
+import com.mjsec.ctf.service.ThreatDetectionService;
 import com.mjsec.ctf.type.ErrorCode;
+import com.mjsec.ctf.util.IPAddressUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,14 +34,17 @@ public class CustomLoginFilter extends GenericFilterBean {
     private final RefreshRepository refreshRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final ThreatDetectionService threatDetectionService;
     private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 변환용
 
     public CustomLoginFilter(UserRepository userRepository, RefreshRepository refreshRepository,
-                             JwtService jwtService, PasswordEncoder passwordEncoder) {
+                             JwtService jwtService, PasswordEncoder passwordEncoder,
+                             ThreatDetectionService threatDetectionService) {
         this.userRepository = userRepository;
         this.refreshRepository = refreshRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
+        this.threatDetectionService = threatDetectionService;
     }
 
     @Override
@@ -73,17 +78,28 @@ public class CustomLoginFilter extends GenericFilterBean {
             return;
         }
 
+        // IP 주소 추출
+        String clientIP = IPAddressUtil.getClientIP(request);
+
         // 아이디 검증 (아이디가 존재하지 않는 경우)
         var user = userRepository.findByLoginId(loginRequest.getLoginId()).orElse(null);
         if (user == null) {
-            log.warn("Invalid login attempt with non-existing ID: {}", loginRequest.getLoginId());
+            log.warn("Invalid login attempt with non-existing ID: {} from IP: {}", loginRequest.getLoginId(), clientIP);
+
+            // 🚨 로그인 실패 기록
+            threatDetectionService.recordLoginFailure(clientIP, loginRequest.getLoginId());
+
             sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.INVALID_LOGIN_ID);
             return;
         }
 
         // 비밀번호 검증 (비밀번호가 틀린 경우)
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            log.warn("Invalid login attempt: Incorrect password for user: {}", loginRequest.getLoginId());
+            log.warn("Invalid login attempt: Incorrect password for user: {} from IP: {}", loginRequest.getLoginId(), clientIP);
+
+            // 🚨 로그인 실패 기록
+            threatDetectionService.recordLoginFailure(clientIP, loginRequest.getLoginId());
+
             sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.INVALID_PASSWORD);
             return;
         }

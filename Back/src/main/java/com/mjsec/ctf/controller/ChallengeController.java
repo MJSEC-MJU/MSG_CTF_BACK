@@ -6,7 +6,10 @@ import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.ChallengeDto.Simple;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.service.JwtService;
+import com.mjsec.ctf.service.ThreatDetectionService;
 import com.mjsec.ctf.type.ResponseMessage;
+import com.mjsec.ctf.util.IPAddressUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +39,7 @@ public class ChallengeController {
 
     private final JwtService jwtService;
     private final ChallengeService challengeService;
+    private final ThreatDetectionService threatDetectionService;
 
     @Operation(summary = "모든 문제 조회", description = "모든 문제의 id와 points를 반환합니다.")
     @GetMapping("/all")
@@ -87,14 +91,18 @@ public class ChallengeController {
     public ResponseEntity<SuccessResponse<String>> submitChallenge(
             @PathVariable Long challengeId,
             @RequestBody FlagDto flagDto,
-            @RequestHeader("Authorization") String authorizationHeader) {
+            @RequestHeader("Authorization") String authorizationHeader,
+            HttpServletRequest request) {
 
         String token = authorizationHeader.substring(7);
         String loginId = jwtService.getLoginId(token);
-
         String flag = flagDto.getSubmitFlag();
 
-        String result = challengeService.submit(loginId, challengeId, flag);
+        // IP 주소 추출
+        String clientIP = IPAddressUtil.getClientIP(request);
+
+        // 플래그 제출
+        String result = challengeService.submit(loginId, challengeId, flag, clientIP);
 
         if(result.equals("Correct")) {
             return ResponseEntity.status(HttpStatus.OK).body(

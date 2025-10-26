@@ -59,6 +59,9 @@ public class ChallengeService {
     private final TeamSignatureUnlockRepository unlockRepo;
     private final SignatureCodeRepository codeRepo;
 
+    // 공격 탐지 서비스
+    private final ThreatDetectionService threatDetectionService;
+
     @Value("${api.key}")
     private String apiKey;
 
@@ -315,7 +318,7 @@ public class ChallengeService {
     }
 
     @Transactional
-    public String submit(String loginId, Long challengeId, String flag) {
+    public String submit(String loginId, Long challengeId, String flag, String clientIP) {
 
         String lockKey = "challengeLock:" + challengeId;
         RLock lock = redissonClient.getLock(lockKey);
@@ -388,8 +391,15 @@ public class ChallengeService {
                 submission.setAttemptCount(submission.getAttemptCount() + 1);
                 submission.setLastAttemptTime(LocalDateTime.now());
                 submissionRepository.save(submission);
+
+                // 🚨 오답 제출 시 공격 감지 시스템에 기록
+                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId);
+
                 return "Wrong";
             } else {
+
+                // ✅ 정답 제출 시 기록 (자동 차단 방지)
+                threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId);
 
                 HistoryEntity history = HistoryEntity.builder()
                         .loginId(user.getLoginId())

@@ -2,11 +2,15 @@ package com.mjsec.ctf.config;
 
 import com.mjsec.ctf.filter.CustomLoginFilter;
 import com.mjsec.ctf.filter.CustomLogoutFilter;
+import com.mjsec.ctf.filter.IPBanFilter;
+import com.mjsec.ctf.filter.ThreatDetectionFilter;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
 import com.mjsec.ctf.repository.RefreshRepository;
 import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.filter.JwtFilter;
+import com.mjsec.ctf.service.IPBanService;
 import com.mjsec.ctf.service.JwtService;
+import com.mjsec.ctf.service.ThreatDetectionService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
@@ -32,14 +36,19 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final IPBanService ipBanService;
+    private final ThreatDetectionService threatDetectionService;
 
     public SecurityConfig(JwtService jwtService, RefreshRepository refreshRepository, UserRepository userRepository,
-                          PasswordEncoder passwordEncoder, BlacklistedTokenRepository blacklistedTokenRepository) {
+                          PasswordEncoder passwordEncoder, BlacklistedTokenRepository blacklistedTokenRepository,
+                          IPBanService ipBanService, ThreatDetectionService threatDetectionService) {
         this.jwtService = jwtService;
         this.refreshRepository = refreshRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
+        this.ipBanService = ipBanService;
+        this.threatDetectionService = threatDetectionService;
     }
 
     @Bean
@@ -68,8 +77,14 @@ public class SecurityConfig {
         http.formLogin(form -> form.disable());
         http.httpBasic(basic -> basic.disable());
 
+        // IP 밴 필터 (최우선 순위로 등록)
+        http.addFilterBefore(new IPBanFilter(ipBanService), UsernamePasswordAuthenticationFilter.class);
+
+        // 공격 탐지 필터 (Rate Limiting, SQL Injection/XSS 감지)
+        http.addFilterAfter(new ThreatDetectionFilter(threatDetectionService), IPBanFilter.class);
+
         // JWT 필터
-        http.addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder),
+        http.addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder, threatDetectionService),
                     UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new JwtFilter(jwtService, blacklistedTokenRepository),
                     UsernamePasswordAuthenticationFilter.class)
