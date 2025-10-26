@@ -235,7 +235,7 @@ public class ThreatDetectionService {
      * 의심스러운 페이로드 감지 (OWASP ModSecurity CRS 기반)
      */
     @Transactional
-    public boolean detectSuspiciousPayload(String ipAddress, HttpServletRequest request, Long userId, String loginId) {
+    public boolean detectSuspiciousPayload(String ipAddress, HttpServletRequest request, Long userId, String loginId, boolean isAdmin) {
         if (!autoBanConfig.isAutoBanEnabled()) {
             return false;
         }
@@ -349,31 +349,39 @@ public class ThreatDetectionService {
             activity.setActivityType(IPActivityEntity.ActivityType.SUSPICIOUS_PAYLOAD);
             activity.setActivityTime(LocalDateTime.now());
             activity.setRequestUri(requestUri);
-            activity.setDetails(attackType + " | " + suspiciousContent);
+            activity.setDetails(attackType + " | " + suspiciousContent + (isAdmin ? " | [ADMIN]" : ""));
             activity.setIsSuspicious(true);
             activity.setUserId(userId);
             activity.setLoginId(loginId);
             ipActivityRepository.save(activity);
 
-            log.warn("Suspicious Payload Detected: IP {} | Type: {} | URI: {}",
-                     ipAddress, attackType, requestUri);
+            if (isAdmin) {
+                log.warn("Suspicious Payload Detected (ADMIN - Not Banned): IP {} | User: {} | Type: {} | URI: {}",
+                         ipAddress, loginId, attackType, requestUri);
+            } else {
+                log.warn("Suspicious Payload Detected: IP {} | User: {} | Type: {} | URI: {}",
+                         ipAddress, loginId != null ? loginId : "Anonymous", attackType, requestUri);
+            }
 
-            // 3회 이상 의심 활동 시 차단
-            LocalDateTime checkSince = LocalDateTime.now().minusHours(1);
-            long suspiciousCount = ipActivityRepository.countByIpAndTypeAndTimeSince(
-                ipAddress,
-                IPActivityEntity.ActivityType.SUSPICIOUS_PAYLOAD,
-                checkSince
-            );
-
-            if (suspiciousCount >= autoBanConfig.getSuspiciousPayloadMaxAttempts()) {
-                autoBanIP(
+            // ADMIN이 아닐 경우에만 자동 차단
+            if (!isAdmin) {
+                // 3회 이상 의심 활동 시 차단
+                LocalDateTime checkSince = LocalDateTime.now().minusHours(1);
+                long suspiciousCount = ipActivityRepository.countByIpAndTypeAndTimeSince(
                     ipAddress,
-                    String.format("%s 공격 시도 감지 (%d회)", attackType, suspiciousCount),
-                    autoBanConfig.getSuspiciousPayloadBanDurationMinutes(),
-                    loginId
+                    IPActivityEntity.ActivityType.SUSPICIOUS_PAYLOAD,
+                    checkSince
                 );
-                return true; // 차단
+
+                if (suspiciousCount >= autoBanConfig.getSuspiciousPayloadMaxAttempts()) {
+                    autoBanIP(
+                        ipAddress,
+                        String.format("%s 공격 시도 감지 (%d회)", attackType, suspiciousCount),
+                        autoBanConfig.getSuspiciousPayloadBanDurationMinutes(),
+                        loginId
+                    );
+                    return true; // 차단
+                }
             }
         }
 

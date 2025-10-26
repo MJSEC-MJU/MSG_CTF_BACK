@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
@@ -39,13 +40,16 @@ public class ThreatDetectionFilter implements Filter {
         // 사용자 정보 추출 (JWT 인증된 경우)
         Long userId = null;
         String loginId = null;
+        boolean isAdmin = false;
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication != null && authentication.isAuthenticated()
                     && !authentication.getPrincipal().equals("anonymousUser")) {
                 loginId = authentication.getName();
-                // CustomUserDetails에서 userId를 추출하려면 별도 처리 필요
-                // 현재는 loginId만 사용
+                // ADMIN 권한 확인
+                isAdmin = authentication.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch(role -> role.equals("ROLE_ADMIN"));
             }
         } catch (Exception e) {
             // 인증 정보 없음 (익명 사용자)
@@ -62,9 +66,9 @@ public class ThreatDetectionFilter implements Filter {
             return;
         }
 
-        // 2. SQL Injection / XSS 페이로드 감지
-        boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest, userId, loginId);
-        if (isSuspicious) {
+        // 2. SQL Injection / XSS 페이로드 감지 (ADMIN도 탐지되지만 차단은 안됨)
+        boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest, userId, loginId, isAdmin);
+        if (isSuspicious && !isAdmin) {
             log.warn("Suspicious payload detected from IP: {} | User: {} | URI: {}", clientIP, loginId != null ? loginId : "Anonymous", requestUri);
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
             httpResponse.setContentType("application/json");
