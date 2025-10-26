@@ -235,7 +235,7 @@ public class ThreatDetectionService {
      * 의심스러운 페이로드 감지 (OWASP ModSecurity CRS 기반)
      */
     @Transactional
-    public boolean detectSuspiciousPayload(String ipAddress, HttpServletRequest request) {
+    public boolean detectSuspiciousPayload(String ipAddress, HttpServletRequest request, Long userId, String loginId) {
         if (!autoBanConfig.isAutoBanEnabled()) {
             return false;
         }
@@ -351,6 +351,8 @@ public class ThreatDetectionService {
             activity.setRequestUri(requestUri);
             activity.setDetails(attackType + " | " + suspiciousContent);
             activity.setIsSuspicious(true);
+            activity.setUserId(userId);
+            activity.setLoginId(loginId);
             ipActivityRepository.save(activity);
 
             log.warn("Suspicious Payload Detected: IP {} | Type: {} | URI: {}",
@@ -369,7 +371,7 @@ public class ThreatDetectionService {
                     ipAddress,
                     String.format("%s 공격 시도 감지 (%d회)", attackType, suspiciousCount),
                     autoBanConfig.getSuspiciousPayloadBanDurationMinutes(),
-                    null
+                    loginId
                 );
                 return true; // 차단
             }

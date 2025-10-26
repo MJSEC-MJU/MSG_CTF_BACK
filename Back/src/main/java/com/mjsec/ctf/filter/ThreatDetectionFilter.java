@@ -6,6 +6,8 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 
@@ -34,6 +36,21 @@ public class ThreatDetectionFilter implements Filter {
         String clientIP = IPAddressUtil.getClientIP(httpRequest);
         String requestUri = httpRequest.getRequestURI();
 
+        // 사용자 정보 추출 (JWT 인증된 경우)
+        Long userId = null;
+        String loginId = null;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()
+                    && !authentication.getPrincipal().equals("anonymousUser")) {
+                loginId = authentication.getName();
+                // CustomUserDetails에서 userId를 추출하려면 별도 처리 필요
+                // 현재는 loginId만 사용
+            }
+        } catch (Exception e) {
+            // 인증 정보 없음 (익명 사용자)
+        }
+
         // 1. Rate Limiting 체크
         boolean rateLimitPassed = threatDetectionService.checkRateLimit(clientIP, requestUri);
         if (!rateLimitPassed) {
@@ -46,9 +63,9 @@ public class ThreatDetectionFilter implements Filter {
         }
 
         // 2. SQL Injection / XSS 페이로드 감지
-        boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest);
+        boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest, userId, loginId);
         if (isSuspicious) {
-            log.warn("Suspicious payload detected from IP: {} | URI: {}", clientIP, requestUri);
+            log.warn("Suspicious payload detected from IP: {} | User: {} | URI: {}", clientIP, loginId != null ? loginId : "Anonymous", requestUri);
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
             httpResponse.setContentType("application/json");
             httpResponse.setCharacterEncoding("UTF-8");
