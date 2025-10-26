@@ -112,7 +112,7 @@ public class ThreatDetectionService {
      * 플래그 오답 기록 및 브루트포스 감지
      */
     @Transactional
-    public void recordFlagAttempt(String ipAddress, boolean isCorrect, Long challengeId, Long userId, String loginId) {
+    public void recordFlagAttempt(String ipAddress, boolean isCorrect, Long challengeId, Long userId, String loginId, boolean isInternalIP) {
         if (isCorrect || !autoBanConfig.isAutoBanEnabled()) {
             return;
         }
@@ -123,10 +123,16 @@ public class ThreatDetectionService {
         activity.setActivityType(IPActivityEntity.ActivityType.FLAG_SUBMIT_WRONG);
         activity.setActivityTime(LocalDateTime.now());
         activity.setRequestUri("/api/challenges/" + challengeId + "/submit");
-        activity.setDetails("Challenge ID: " + challengeId);
+        activity.setDetails("Challenge ID: " + challengeId + (isInternalIP ? " | [INTERNAL IP]" : ""));
         activity.setUserId(userId);
         activity.setLoginId(loginId);
         ipActivityRepository.save(activity);
+
+        // 내부 IP는 기록만 하고 차단하지 않음
+        if (isInternalIP) {
+            log.info("Flag brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            return;
+        }
 
         // 브루트포스 감지
         LocalDateTime checkSince = LocalDateTime.now()
@@ -153,7 +159,7 @@ public class ThreatDetectionService {
      * 로그인 실패 기록 및 브루트포스 감지
      */
     @Transactional
-    public void recordLoginFailure(String ipAddress, String attemptedLoginId) {
+    public void recordLoginFailure(String ipAddress, String attemptedLoginId, boolean isInternalIP) {
         if (!autoBanConfig.isAutoBanEnabled()) {
             return;
         }
@@ -164,8 +170,14 @@ public class ThreatDetectionService {
         activity.setActivityType(IPActivityEntity.ActivityType.LOGIN_FAILED);
         activity.setActivityTime(LocalDateTime.now());
         activity.setRequestUri("/api/users/sign-in");
-        activity.setDetails("Attempted login ID: " + attemptedLoginId);
+        activity.setDetails("Attempted login ID: " + attemptedLoginId + (isInternalIP ? " | [INTERNAL IP]" : ""));
         ipActivityRepository.save(activity);
+
+        // 내부 IP는 기록만 하고 차단하지 않음
+        if (isInternalIP) {
+            log.info("Login brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            return;
+        }
 
         // 브루트포스 감지
         LocalDateTime checkSince = LocalDateTime.now()
@@ -257,7 +269,7 @@ public class ThreatDetectionService {
      * 의심스러운 페이로드 감지 (OWASP ModSecurity CRS 기반)
      */
     @Transactional
-    public boolean detectSuspiciousPayload(String ipAddress, HttpServletRequest request, Long userId, String loginId, boolean isAdmin) {
+    public boolean detectSuspiciousPayload(String ipAddress, HttpServletRequest request, Long userId, String loginId, boolean isAdmin, boolean isInternalIP) {
         if (!autoBanConfig.isAutoBanEnabled()) {
             return false;
         }
@@ -380,13 +392,16 @@ public class ThreatDetectionService {
             if (isAdmin) {
                 log.warn("Suspicious Payload Detected (ADMIN - Not Banned): IP {} | User: {} | Type: {} | URI: {}",
                          ipAddress, loginId, attackType, requestUri);
+            } else if (isInternalIP) {
+                log.warn("Suspicious Payload Detected (INTERNAL IP - Not Banned): IP {} | User: {} | Type: {} | URI: {}",
+                         ipAddress, loginId != null ? loginId : "Anonymous", attackType, requestUri);
             } else {
                 log.warn("Suspicious Payload Detected: IP {} | User: {} | Type: {} | URI: {}",
                          ipAddress, loginId != null ? loginId : "Anonymous", attackType, requestUri);
             }
 
-            // ADMIN이 아닐 경우에만 자동 차단
-            if (!isAdmin) {
+            // ADMIN이나 내부 IP가 아닐 경우에만 자동 차단
+            if (!isAdmin && !isInternalIP) {
                 // 3회 이상 의심 활동 시 차단
                 LocalDateTime checkSince = LocalDateTime.now().minusHours(1);
                 long suspiciousCount = ipActivityRepository.countByIpAndTypeAndTimeSince(
@@ -414,7 +429,7 @@ public class ThreatDetectionService {
      * 404 접근 기록 및 스캐닝 감지
      */
     @Transactional
-    public void recordNotFoundAccess(String ipAddress, String requestUri) {
+    public void recordNotFoundAccess(String ipAddress, String requestUri, boolean isInternalIP) {
         if (!autoBanConfig.isAutoBanEnabled()) {
             return;
         }
@@ -425,7 +440,14 @@ public class ThreatDetectionService {
         activity.setActivityType(IPActivityEntity.ActivityType.NOT_FOUND_ACCESS);
         activity.setActivityTime(LocalDateTime.now());
         activity.setRequestUri(requestUri);
+        activity.setDetails(isInternalIP ? "[INTERNAL IP]" : null);
         ipActivityRepository.save(activity);
+
+        // 내부 IP는 기록만 하고 차단하지 않음
+        if (isInternalIP) {
+            log.info("404 scanning detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            return;
+        }
 
         // 스캐닝 감지
         LocalDateTime checkSince = LocalDateTime.now()

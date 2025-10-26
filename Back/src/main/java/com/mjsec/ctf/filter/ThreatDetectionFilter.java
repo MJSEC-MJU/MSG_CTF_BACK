@@ -72,7 +72,7 @@ public class ThreatDetectionFilter implements Filter {
         }
 
         // 2. SQL Injection / XSS 페이로드 감지 (ADMIN 및 내부 IP는 탐지되지만 차단은 안됨)
-        boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest, userId, loginId, isAdmin);
+        boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest, userId, loginId, isAdmin, isInternalIP);
         if (isSuspicious && !isAdmin && !isInternalIP) {
             log.warn("Suspicious payload detected from IP: {} | User: {} | URI: {}", clientIP, loginId != null ? loginId : "Anonymous", requestUri);
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);

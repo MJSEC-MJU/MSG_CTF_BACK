@@ -11,6 +11,7 @@ import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.*;
 import com.mjsec.ctf.type.ErrorCode;
+import com.mjsec.ctf.util.IPAddressUtil;
 import io.micrometer.common.util.StringUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -323,6 +324,7 @@ public class ChallengeService {
         String lockKey = "challengeLock:" + challengeId;
         RLock lock = redissonClient.getLock(lockKey);
         boolean locked = false;
+        boolean isInternalIP = IPAddressUtil.isLocalIP(clientIP);
 
         try {
             locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
@@ -393,13 +395,13 @@ public class ChallengeService {
                 submissionRepository.save(submission);
 
                 // 🚨 오답 제출 시 공격 감지 시스템에 기록
-                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId);
+                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId, isInternalIP);
 
                 return "Wrong";
             } else {
 
                 // ✅ 정답 제출 시 기록 (자동 차단 방지)
-                threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId);
+                threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId, isInternalIP);
 
                 HistoryEntity history = HistoryEntity.builder()
                         .loginId(user.getLoginId())
