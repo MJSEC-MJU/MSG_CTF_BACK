@@ -52,6 +52,7 @@ public class IPActivityEntity extends BaseEntity {
     private String loginId;
 
     public enum ActivityType {
+        LOGIN_SUCCESS,          // 로그인 성공
         LOGIN_FAILED,           // 로그인 실패
         FLAG_SUBMIT_WRONG,      // 플래그 오답
         API_REQUEST,            // API 요청

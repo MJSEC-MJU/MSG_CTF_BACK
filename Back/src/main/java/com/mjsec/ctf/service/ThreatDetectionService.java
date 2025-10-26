@@ -189,6 +189,26 @@ public class ThreatDetectionService {
     }
 
     /**
+     * 로그인 성공 기록
+     */
+    @Transactional
+    public void recordLoginSuccess(String ipAddress, String loginId, Long userId) {
+        // 로그인 성공 활동 기록
+        IPActivityEntity activity = new IPActivityEntity();
+        activity.setIpAddress(ipAddress);
+        activity.setActivityType(IPActivityEntity.ActivityType.LOGIN_SUCCESS);
+        activity.setActivityTime(LocalDateTime.now());
+        activity.setRequestUri("/api/users/sign-in");
+        activity.setDetails("Successful login: " + loginId);
+        activity.setLoginId(loginId);
+        activity.setUserId(userId);
+        activity.setIsSuspicious(false);
+        ipActivityRepository.save(activity);
+
+        log.info("Login success recorded: IP {} | User: {}", ipAddress, loginId);
+    }
+
+    /**
      * API Rate Limiting 체크
      */
     @Transactional

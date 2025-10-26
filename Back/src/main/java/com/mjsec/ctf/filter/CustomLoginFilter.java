@@ -104,6 +104,9 @@ public class CustomLoginFilter extends GenericFilterBean {
             return;
         }
 
+        // 로그인 성공 기록
+        threatDetectionService.recordLoginSuccess(clientIP, user.getLoginId(), user.getUserId());
+
         // JWT 토큰 발급
         final long ACCESS_TOKEN_EXPIRY = 3_600_000L; // 1시간
         final long REFRESH_TOKEN_EXPIRY = 43_200_000L; // 12시간
