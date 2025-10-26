@@ -271,7 +271,7 @@ public class IPBanService {
         List<Object[]> results = ipActivityRepository.findSuspiciousIPsSummary(since);
 
         // 차단된 IP 목록 조회
-        List<String> bannedIPs = ipBanRepository.findAllActive().stream()
+        List<String> bannedIPs = ipBanRepository.findAllActiveBans().stream()
                 .map(IPBanEntity::getIpAddress)
                 .collect(Collectors.toList());
 
