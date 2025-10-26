@@ -80,9 +80,6 @@ public class SecurityConfig {
         // IP 밴 필터 (최우선 순위로 등록)
         http.addFilterBefore(new IPBanFilter(ipBanService), UsernamePasswordAuthenticationFilter.class);
 
-        // 공격 탐지 필터 (Rate Limiting, SQL Injection/XSS 감지)
-        http.addFilterAfter(new ThreatDetectionFilter(threatDetectionService), IPBanFilter.class);
-
         // JWT 필터
         http.addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder, threatDetectionService),
                     UsernamePasswordAuthenticationFilter.class)
@@ -90,6 +87,9 @@ public class SecurityConfig {
                     UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository, blacklistedTokenRepository),
                     LogoutFilter.class);
+
+        // 공격 탐지 필터 (JWT 인증 이후 실행하여 사용자 정보 추출 가능)
+        http.addFilterAfter(new ThreatDetectionFilter(threatDetectionService), JwtFilter.class);
 
         // 인가 규칙
         http.authorizeHttpRequests(auth -> auth
