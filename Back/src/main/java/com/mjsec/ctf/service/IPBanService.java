@@ -261,4 +261,28 @@ public class IPBanService {
                 .limit(maxLimit)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 의심스러운 IP 목록 조회 (집계)
+     */
+    @Transactional(readOnly = true)
+    public List<com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary> getSuspiciousIPsSummary(Integer hoursBack) {
+        LocalDateTime since = LocalDateTime.now().minusHours(hoursBack != null ? hoursBack : 24);
+        List<Object[]> results = ipActivityRepository.findSuspiciousIPsSummary(since);
+
+        // 차단된 IP 목록 조회
+        List<String> bannedIPs = ipBanRepository.findAllActive().stream()
+                .map(IPBanEntity::getIpAddress)
+                .collect(Collectors.toList());
+
+        return results.stream()
+                .map(row -> com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary.builder()
+                        .ipAddress((String) row[0])
+                        .suspiciousCount(((Number) row[1]).longValue())
+                        .lastActivityTime((LocalDateTime) row[2])
+                        .lastLoginId((String) row[3])
+                        .isBanned(bannedIPs.contains(row[0]))
+                        .build())
+                .collect(Collectors.toList());
+    }
 }

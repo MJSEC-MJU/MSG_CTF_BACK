@@ -55,7 +55,8 @@ public enum ResponseMessage {
     GET_BAN_INFO_SUCCESS("IP 차단 정보 조회 성공"),
     IP_BAN_EXTEND_SUCCESS("IP 차단 연장 성공"),
     CACHE_REBUILD_SUCCESS("캐시 재구축 성공"),
-    IP_ACTIVITY_LOG_SUCCESS("IP 활동 로그 조회 성공");
+    IP_ACTIVITY_LOG_SUCCESS("IP 활동 로그 조회 성공"),
+    IP_SUSPICIOUS_LIST_SUCCESS("의심스러운 IP 목록 조회 성공");
 
     private final String message;
 }

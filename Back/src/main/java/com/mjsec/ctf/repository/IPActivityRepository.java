@@ -63,4 +63,15 @@ public interface IPActivityRepository extends JpaRepository<IPActivityEntity, Lo
            "AND a.activityType = :activityType AND a.activityTime >= :since " +
            "ORDER BY a.activityTime DESC")
     List<IPActivityEntity> findByIpAndType(String ipAddress, IPActivityEntity.ActivityType activityType, LocalDateTime since);
+
+    /**
+     * 의심스러운 IP 집계 (IP별 의심 활동 횟수)
+     * 차단되지 않은 IP 중에서 의심 활동이 많은 순으로 정렬
+     */
+    @Query("SELECT a.ipAddress, COUNT(a), MAX(a.activityTime), MAX(a.loginId) " +
+           "FROM IPActivityEntity a " +
+           "WHERE a.isSuspicious = true AND a.activityTime >= :since " +
+           "GROUP BY a.ipAddress " +
+           "ORDER BY COUNT(a) DESC")
+    List<Object[]> findSuspiciousIPsSummary(LocalDateTime since);
 }

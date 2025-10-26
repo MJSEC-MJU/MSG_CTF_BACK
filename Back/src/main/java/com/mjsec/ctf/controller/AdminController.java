@@ -434,6 +434,16 @@ public class AdminController {
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_ACTIVITY_LOG_SUCCESS, response));
     }
 
+    @Operation(summary = "의심스러운 IP 목록 조회", description = "관리자 권한으로 의심 활동이 많은 IP 목록을 집계하여 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-suspicious")
+    public ResponseEntity<SuccessResponse<List<com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary>>> getSuspiciousIPs(
+            @RequestParam(required = false, defaultValue = "24") Integer hoursBack
+    ) {
+        List<com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary> suspiciousIPs = ipBanService.getSuspiciousIPsSummary(hoursBack);
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_SUSPICIOUS_LIST_SUCCESS, suspiciousIPs));
+    }
+
     // 파일명 한글 대응
     private String encodeFilename(String filename) {
         // RFC 5987

@@ -52,4 +52,19 @@ public class IPActivityDto {
         private Boolean isSuspicious;  // 의심스러운 활동만 (선택)
         private Integer limit;         // 최대 개수 (기본 100)
     }
+
+    /**
+     * 의심스러운 IP 집계 DTO
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SuspiciousIPSummary {
+        private String ipAddress;              // IP 주소
+        private Long suspiciousCount;          // 의심 활동 횟수
+        private LocalDateTime lastActivityTime; // 마지막 활동 시간
+        private String lastLoginId;            // 마지막 로그인 ID
+        private Boolean isBanned;              // 현재 차단 여부
+    }
 }
