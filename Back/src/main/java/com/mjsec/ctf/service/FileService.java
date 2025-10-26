@@ -67,13 +67,13 @@ public class FileService {
 
         // Path Traversal 패턴 검증
         if (!PathTraversalValidator.isValidFilename(fileId)) {
-            log.error("🚨 Path Traversal Attack Blocked: fileId = {}", fileId);
+            log.error("Path Traversal Attack Blocked: fileId = {}", fileId);
             throw new SecurityException("Invalid file ID: Path traversal detected");
         }
 
         // UUID 형식 검증 (GCP Storage는 UUID 사용)
         if (!PathTraversalValidator.isValidUUID(fileId)) {
-            log.error("🚨 Invalid UUID Format: fileId = {}", fileId);
+            log.error("Invalid UUID Format: fileId = {}", fileId);
             throw new IllegalArgumentException("Invalid file ID format: Must be UUID");
         }
 

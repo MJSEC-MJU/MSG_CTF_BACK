@@ -52,26 +52,26 @@ public class PathTraversalValidator {
 
         // 1. Path Traversal 패턴 체크 (../, ..\, 인코딩된 버전)
         if (PATH_TRAVERSAL_PATTERN.matcher(filename).matches()) {
-            log.warn("🚨 Path Traversal Attack Detected: {} | Pattern: Directory Traversal", filename);
+            log.warn("Path Traversal Attack Detected: {} | Pattern: Directory Traversal", filename);
             return false;
         }
 
         // 2. 절대 경로 체크 (/, \, C:, 인코딩된 버전)
         if (ABSOLUTE_PATH_PATTERN.matcher(filename).matches()) {
-            log.warn("🚨 Path Traversal Attack Detected: {} | Pattern: Absolute Path", filename);
+            log.warn("Path Traversal Attack Detected: {} | Pattern: Absolute Path", filename);
             return false;
         }
 
         // 3. Null 바이트 인젝션 체크
         if (NULL_BYTE_PATTERN.matcher(filename).matches()) {
-            log.warn("🚨 Path Traversal Attack Detected: {} | Pattern: Null Byte Injection", filename);
+            log.warn("Path Traversal Attack Detected: {} | Pattern: Null Byte Injection", filename);
             return false;
         }
 
         // 4. 제어 문자 체크
         for (char c : filename.toCharArray()) {
             if (Character.isISOControl(c)) {
-                log.warn("🚨 Path Traversal Attack Detected: {} | Pattern: Control Character", filename);
+                log.warn("Path Traversal Attack Detected: {} | Pattern: Control Character", filename);
                 return false;
             }
         }
@@ -91,7 +91,7 @@ public class PathTraversalValidator {
         }
 
         if (DANGEROUS_EXTENSION.matcher(filename).matches()) {
-            log.warn("🚨 Dangerous File Extension Detected: {}", filename);
+            log.warn("Dangerous File Extension Detected: {}", filename);
             return false;
         }
 
@@ -145,7 +145,7 @@ public class PathTraversalValidator {
 
             // Canonical Path 비교로 심볼릭 링크 우회 방지
             if (!file.getCanonicalPath().startsWith(base.getCanonicalPath())) {
-                log.warn("🚨 Path Traversal Attack Detected: {} escapes base directory {}",
+                log.warn("Path Traversal Attack Detected: {} escapes base directory {}",
                          filePath, baseDirectory);
                 return false;
             }

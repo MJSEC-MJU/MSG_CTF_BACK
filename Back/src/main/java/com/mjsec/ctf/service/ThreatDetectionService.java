@@ -213,7 +213,7 @@ public class ThreatDetectionService {
         // Rate Limit 초과 시 경고만 로그에 남기고 차단은 하지 않음
         // (정상 사용자가 새로고침 등으로 많은 요청을 보낼 수 있음)
         if (recentRequests >= autoBanConfig.getRateLimitMaxRequestsPerSecond()) {
-            log.warn("⚠️ Rate Limit Warning: IP {} | {} requests/sec | URI: {}",
+            log.warn("Rate Limit Warning: IP {} | {} requests/sec | URI: {}",
                      ipAddress, recentRequests, requestUri);
 
             // 극단적인 경우만 차단 (1초에 200회 이상)
@@ -353,7 +353,7 @@ public class ThreatDetectionService {
             activity.setIsSuspicious(true);
             ipActivityRepository.save(activity);
 
-            log.warn("🚨 Suspicious Payload Detected: IP {} | Type: {} | URI: {}",
+            log.warn("Suspicious Payload Detected: IP {} | Type: {} | URI: {}",
                      ipAddress, attackType, requestUri);
 
             // 3회 이상 의심 활동 시 차단
@@ -436,7 +436,7 @@ public class ThreatDetectionService {
                 "AUTO_BAN_SYSTEM"
             );
 
-            log.warn("🚨 Auto-banned IP: {} | Reason: {} | Duration: {} minutes | Detected User: {}",
+            log.warn("Auto-banned IP: {} | Reason: {} | Duration: {} minutes | Detected User: {}",
                 ipAddress, reason, durationMinutes, detectedLoginId != null ? detectedLoginId : "Unknown");
         } catch (Exception e) {
             log.error("Failed to auto-ban IP {}: {}", ipAddress, e.getMessage(), e);
