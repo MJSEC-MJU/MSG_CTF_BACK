@@ -77,17 +77,33 @@ public class IPAddressUtil {
     }
 
     /**
-     * 로컬 IP인지 확인
+     * 로컬 IP인지 확인 (내부 네트워크 포함)
      */
     public static boolean isLocalIP(String ip) {
         if (ip == null) {
             return false;
         }
 
-        return ip.startsWith("127.") ||
-               ip.startsWith("192.168.") ||
-               ip.startsWith("10.") ||
-               ip.equals("::1") ||
-               ip.equals("0:0:0:0:0:0:0:1");
+        return ip.startsWith("127.") ||           // localhost
+               ip.startsWith("192.168.") ||       // 사설 네트워크 (Class C)
+               ip.startsWith("10.") ||            // 사설 네트워크 (Class A)
+               ip.startsWith("172.16.") ||        // 사설 네트워크 (Class B) - 172.16.0.0 ~ 172.31.255.255
+               ip.startsWith("172.17.") ||
+               ip.startsWith("172.18.") ||
+               ip.startsWith("172.19.") ||
+               ip.startsWith("172.20.") ||
+               ip.startsWith("172.21.") ||
+               ip.startsWith("172.22.") ||
+               ip.startsWith("172.23.") ||
+               ip.startsWith("172.24.") ||
+               ip.startsWith("172.25.") ||
+               ip.startsWith("172.26.") ||        // Docker 기본 네트워크
+               ip.startsWith("172.27.") ||
+               ip.startsWith("172.28.") ||
+               ip.startsWith("172.29.") ||
+               ip.startsWith("172.30.") ||
+               ip.startsWith("172.31.") ||
+               ip.equals("::1") ||                // IPv6 localhost
+               ip.equals("0:0:0:0:0:0:0:1");     // IPv6 localhost
     }
 }

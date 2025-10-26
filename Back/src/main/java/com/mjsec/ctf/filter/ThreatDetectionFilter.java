@@ -37,6 +37,12 @@ public class ThreatDetectionFilter implements Filter {
         String clientIP = IPAddressUtil.getClientIP(httpRequest);
         String requestUri = httpRequest.getRequestURI();
 
+        // 내부 네트워크 IP는 로그 제외 (localhost, Docker 내부 네트워크 등)
+        if (IPAddressUtil.isLocalIP(clientIP)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // 사용자 정보 추출 (JWT 인증된 경우)
         Long userId = null;
         String loginId = null;
