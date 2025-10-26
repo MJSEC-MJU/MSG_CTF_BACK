@@ -192,7 +192,7 @@ public class ThreatDetectionService {
      * API Rate Limiting 체크
      */
     @Transactional
-    public boolean checkRateLimit(String ipAddress, String requestUri) {
+    public boolean checkRateLimit(String ipAddress, String requestUri, Long userId, String loginId) {
         if (!autoBanConfig.isAutoBanEnabled()) {
             return true; // 통과
         }
@@ -203,6 +203,8 @@ public class ThreatDetectionService {
         activity.setActivityType(IPActivityEntity.ActivityType.API_REQUEST);
         activity.setActivityTime(LocalDateTime.now());
         activity.setRequestUri(requestUri);
+        activity.setUserId(userId);
+        activity.setLoginId(loginId);
         ipActivityRepository.save(activity);
 
         // 1초 내 요청 수 체크

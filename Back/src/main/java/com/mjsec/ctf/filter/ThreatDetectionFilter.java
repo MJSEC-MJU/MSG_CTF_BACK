@@ -55,10 +55,10 @@ public class ThreatDetectionFilter implements Filter {
             // 인증 정보 없음 (익명 사용자)
         }
 
-        // 1. Rate Limiting 체크
-        boolean rateLimitPassed = threatDetectionService.checkRateLimit(clientIP, requestUri);
+        // 1. Rate Limiting 체크 (사용자 정보 포함)
+        boolean rateLimitPassed = threatDetectionService.checkRateLimit(clientIP, requestUri, userId, loginId);
         if (!rateLimitPassed) {
-            log.warn("Rate limit exceeded for IP: {} | URI: {}", clientIP, requestUri);
+            log.warn("Rate limit exceeded for IP: {} | User: {} | URI: {}", clientIP, loginId != null ? loginId : "Anonymous", requestUri);
             httpResponse.setStatus(429); // 429 Too Many Requests
             httpResponse.setContentType("application/json");
             httpResponse.setCharacterEncoding("UTF-8");
