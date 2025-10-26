@@ -37,11 +37,8 @@ public class ThreatDetectionFilter implements Filter {
         String clientIP = IPAddressUtil.getClientIP(httpRequest);
         String requestUri = httpRequest.getRequestURI();
 
-        // 내부 네트워크 IP는 로그 제외 (localhost, Docker 내부 네트워크 등)
-        if (IPAddressUtil.isLocalIP(clientIP)) {
-            chain.doFilter(request, response);
-            return;
-        }
+        // 내부 네트워크 IP 여부 확인 (로그는 남기되 차단은 하지 않음)
+        boolean isInternalIP = IPAddressUtil.isLocalIP(clientIP);
 
         // 사용자 정보 추출 (JWT 인증된 경우)
         Long userId = null;
@@ -63,24 +60,28 @@ public class ThreatDetectionFilter implements Filter {
 
         // 1. Rate Limiting 체크 (사용자 정보 포함)
         boolean rateLimitPassed = threatDetectionService.checkRateLimit(clientIP, requestUri, userId, loginId);
-        if (!rateLimitPassed) {
+        if (!rateLimitPassed && !isInternalIP) {
             log.warn("Rate limit exceeded for IP: {} | User: {} | URI: {}", clientIP, loginId != null ? loginId : "Anonymous", requestUri);
             httpResponse.setStatus(429); // 429 Too Many Requests
             httpResponse.setContentType("application/json");
             httpResponse.setCharacterEncoding("UTF-8");
             httpResponse.getWriter().write("{\"errorCode\":\"RATE_LIMIT_EXCEEDED\",\"message\":\"너무 많은 요청이 감지되어 일시적으로 차단되었습니다.\"}");
             return;
+        } else if (!rateLimitPassed && isInternalIP) {
+            log.info("Rate limit exceeded for INTERNAL IP: {} (logged but not blocked)", clientIP);
         }
 
-        // 2. SQL Injection / XSS 페이로드 감지 (ADMIN도 탐지되지만 차단은 안됨)
+        // 2. SQL Injection / XSS 페이로드 감지 (ADMIN 및 내부 IP는 탐지되지만 차단은 안됨)
         boolean isSuspicious = threatDetectionService.detectSuspiciousPayload(clientIP, httpRequest, userId, loginId, isAdmin);
-        if (isSuspicious && !isAdmin) {
+        if (isSuspicious && !isAdmin && !isInternalIP) {
             log.warn("Suspicious payload detected from IP: {} | User: {} | URI: {}", clientIP, loginId != null ? loginId : "Anonymous", requestUri);
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
             httpResponse.setContentType("application/json");
             httpResponse.setCharacterEncoding("UTF-8");
             httpResponse.getWriter().write("{\"errorCode\":\"SUSPICIOUS_ACTIVITY\",\"message\":\"의심스러운 활동이 감지되어 차단되었습니다.\"}");
             return;
+        } else if (isSuspicious && isInternalIP && !isAdmin) {
+            log.info("Suspicious payload detected for INTERNAL IP: {} (logged but not blocked)", clientIP);
         }
 
         // 정상 요청 처리
