@@ -75,6 +75,16 @@ public class AdminController {
                 .body(SuccessResponse.of(ResponseMessage.CREATE_CHALLENGE_SUCCESS));
     }
 
+    @Operation(summary = "문제 상세 조회 (관리자)", description = "관리자 권한으로 문제 상세 정보를 조회합니다. 수정에 필요한 모든 필드 포함 (flag 제외).")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/challenges/{challengeId}")
+    public ResponseEntity<SuccessResponse<ChallengeDto.AdminDetail>> getAdminChallengeDetail(@PathVariable Long challengeId) {
+        ChallengeDto.AdminDetail challengeDetail = challengeService.getAdminDetailChallenge(challengeId);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(ResponseMessage.GET_CHALLENGE_DETAIL_SUCCESS, challengeDetail)
+        );
+    }
+
     @Operation(summary = "문제 수정", description = "관리자 권한으로 문제를 수정합니다.")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/update/challenge/{challengeId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

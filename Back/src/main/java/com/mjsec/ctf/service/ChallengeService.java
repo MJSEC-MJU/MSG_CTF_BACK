@@ -125,7 +125,7 @@ public class ChallengeService {
         }
     }
 
-    // 특정 문제 상세 조회
+    // 특정 문제 상세 조회 (일반 사용자용)
     public ChallengeDto.Detail getDetailChallenge(Long challengeId){
         log.info("Fetching details for challengeId: {}", challengeId);
 
@@ -136,6 +136,16 @@ public class ChallengeService {
         assertSignatureUnlockedOrThrow(challenge);
 
         return ChallengeDto.Detail.fromEntity(challenge);
+    }
+
+    // 특정 문제 상세 조회 (관리자용 - 모든 필드 포함, flag 제외)
+    public ChallengeDto.AdminDetail getAdminDetailChallenge(Long challengeId){
+        log.info("Admin fetching full details for challengeId: {}", challengeId);
+
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        return ChallengeDto.AdminDetail.fromEntity(challenge);
     }
 
     // 문제 생성
@@ -240,6 +250,7 @@ public class ChallengeService {
                     .category(category)
                     .mileage(mileage)
                     .club(newClub)
+                    .solvers(challenge.getSolvers())  // 기존 solvers 값 유지
                     .build();
 
             // 기존 파일 URL 유지

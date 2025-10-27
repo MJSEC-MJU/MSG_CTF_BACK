@@ -100,6 +100,49 @@ public class ChallengeDto {
         }
     }
 
+    /** 관리자용 상세 응답 DTO (수정에 필요한 모든 필드 포함, flag 제외) */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AdminDetail {
+        private Long challengeId;
+        private String title;
+        private String description;
+        private int points;
+        private int minPoints;
+        private int initialPoints;
+        private int mileage;
+        private int solvers;
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+        private LocalDateTime startTime;
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+        private LocalDateTime endTime;
+        private String fileUrl;  // 첨부파일 URL
+        private String url;      // 문제 URL
+        private String category;
+        private String club;
+
+        public static AdminDetail fromEntity(ChallengeEntity challenge) {
+            return AdminDetail.builder()
+                    .challengeId(challenge.getChallengeId())
+                    .title(challenge.getTitle())
+                    .description(challenge.getDescription())
+                    .points(challenge.getPoints())
+                    .minPoints(challenge.getMinPoints())
+                    .initialPoints(challenge.getInitialPoints())
+                    .mileage(challenge.getMileage())
+                    .solvers(challenge.getSolvers())
+                    .startTime(challenge.getStartTime())
+                    .endTime(challenge.getEndTime())
+                    .fileUrl(challenge.getFileUrl())
+                    .url(challenge.getUrl())
+                    .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
+                    .club(challenge.getClub())
+                    .build();
+        }
+    }
+
     /** (기존 유지) 시그니처 정책 입력 DTO - 현재는 미사용 가능 */
     @Data
     public static class SignaturePolicyDto {
