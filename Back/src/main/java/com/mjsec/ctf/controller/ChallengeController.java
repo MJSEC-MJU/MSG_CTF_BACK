@@ -19,14 +19,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.core.io.ByteArrayResource;
 import java.io.IOException;
@@ -41,12 +39,11 @@ public class ChallengeController {
     private final ChallengeService challengeService;
     private final ThreatDetectionService threatDetectionService;
 
-    @Operation(summary = "모든 문제 조회", description = "모든 문제의 id와 points를 반환합니다.")
-    @GetMapping("/all")
+    // /api/challenges, /api/challenges/, /api/challenges/all 모두 이 핸들러로
+    @Operation(summary = "모든 문제 조회(호환용)", description = "모든 문제의 id와 points를 반환합니다.")
+    @GetMapping({"", "/", "/all"})
     public ResponseEntity<SuccessResponse<Page<ChallengeDto.Simple>>> getAllChallenges(Pageable pageable) {
-
         Page<Simple> challenges = challengeService.getAllChallengesOrderedById(pageable);
-
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(
                         ResponseMessage.GET_ALL_CHALLENGE_SUCCESS,
@@ -58,9 +55,7 @@ public class ChallengeController {
     @Operation(summary = "특정 문제 상세 조회", description = "해당 문제 id를 가진 문제의 상세 정보를 반환합니다.")
     @GetMapping("/{challengeId}")
     public ResponseEntity<SuccessResponse<ChallengeDto.Detail>> getDetailChallenge(@PathVariable Long challengeId){
-
         ChallengeDto.Detail challengeDetail = challengeService.getDetailChallenge(challengeId);
-
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(
                         ResponseMessage.GET_CHALLENGE_DETAIL_SUCCESS,
@@ -72,11 +67,8 @@ public class ChallengeController {
     @Operation(summary = "문제 파일 다운로드", description = "사용자가 문제 파일을 다운로드 받을 수 있습니다.")
     @GetMapping("/{challengeId}/download-file")
     public ResponseEntity<ByteArrayResource> downloadChallengeFile(@PathVariable Long challengeId) throws IOException {
-
         byte[] data = challengeService.downloadChallengeFile(challengeId);
         ByteArrayResource resource = new ByteArrayResource(data);
-
-        // 파일 이름 형식
         String fileName = "challenge-" + challengeId + ".zip";
 
         return ResponseEntity.ok()
@@ -98,41 +90,25 @@ public class ChallengeController {
         String loginId = jwtService.getLoginId(token);
         String flag = flagDto.getSubmitFlag();
 
-        // IP 주소 추출
         String clientIP = IPAddressUtil.getClientIP(request);
-
-        // 플래그 제출
         String result = challengeService.submit(loginId, challengeId, flag, clientIP);
 
-        if(result.equals("Correct")) {
+        if ("Correct".equals(result)) {
             return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SUBMIT_SUCCESS,
-                            result
-                    )
+                    SuccessResponse.of(ResponseMessage.SUBMIT_SUCCESS, result)
             );
-        } else if (result.equals("Submitted")) {
+        } else if ("Submitted".equals(result)) {
             return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.ALREADY_SUBMITTED,
-                            result
-                    )
+                    SuccessResponse.of(ResponseMessage.ALREADY_SUBMITTED, result)
             );
-        } else if (result.equals("Wait")) {
+        } else if ("Wait".equals(result)) {
             return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SUBMIT_FAILED_WAIT,
-                            result
-                    )
+                    SuccessResponse.of(ResponseMessage.SUBMIT_FAILED_WAIT, result)
             );
         } else {
             return ResponseEntity.status(HttpStatus.OK).body(
-                    SuccessResponse.of(
-                            ResponseMessage.SUBMIT_FAILED_WRONG,
-                            result
-                    )
+                    SuccessResponse.of(ResponseMessage.SUBMIT_FAILED_WRONG, result)
             );
         }
     }
-
 }

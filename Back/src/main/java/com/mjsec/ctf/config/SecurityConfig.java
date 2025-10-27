@@ -77,50 +77,70 @@ public class SecurityConfig {
         http.formLogin(form -> form.disable());
         http.httpBasic(basic -> basic.disable());
 
-        // IP 밴 필터 (최우선 순위로 등록)
+        // IP 밴 필터 (최우선)
         http.addFilterBefore(new IPBanFilter(ipBanService), UsernamePasswordAuthenticationFilter.class);
 
-        // JWT 필터
-        http.addFilterBefore(new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder, threatDetectionService),
-                    UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(new JwtFilter(jwtService, blacklistedTokenRepository),
-                    UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new CustomLogoutFilter(jwtService, refreshRepository, blacklistedTokenRepository),
-                    LogoutFilter.class);
+        // 로그인/로그아웃/JWT/공격탐지 필터
+        http.addFilterBefore(
+                new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder, threatDetectionService),
+                UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(
+                new JwtFilter(jwtService, blacklistedTokenRepository),
+                UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(
+                new CustomLogoutFilter(jwtService, refreshRepository, blacklistedTokenRepository),
+                LogoutFilter.class)
+            .addFilterAfter(
+                new ThreatDetectionFilter(threatDetectionService),
+                JwtFilter.class);
 
-        // 공격 탐지 필터 (JWT 인증 이후 실행하여 사용자 정보 추출 가능)
-        http.addFilterAfter(new ThreatDetectionFilter(threatDetectionService), JwtFilter.class);
-
-        // 인가 규칙
+        // 인가 규칙 (특수 → 일반 순으로! 먼저 매칭되는 규칙이 적용됨)
         http.authorizeHttpRequests(auth -> auth
+            // Swagger
             .requestMatchers("/swagger-ui/*", "/v3/api-docs/**").permitAll()
-            .requestMatchers("/api/users/**").permitAll()
-            .requestMatchers("/api/leaderboard/**").permitAll()
+
+            // CORS preflight
+            .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
+
+            // 관리자 우선
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+            // /api/users 하위에서 'profile'은 보호, 그 외는 공개(순서 중요)
             .requestMatchers("/api/users/profile").hasAnyRole("USER","ADMIN")
+            .requestMatchers("/api/users/**").permitAll()
+
+            // 챌린지: 베이스 경로와 슬래시 포함 경로 모두 명시
+            .requestMatchers("/api/challenges", "/api/challenges/").hasAnyRole("USER", "ADMIN")
+            .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
+
+            // 리더보드/서버/대회시간 공개
+            .requestMatchers("/api/leaderboard/**").permitAll()
+            .requestMatchers("/api/server-time").permitAll()
+            .requestMatchers("/api/contest-time").permitAll()
+
+            // 토큰 재발급, 루트
             .requestMatchers("/api/reissue").permitAll()
             .requestMatchers("/").permitAll()
-            .requestMatchers("/api/challenges/**").hasAnyRole("USER", "ADMIN")
+
+            // 결제
             .requestMatchers("/api/payment/qr-token").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/payment/checkout").hasRole("ADMIN")
             .requestMatchers("/api/payment/history").hasAnyRole("USER", "ADMIN")
+
+            // 팀
             .requestMatchers("/api/team/profile").hasAnyRole("USER", "ADMIN")
             .requestMatchers("/api/team/history").hasAnyRole("USER", "ADMIN")
-            .requestMatchers("/api/server-time").permitAll()
 
-            // 🔐 Signature: 사용자용 엔드포인트 허용
+            // 시그니처: 사용자용 엔드포인트 허용
             .requestMatchers(HttpMethod.POST, "/api/signature/*/check").hasAnyRole("USER","ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/signature/*/unlock").hasAnyRole("USER","ADMIN")
             .requestMatchers(HttpMethod.GET,  "/api/signature/*/status").hasAnyRole("USER","ADMIN")
             .requestMatchers(HttpMethod.GET,  "/api/signature/unlocked").hasAnyRole("USER","ADMIN")
-
-            // (옵션) CORS preflight 허용
-            .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
-
-            // 그 외 시그니처 API는 기존처럼 ADMIN 전용 유지
+            // 나머지 시그니처는 관리자
             .requestMatchers("/api/signature/**").hasRole("ADMIN")
 
-            .requestMatchers("/api/contest-time").permitAll()
+            // 그 외는 기본 차단(공격 표면 축소)
+            .anyRequest().denyAll()
         );
 
         return http.build();

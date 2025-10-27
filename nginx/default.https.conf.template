@@ -20,9 +20,11 @@ server {
   ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  limit_conn conn_per_ip 20;
 
   # Frontend
   location / {
+    limit_req zone=api_per_ip     burst=30 nodelay;
     proxy_pass http://frontend:80;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -33,6 +35,8 @@ server {
 
   # Backend API
   location /api/ {
+    limit_req zone=api_per_ip     burst=30 nodelay;     
+    limit_req zone=api_per_ip_uri burst=10 nodelay;
     proxy_pass http://backend:8080/api/;
     proxy_buffering off;
     proxy_cache off;
