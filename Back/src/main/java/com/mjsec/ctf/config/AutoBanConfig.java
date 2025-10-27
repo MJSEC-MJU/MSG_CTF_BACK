@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 public class AutoBanConfig {
 
     // 플래그 브루트포스 차단 규칙
+    @Value("${auto-ban.flag-brute.suspicious-threshold:20}")
+    private int flagBruteSuspiciousThreshold;
+
     @Value("${auto-ban.flag-brute.max-wrong-attempts:10}")
     private int flagBruteMaxAttempts;
 
@@ -22,6 +25,9 @@ public class AutoBanConfig {
     private int flagBruteBanDurationMinutes;
 
     // API Rate Limiting 차단 규칙
+    @Value("${auto-ban.rate-limit.suspicious-threshold:60}")
+    private int rateLimitSuspiciousThreshold;
+
     @Value("${auto-ban.rate-limit.max-requests-per-second:50}")
     private int rateLimitMaxRequestsPerSecond;
 
@@ -29,6 +35,9 @@ public class AutoBanConfig {
     private int rateLimitBanDurationMinutes;
 
     // 로그인 브루트포스 차단 규칙
+    @Value("${auto-ban.login-brute.suspicious-threshold:20}")
+    private int loginBruteSuspiciousThreshold;
+
     @Value("${auto-ban.login-brute.max-failed-attempts:5}")
     private int loginBruteMaxAttempts;
 

@@ -384,23 +384,25 @@ public class ChallengeService {
                             .build()
             );
 
-            long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
-            if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
-                return "Wait";
-            }
-
+            // 플래그 검증
             if (!passwordEncoder.matches(flag, challenge.getFlag())) {
+                //  오답 제출 시 공격 감지 시스템에 먼저 기록 (Wait 체크 이전)
+                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId, isInternalIP);
+
+                // Wait 체크 (사용자 편의를 위한 Rate Limiting)
+                long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
+                if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
+                    return "Wait";
+                }
+
                 submission.setAttemptCount(submission.getAttemptCount() + 1);
                 submission.setLastAttemptTime(LocalDateTime.now());
                 submissionRepository.save(submission);
 
-                // 🚨 오답 제출 시 공격 감지 시스템에 기록
-                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId, isInternalIP);
-
                 return "Wrong";
             } else {
 
-                // ✅ 정답 제출 시 기록 (자동 차단 방지)
+                //  정답 제출 시 기록 (자동 차단 방지)
                 threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId, isInternalIP);
 
                 HistoryEntity history = HistoryEntity.builder()
