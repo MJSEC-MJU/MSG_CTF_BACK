@@ -6,15 +6,16 @@ import com.mjsec.ctf.repository.IPActivityRepository;
 import com.mjsec.ctf.repository.IPBanRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,12 +36,10 @@ public class IPBanService {
     public IPBanEntity banIP(String ipAddress, String reason, IPBanEntity.BanType banType,
                              Long durationMinutes, Long adminId, String adminLoginId) {
 
-        // 이미 차단된 IP인지 확인
         Optional<IPBanEntity> existing = ipBanRepository.findByIpAddress(ipAddress);
 
         IPBanEntity banEntity;
         if (existing.isPresent()) {
-            // 기존 차단 정보 업데이트
             banEntity = existing.get();
             banEntity.setReason(reason);
             banEntity.setBanType(banType);
@@ -49,7 +48,6 @@ public class IPBanService {
             banEntity.setBannedByAdminId(adminId);
             banEntity.setBannedByAdminLoginId(adminLoginId);
         } else {
-            // 새로운 차단 생성
             banEntity = new IPBanEntity();
             banEntity.setIpAddress(ipAddress);
             banEntity.setReason(reason);
@@ -60,7 +58,6 @@ public class IPBanService {
             banEntity.setBannedByAdminLoginId(adminLoginId);
         }
 
-        // 만료 시간 설정
         if (banType == IPBanEntity.BanType.TEMPORARY && durationMinutes != null) {
             banEntity.setExpiresAt(LocalDateTime.now().plusMinutes(durationMinutes));
         } else {
@@ -68,12 +65,10 @@ public class IPBanService {
         }
 
         IPBanEntity savedEntity = ipBanRepository.save(banEntity);
-
-        // Redis에 캐시
         addToRedisCache(ipAddress);
 
         log.info("IP banned: {} | Type: {} | Reason: {} | By: {}",
-                 ipAddress, banType, reason, adminLoginId);
+                ipAddress, banType, reason, adminLoginId);
 
         return savedEntity;
     }
@@ -83,38 +78,26 @@ public class IPBanService {
      */
     @Transactional
     public void unbanIP(String ipAddress) {
-        Optional<IPBanEntity> banEntity = ipBanRepository.findByIpAddress(ipAddress);
-
-        if (banEntity.isPresent()) {
-            IPBanEntity entity = banEntity.get();
+        ipBanRepository.findByIpAddress(ipAddress).ifPresent(entity -> {
             entity.setIsActive(false);
             ipBanRepository.save(entity);
-
-            // Redis에서 제거
             removeFromRedisCache(ipAddress);
-
             log.info("IP unbanned: {}", ipAddress);
-        }
+        });
     }
 
     /**
      * IP가 차단되었는지 확인 (Redis 먼저 확인, 없으면 DB 조회)
      */
     public boolean isBanned(String ipAddress) {
-        // Redis 캐시 확인
         Boolean isCached = redisTemplate.opsForSet().isMember(BANNED_IP_KEY, ipAddress);
-        if (Boolean.TRUE.equals(isCached)) {
-            return true;
-        }
+        if (Boolean.TRUE.equals(isCached)) return true;
 
-        // DB 확인
         Optional<IPBanEntity> banEntity = ipBanRepository.findActiveByIpAddress(ipAddress);
         if (banEntity.isPresent() && banEntity.get().isBanned()) {
-            // Redis에 캐시 추가
             addToRedisCache(ipAddress);
             return true;
         }
-
         return false;
     }
 
@@ -146,13 +129,11 @@ public class IPBanService {
             log.info("Scheduled Task: cleaning up expired IP bans at {}", now);
 
             List<IPBanEntity> expiredBans = ipBanRepository.findExpiredBans(now);
-
             for (IPBanEntity ban : expiredBans) {
                 ban.setIsActive(false);
                 ipBanRepository.save(ban);
                 removeFromRedisCache(ban.getIpAddress());
             }
-
             log.info("{} expired IP bans deactivated", expiredBans.size());
         } catch (Exception e) {
             log.error("Error during cleanupExpiredBans: ", e);
@@ -166,10 +147,8 @@ public class IPBanService {
     public void rebuildCache() {
         log.info("Rebuilding IP ban cache from database");
 
-        // 기존 캐시 삭제
         redisTemplate.delete(BANNED_IP_KEY);
 
-        // DB에서 활성 차단 목록 가져와서 Redis에 추가
         List<IPBanEntity> activeBans = ipBanRepository.findAllActiveBans()
                 .stream()
                 .filter(IPBanEntity::isBanned)
@@ -215,7 +194,6 @@ public class IPBanService {
         if (entity.getBanType() != IPBanEntity.BanType.TEMPORARY) {
             throw new IllegalArgumentException("영구 차단은 연장할 수 없습니다");
         }
-
         if (entity.getExpiresAt() == null) {
             throw new IllegalStateException("만료 시간이 설정되지 않은 차단입니다");
         }
@@ -226,7 +204,7 @@ public class IPBanService {
     }
 
     /**
-     * IP 활동 로그 조회 (관리자용)
+     * IP 활동 로그 조회 (관리자용) — 동적 필터 (ip/activityType/isSuspicious)
      */
     @Transactional(readOnly = true)
     public List<IPActivityEntity> getIPActivities(
@@ -236,30 +214,31 @@ public class IPBanService {
             Integer hoursBack,
             Integer limit
     ) {
-        LocalDateTime since = LocalDateTime.now().minusHours(hoursBack != null ? hoursBack : 24);
-        List<IPActivityEntity> activities;
+        LocalDateTime since = LocalDateTime.now().minusHours(
+                (hoursBack == null || hoursBack < 0) ? 24 : hoursBack
+        );
+        int size = (limit == null) ? 100 : Math.min(Math.max(limit, 1), 1000);
+        Pageable pageable = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "activityTime"));
 
-        // 조건에 따라 쿼리 선택
-        if (ipAddress != null && activityType != null) {
-            // IP + 활동 타입으로 조회
-            IPActivityEntity.ActivityType type = IPActivityEntity.ActivityType.valueOf(activityType);
-            activities = ipActivityRepository.findByIpAndType(ipAddress, type, since);
-        } else if (ipAddress != null) {
-            // 특정 IP만 조회
-            activities = ipActivityRepository.findRecentActivitiesByIp(ipAddress, since);
-        } else if (isSuspicious != null && isSuspicious) {
-            // 의심스러운 활동만 조회
-            activities = ipActivityRepository.findSuspiciousActivities(since);
-        } else {
-            // 전체 조회
-            activities = ipActivityRepository.findRecentActivities(since);
+        IPActivityEntity.ActivityType typeEnum = parseActivityType(activityType);
+        String ip = (ipAddress != null && !ipAddress.isBlank()) ? ipAddress : null;
+
+        log.debug("[IPACT] filters -> ip={}, type={}, suspicious={}, since={}, limit={}",
+                ip, typeEnum, isSuspicious, since, size);
+
+        // 리포지토리의 동적 검색 메서드로 단일 경로 처리
+        return ipActivityRepository.searchActivities(since, ip, typeEnum, isSuspicious, pageable);
+    }
+
+    private IPActivityEntity.ActivityType parseActivityType(String s) {
+        if (s == null || s.isBlank()) return null;
+        for (IPActivityEntity.ActivityType value : IPActivityEntity.ActivityType.values()) {
+            if (value.name().equalsIgnoreCase(s.trim())) {
+                return value;
+            }
         }
-
-        // limit 적용
-        int maxLimit = limit != null ? Math.min(limit, 1000) : 100;  // 최대 1000개
-        return activities.stream()
-                .limit(maxLimit)
-                .collect(Collectors.toList());
+        log.warn("[IPACT] Unknown activityType string '{}'; ignoring type filter.", s);
+        return null; // 모르는 값이면 타입 필터 미적용
     }
 
     /**
@@ -270,10 +249,9 @@ public class IPBanService {
         LocalDateTime since = LocalDateTime.now().minusHours(hoursBack != null ? hoursBack : 24);
         List<Object[]> results = ipActivityRepository.findSuspiciousIPsSummary(since);
 
-        // 차단된 IP 목록 조회
-        List<String> bannedIPs = ipBanRepository.findAllActiveBans().stream()
+        Set<String> bannedIPs = ipBanRepository.findAllActiveBans().stream()
                 .map(IPBanEntity::getIpAddress)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
         return results.stream()
                 .map(row -> com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary.builder()
@@ -283,7 +261,7 @@ public class IPBanService {
                         .lastLoginId((String) row[3])
                         .lastActivityType(row[4] != null ? row[4].toString() : null)
                         .lastDetails((String) row[5])
-                        .isBanned(bannedIPs.contains(row[0]))
+                        .isBanned(row[0] != null && bannedIPs.contains((String) row[0]))
                         .build())
                 .collect(Collectors.toList());
     }
