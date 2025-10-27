@@ -1,18 +1,23 @@
 package com.mjsec.ctf.controller;
 
+import com.mjsec.ctf.domain.IPBanEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.dto.ContestConfigDto;
 import com.mjsec.ctf.dto.GrantMileageDto;
+import com.mjsec.ctf.dto.IPBanDto;
 import com.mjsec.ctf.dto.SuccessResponse;
 import com.mjsec.ctf.dto.TeamPaymentHistoryDto;
 import com.mjsec.ctf.dto.TeamSummaryDto;
 import com.mjsec.ctf.dto.UserDto;
 import com.mjsec.ctf.service.ChallengeService;
 import com.mjsec.ctf.service.ContestConfigService;
+import com.mjsec.ctf.service.IPBanService;
 import com.mjsec.ctf.service.TeamService;
 import com.mjsec.ctf.service.UserService;
 import com.mjsec.ctf.type.ResponseMessage;
+import com.mjsec.ctf.util.IPAddressUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +45,8 @@ public class AdminController {
     private final TeamService teamService;
     private final ContestConfigService contestConfigService;
     private final com.mjsec.ctf.service.PaymentService paymentService;
+    private final IPBanService ipBanService;
+    private final com.mjsec.ctf.service.IPWhitelistService ipWhitelistService;
 
     // -------------------------------
     // Challenge 관리
@@ -293,6 +300,225 @@ public class AdminController {
         return ResponseEntity.ok(SuccessResponse.of(
                 ResponseMessage.UPDATE_CONTEST_TIME_SUCCESS, updatedConfig
         ));
+    }
+
+    // -------------------------------
+    // IP 밴 관리
+    // -------------------------------
+
+    @Operation(summary = "IP 차단", description = "관리자 권한으로 특정 IP를 차단합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/ip-ban")
+    public ResponseEntity<SuccessResponse<IPBanDto.Response>> banIP(
+            @RequestBody @Valid IPBanDto.BanRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        // 현재 요청자의 정보 가져오기
+        String adminLoginId = (String) httpRequest.getAttribute("loginId");
+        Long adminId = (Long) httpRequest.getAttribute("userId");
+
+        IPBanEntity banned = ipBanService.banIP(
+                request.getIpAddress(),
+                request.getReason(),
+                request.getBanType(),
+                request.getDurationMinutes(),
+                adminId,
+                adminLoginId
+        );
+
+        log.info("IP banned by admin: {} | IP: {} | Reason: {}",
+                 adminLoginId, request.getIpAddress(), request.getReason());
+
+        return ResponseEntity.ok(SuccessResponse.of(
+                ResponseMessage.IP_BAN_SUCCESS,
+                IPBanDto.Response.from(banned)
+        ));
+    }
+
+    @Operation(summary = "IP 차단 해제", description = "관리자 권한으로 IP 차단을 해제합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/ip-ban/{ipAddress}")
+    public ResponseEntity<SuccessResponse<Void>> unbanIP(
+            @PathVariable String ipAddress,
+            HttpServletRequest httpRequest
+    ) {
+        String adminLoginId = (String) httpRequest.getAttribute("loginId");
+
+        ipBanService.unbanIP(ipAddress);
+
+        log.info("IP unbanned by admin: {} | IP: {}", adminLoginId, ipAddress);
+
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_UNBAN_SUCCESS));
+    }
+
+    @Operation(summary = "차단된 IP 목록 조회", description = "관리자 권한으로 현재 차단된 모든 IP 목록을 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-ban")
+    public ResponseEntity<SuccessResponse<List<IPBanDto.Response>>> getAllBannedIPs() {
+        List<IPBanEntity> bannedIPs = ipBanService.getAllActiveBans();
+
+        List<IPBanDto.Response> response = bannedIPs.stream()
+                .map(IPBanDto.Response::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(SuccessResponse.of(
+                ResponseMessage.GET_BANNED_IPS_SUCCESS,
+                response
+        ));
+    }
+
+    @Operation(summary = "IP 차단 정보 조회", description = "관리자 권한으로 특정 IP의 차단 정보를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-ban/{ipAddress}")
+    public ResponseEntity<SuccessResponse<IPBanDto.Response>> getBanInfo(@PathVariable String ipAddress) {
+        return ipBanService.getBanInfo(ipAddress)
+                .map(ban -> ResponseEntity.ok(SuccessResponse.of(
+                        ResponseMessage.GET_BAN_INFO_SUCCESS,
+                        IPBanDto.Response.from(ban)
+                )))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "IP 차단 연장", description = "관리자 권한으로 임시 차단의 기간을 연장합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/ip-ban/{ipAddress}/extend")
+    public ResponseEntity<SuccessResponse<Void>> extendBan(
+            @PathVariable String ipAddress,
+            @RequestBody @Valid IPBanDto.ExtendRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String adminLoginId = (String) httpRequest.getAttribute("loginId");
+
+        ipBanService.extendBan(ipAddress, request.getAdditionalMinutes());
+
+        log.info("IP ban extended by admin: {} | IP: {} | Additional minutes: {}",
+                 adminLoginId, ipAddress, request.getAdditionalMinutes());
+
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_BAN_EXTEND_SUCCESS));
+    }
+
+    @Operation(summary = "현재 요청자 IP 조회", description = "관리자가 자신의 IP 주소를 확인합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/my-ip")
+    public ResponseEntity<String> getMyIP(HttpServletRequest request) {
+        String clientIP = IPAddressUtil.getClientIP(request);
+        return ResponseEntity.ok(clientIP);
+    }
+
+    @Operation(summary = "IP 밴 캐시 재구축", description = "관리자 권한으로 Redis 캐시를 재구축합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/ip-ban/rebuild-cache")
+    public ResponseEntity<SuccessResponse<Void>> rebuildCache() {
+        ipBanService.rebuildCache();
+        log.info("IP ban cache rebuilt by admin");
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.CACHE_REBUILD_SUCCESS));
+    }
+
+    @Operation(summary = "IP 활동 로그 조회", description = "관리자 권한으로 IP 활동 로그를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-activity")
+    public ResponseEntity<SuccessResponse<List<com.mjsec.ctf.dto.IPActivityDto.Response>>> getIPActivities(
+            @RequestParam(required = false) String ipAddress,
+            @RequestParam(required = false) String activityType,
+            @RequestParam(required = false) Boolean isSuspicious,
+            @RequestParam(required = false, defaultValue = "24") Integer hoursBack,
+            @RequestParam(required = false, defaultValue = "100") Integer limit
+    ) {
+        List<com.mjsec.ctf.domain.IPActivityEntity> activities = ipBanService.getIPActivities(
+                ipAddress, activityType, isSuspicious, hoursBack, limit
+        );
+
+        List<com.mjsec.ctf.dto.IPActivityDto.Response> response = activities.stream()
+                .map(com.mjsec.ctf.dto.IPActivityDto.Response::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_ACTIVITY_LOG_SUCCESS, response));
+    }
+
+    @Operation(summary = "의심스러운 IP 목록 조회", description = "관리자 권한으로 의심 활동이 많은 IP 목록을 집계하여 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-suspicious")
+    public ResponseEntity<SuccessResponse<List<com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary>>> getSuspiciousIPs(
+            @RequestParam(required = false, defaultValue = "24") Integer hoursBack
+    ) {
+        List<com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary> suspiciousIPs = ipBanService.getSuspiciousIPsSummary(hoursBack);
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_SUSPICIOUS_LIST_SUCCESS, suspiciousIPs));
+    }
+
+    // -------------------------------
+    // IP 화이트리스트 관리
+    // -------------------------------
+
+    @Operation(summary = "IP 화이트리스트 추가", description = "관리자 권한으로 IP를 화이트리스트에 추가합니다. 화이트리스트에 추가된 IP는 자동 차단되지 않습니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/ip-whitelist")
+    public ResponseEntity<SuccessResponse<com.mjsec.ctf.entity.IPWhitelistEntity>> addToWhitelist(
+            @RequestBody @Valid com.mjsec.ctf.dto.IPWhitelistDto.AddRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String adminLoginId = (String) httpRequest.getAttribute("loginId");
+        Long adminId = (Long) httpRequest.getAttribute("userId");
+
+        com.mjsec.ctf.entity.IPWhitelistEntity whitelist = ipWhitelistService.addToWhitelist(
+                request.getIpAddress(),
+                request.getReason(),
+                adminId,
+                adminLoginId
+        );
+
+        log.info("IP added to whitelist by admin: {} | IP: {} | Reason: {}",
+                adminLoginId, request.getIpAddress(), request.getReason());
+
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_WHITELIST_ADD_SUCCESS, whitelist));
+    }
+
+    @Operation(summary = "IP 화이트리스트 제거", description = "관리자 권한으로 IP를 화이트리스트에서 제거합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/ip-whitelist/{ipAddress}")
+    public ResponseEntity<SuccessResponse<Void>> removeFromWhitelist(
+            @PathVariable String ipAddress,
+            HttpServletRequest httpRequest
+    ) {
+        String adminLoginId = (String) httpRequest.getAttribute("loginId");
+
+        boolean removed = ipWhitelistService.removeFromWhitelist(ipAddress);
+
+        if (removed) {
+            log.info("IP removed from whitelist by admin: {} | IP: {}", adminLoginId, ipAddress);
+            return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_WHITELIST_REMOVE_SUCCESS));
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "활성 화이트리스트 목록 조회", description = "관리자 권한으로 활성 화이트리스트 목록을 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-whitelist")
+    public ResponseEntity<SuccessResponse<List<com.mjsec.ctf.entity.IPWhitelistEntity>>> getActiveWhitelist() {
+        List<com.mjsec.ctf.entity.IPWhitelistEntity> whitelist = ipWhitelistService.getActiveWhitelist();
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_WHITELIST_LIST_SUCCESS, whitelist));
+    }
+
+    @Operation(summary = "전체 화이트리스트 목록 조회", description = "관리자 권한으로 전체 화이트리스트 목록을 조회합니다 (비활성 포함).")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-whitelist/all")
+    public ResponseEntity<SuccessResponse<List<com.mjsec.ctf.entity.IPWhitelistEntity>>> getAllWhitelist() {
+        List<com.mjsec.ctf.entity.IPWhitelistEntity> whitelist = ipWhitelistService.getAllWhitelist();
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.IP_WHITELIST_LIST_SUCCESS, whitelist));
+    }
+
+    @Operation(summary = "특정 IP 화이트리스트 정보 조회", description = "관리자 권한으로 특정 IP의 화이트리스트 정보를 조회합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/ip-whitelist/{ipAddress}")
+    public ResponseEntity<SuccessResponse<com.mjsec.ctf.entity.IPWhitelistEntity>> getWhitelistInfo(
+            @PathVariable String ipAddress
+    ) {
+        return ipWhitelistService.getWhitelistInfo(ipAddress)
+                .map(whitelist -> ResponseEntity.ok(SuccessResponse.of(
+                        ResponseMessage.IP_WHITELIST_INFO_SUCCESS,
+                        whitelist
+                )))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // 파일명 한글 대응
