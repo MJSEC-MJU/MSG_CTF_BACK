@@ -85,7 +85,7 @@ public class SecurityConfig {
                 new CustomLoginFilter(userRepository, refreshRepository, jwtService, passwordEncoder, threatDetectionService),
                 UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(
-                new JwtFilter(jwtService, blacklistedTokenRepository),
+                new JwtFilter(jwtService, blacklistedTokenRepository, userRepository),
                 UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(
                 new CustomLogoutFilter(jwtService, refreshRepository, blacklistedTokenRepository),
