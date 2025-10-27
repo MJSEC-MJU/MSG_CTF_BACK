@@ -65,6 +65,8 @@ public class IPActivityDto {
         private Long suspiciousCount;          // 의심 활동 횟수
         private LocalDateTime lastActivityTime; // 마지막 활동 시간
         private String lastLoginId;            // 마지막 로그인 ID
+        private String lastActivityType;       // 마지막 활동 유형
+        private String lastDetails;            // 마지막 활동 상세
         private Boolean isBanned;              // 현재 차단 여부
     }
 }

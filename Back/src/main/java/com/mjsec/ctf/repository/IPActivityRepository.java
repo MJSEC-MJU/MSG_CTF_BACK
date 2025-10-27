@@ -67,8 +67,12 @@ public interface IPActivityRepository extends JpaRepository<IPActivityEntity, Lo
     /**
      * 의심스러운 IP 집계 (IP별 의심 활동 횟수)
      * 차단되지 않은 IP 중에서 의심 활동이 많은 순으로 정렬
+     *
+     * 반환값: [ipAddress, count, maxActivityTime, maxLoginId, lastActivityType, lastDetails]
      */
-    @Query("SELECT a.ipAddress, COUNT(a), MAX(a.activityTime), MAX(a.loginId) " +
+    @Query("SELECT a.ipAddress, COUNT(a), MAX(a.activityTime), MAX(a.loginId), " +
+           "(SELECT a2.activityType FROM IPActivityEntity a2 WHERE a2.ipAddress = a.ipAddress AND a2.isSuspicious = true ORDER BY a2.activityTime DESC LIMIT 1), " +
+           "(SELECT a3.details FROM IPActivityEntity a3 WHERE a3.ipAddress = a.ipAddress AND a3.isSuspicious = true ORDER BY a3.activityTime DESC LIMIT 1) " +
            "FROM IPActivityEntity a " +
            "WHERE a.isSuspicious = true AND a.activityTime >= :since " +
            "GROUP BY a.ipAddress " +

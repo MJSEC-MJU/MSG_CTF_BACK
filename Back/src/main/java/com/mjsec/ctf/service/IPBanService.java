@@ -281,6 +281,8 @@ public class IPBanService {
                         .suspiciousCount(((Number) row[1]).longValue())
                         .lastActivityTime((LocalDateTime) row[2])
                         .lastLoginId((String) row[3])
+                        .lastActivityType(row[4] != null ? row[4].toString() : null)
+                        .lastDetails((String) row[5])
                         .isBanned(bannedIPs.contains(row[0]))
                         .build())
                 .collect(Collectors.toList());

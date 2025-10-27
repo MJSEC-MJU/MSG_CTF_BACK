@@ -26,6 +26,7 @@ public class ThreatDetectionService {
 
     private final IPActivityRepository ipActivityRepository;
     private final IPBanService ipBanService;
+    private final IPWhitelistService ipWhitelistService;
     private final AutoBanConfig autoBanConfig;
 
     // ========================================
@@ -117,6 +118,19 @@ public class ThreatDetectionService {
             return;
         }
 
+        // 브루트포스 감지 (활동 기록 전에 먼저 체크)
+        LocalDateTime checkSince = LocalDateTime.now()
+            .minusMinutes(autoBanConfig.getFlagBruteTimeWindowMinutes());
+
+        long wrongAttempts = ipActivityRepository.countByIpAndTypeAndTimeSince(
+            ipAddress,
+            IPActivityEntity.ActivityType.FLAG_SUBMIT_WRONG,
+            checkSince
+        );
+
+        // 의심 여부 판단: suspicious-threshold 이상이면 의심스러운 활동으로 표시
+        boolean isSuspicious = wrongAttempts >= autoBanConfig.getFlagBruteSuspiciousThreshold();
+
         // 오답 활동 기록
         IPActivityEntity activity = new IPActivityEntity();
         activity.setIpAddress(ipAddress);
@@ -124,6 +138,7 @@ public class ThreatDetectionService {
         activity.setActivityTime(LocalDateTime.now());
         activity.setRequestUri("/api/challenges/" + challengeId + "/submit");
         activity.setDetails("Challenge ID: " + challengeId + (isInternalIP ? " | [INTERNAL IP]" : ""));
+        activity.setIsSuspicious(isSuspicious);  // 의심 여부 설정
         activity.setUserId(userId);
         activity.setLoginId(loginId);
         ipActivityRepository.save(activity);
@@ -134,16 +149,7 @@ public class ThreatDetectionService {
             return;
         }
 
-        // 브루트포스 감지
-        LocalDateTime checkSince = LocalDateTime.now()
-            .minusMinutes(autoBanConfig.getFlagBruteTimeWindowMinutes());
-
-        long wrongAttempts = ipActivityRepository.countByIpAndTypeAndTimeSince(
-            ipAddress,
-            IPActivityEntity.ActivityType.FLAG_SUBMIT_WRONG,
-            checkSince
-        );
-
+        // 자동 차단 체크
         if (wrongAttempts >= autoBanConfig.getFlagBruteMaxAttempts()) {
             autoBanIP(
                 ipAddress,
@@ -152,6 +158,9 @@ public class ThreatDetectionService {
                 autoBanConfig.getFlagBruteBanDurationMinutes(),
                 loginId
             );
+        } else if (isSuspicious) {
+            log.warn("Suspicious flag brute force activity: IP {} | Attempts: {} | Threshold: {}",
+                ipAddress, wrongAttempts, autoBanConfig.getFlagBruteSuspiciousThreshold());
         }
     }
 
@@ -164,22 +173,7 @@ public class ThreatDetectionService {
             return;
         }
 
-        // 로그인 실패 활동 기록
-        IPActivityEntity activity = new IPActivityEntity();
-        activity.setIpAddress(ipAddress);
-        activity.setActivityType(IPActivityEntity.ActivityType.LOGIN_FAILED);
-        activity.setActivityTime(LocalDateTime.now());
-        activity.setRequestUri("/api/users/sign-in");
-        activity.setDetails("Attempted login ID: " + attemptedLoginId + (isInternalIP ? " | [INTERNAL IP]" : ""));
-        ipActivityRepository.save(activity);
-
-        // 내부 IP는 기록만 하고 차단하지 않음
-        if (isInternalIP) {
-            log.info("Login brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
-            return;
-        }
-
-        // 브루트포스 감지
+        // 브루트포스 감지 (활동 기록 전에 먼저 체크)
         LocalDateTime checkSince = LocalDateTime.now()
             .minusMinutes(autoBanConfig.getLoginBruteTimeWindowMinutes());
 
@@ -189,6 +183,26 @@ public class ThreatDetectionService {
             checkSince
         );
 
+        // 의심 여부 판단
+        boolean isSuspicious = failedAttempts >= autoBanConfig.getLoginBruteSuspiciousThreshold();
+
+        // 로그인 실패 활동 기록
+        IPActivityEntity activity = new IPActivityEntity();
+        activity.setIpAddress(ipAddress);
+        activity.setActivityType(IPActivityEntity.ActivityType.LOGIN_FAILED);
+        activity.setActivityTime(LocalDateTime.now());
+        activity.setRequestUri("/api/users/sign-in");
+        activity.setDetails("Attempted login ID: " + attemptedLoginId + (isInternalIP ? " | [INTERNAL IP]" : ""));
+        activity.setIsSuspicious(isSuspicious);  // 의심 여부 설정
+        ipActivityRepository.save(activity);
+
+        // 내부 IP는 기록만 하고 차단하지 않음
+        if (isInternalIP) {
+            log.info("Login brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            return;
+        }
+
+        // 자동 차단 체크
         if (failedAttempts >= autoBanConfig.getLoginBruteMaxAttempts()) {
             autoBanIP(
                 ipAddress,
@@ -197,6 +211,9 @@ public class ThreatDetectionService {
                 autoBanConfig.getLoginBruteBanDurationMinutes(),
                 null
             );
+        } else if (isSuspicious) {
+            log.warn("⚠️ Suspicious login brute force activity: IP {} | Attempts: {} | Threshold: {}",
+                ipAddress, failedAttempts, autoBanConfig.getLoginBruteSuspiciousThreshold());
         }
     }
 
@@ -475,6 +492,13 @@ public class ThreatDetectionService {
      */
     private void autoBanIP(String ipAddress, String reason, long durationMinutes, String detectedLoginId) {
         try {
+            // 화이트리스트 체크 - 화이트리스트에 있는 IP는 절대 자동 차단하지 않음
+            if (ipWhitelistService.isWhitelisted(ipAddress)) {
+                log.info("IP {} is whitelisted, skipping auto-ban | Reason: {} | Detected User: {}",
+                        ipAddress, reason, detectedLoginId != null ? detectedLoginId : "Unknown");
+                return;
+            }
+
             // 이미 차단된 IP인지 확인
             if (ipBanService.isBanned(ipAddress)) {
                 log.debug("IP {} is already banned, skipping auto-ban", ipAddress);
