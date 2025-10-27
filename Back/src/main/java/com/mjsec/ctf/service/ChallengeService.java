@@ -240,6 +240,7 @@ public class ChallengeService {
                     .category(category)
                     .mileage(mileage)
                     .club(newClub)
+                    .solvers(challenge.getSolvers())  // 기존 solvers 값 유지
                     .build();
 
             // 기존 파일 URL 유지
