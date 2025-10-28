@@ -1,4 +1,4 @@
-version: "3.8"
+
 
 services:
   db:
@@ -58,6 +58,11 @@ services:
       PROJECT_ID: ${PROJECT_ID}
       GCP_JSON_FILE: ${GCP_JSON_FILE}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp_service_account.json
+      # ip 벤 디코봇 환경변수
+      CTF_ALERT_ENABLED: "true"
+      CTF_ALERT_ENDPOINT: ${CTF_ALERT_ENDPOINT}
+      CTF_ALERT_API_KEY: ${CTF_ALERT_API_KEY}
+      CTF_ALERT_ENVIRONMENT: "prod"
     ports:
       - "8080:8080"
     networks:

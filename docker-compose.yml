@@ -75,6 +75,13 @@ services:
       # ★ Spring이 직접 읽는 GCS override (중요)
       SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION: ${SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION}
       SPRING_CLOUD_GCP_STORAGE_BUCKET: ${SPRING_CLOUD_GCP_STORAGE_BUCKET}
+      
+      # ip 벤 디코봇 환경변수
+      CTF_ALERT_ENABLED: "true"
+      CTF_ALERT_ENDPOINT: ${CTF_ALERT_ENDPOINT}
+      CTF_ALERT_API_KEY: ${CTF_ALERT_API_KEY}
+      CTF_ALERT_ENVIRONMENT: "prod"
+      
     volumes:
       - ${HOST_GCP_JSON_PATH:-/dev/null}:/secrets/gcp_service_account.json:ro
     networks: [ctf-network]

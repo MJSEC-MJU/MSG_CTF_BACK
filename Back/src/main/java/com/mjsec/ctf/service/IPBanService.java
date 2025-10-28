@@ -1,5 +1,6 @@
 package com.mjsec.ctf.service;
 
+import com.mjsec.ctf.alert.AlertService;
 import com.mjsec.ctf.domain.IPActivityEntity;
 import com.mjsec.ctf.domain.IPBanEntity;
 import com.mjsec.ctf.repository.IPActivityRepository;
@@ -26,12 +27,10 @@ public class IPBanService {
     private final IPBanRepository ipBanRepository;
     private final IPActivityRepository ipActivityRepository;
     private final RedisTemplate<String, String> redisTemplate;
+    private final AlertService alertService;
 
     private static final String BANNED_IP_KEY = "banned_ips";
 
-    /**
-     * IP 주소 차단
-     */
     @Transactional
     public IPBanEntity banIP(String ipAddress, String reason, IPBanEntity.BanType banType,
                              Long durationMinutes, Long adminId, String adminLoginId) {
@@ -67,15 +66,23 @@ public class IPBanService {
         IPBanEntity savedEntity = ipBanRepository.save(banEntity);
         addToRedisCache(ipAddress);
 
-        log.info("IP banned: {} | Type: {} | Reason: {} | By: {}",
-                ipAddress, banType, reason, adminLoginId);
+        log.info("IP banned: {} | Type: {} | Reason: {} | By: {} | ExpiresAt={}",
+                ipAddress, banType, reason, adminLoginId, savedEntity.getExpiresAt());
+        log.debug("[IPBAN] saved id={} createdAt={} updatedAt={}",
+                savedEntity.getId(), savedEntity.getCreatedAt(), savedEntity.getUpdatedAt());
+
+        // 디코봇 알림 호출 직전 로그
+        try {
+            log.info("[IPBAN] sending alert to bot: ip={} type={} durationMinutes={} endpoint-config-check: (see AlertService init log)",
+                    ipAddress, banType, durationMinutes);
+            alertService.notifyIpBanned(savedEntity, adminLoginId);
+        } catch (Exception e) {
+            log.warn("Discord alert failed on ban: {}", e.getMessage());
+        }
 
         return savedEntity;
     }
 
-    /**
-     * IP 차단 해제
-     */
     @Transactional
     public void unbanIP(String ipAddress) {
         ipBanRepository.findByIpAddress(ipAddress).ifPresent(entity -> {
@@ -86,9 +93,6 @@ public class IPBanService {
         });
     }
 
-    /**
-     * IP가 차단되었는지 확인 (Redis 먼저 확인, 없으면 DB 조회)
-     */
     public boolean isBanned(String ipAddress) {
         Boolean isCached = redisTemplate.opsForSet().isMember(BANNED_IP_KEY, ipAddress);
         if (Boolean.TRUE.equals(isCached)) return true;
@@ -101,16 +105,10 @@ public class IPBanService {
         return false;
     }
 
-    /**
-     * 차단된 IP 정보 조회
-     */
     public Optional<IPBanEntity> getBanInfo(String ipAddress) {
         return ipBanRepository.findActiveByIpAddress(ipAddress);
     }
 
-    /**
-     * 모든 활성 차단 목록 조회
-     */
     public List<IPBanEntity> getAllActiveBans() {
         return ipBanRepository.findAllActiveBans()
                 .stream()
@@ -118,9 +116,6 @@ public class IPBanService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 만료된 차단 정리 (30분마다 실행)
-     */
     @Scheduled(fixedRate = 1800000)
     @Transactional
     public void cleanupExpiredBans() {
@@ -140,13 +135,9 @@ public class IPBanService {
         }
     }
 
-    /**
-     * Redis 캐시 초기화 (서버 시작 시 또는 수동 호출)
-     */
     @Transactional
     public void rebuildCache() {
         log.info("Rebuilding IP ban cache from database");
-
         redisTemplate.delete(BANNED_IP_KEY);
 
         List<IPBanEntity> activeBans = ipBanRepository.findAllActiveBans()
@@ -161,9 +152,6 @@ public class IPBanService {
         log.info("Cache rebuilt with {} active IP bans", activeBans.size());
     }
 
-    /**
-     * Redis 캐시에 IP 추가
-     */
     private void addToRedisCache(String ipAddress) {
         try {
             redisTemplate.opsForSet().add(BANNED_IP_KEY, ipAddress);
@@ -172,9 +160,6 @@ public class IPBanService {
         }
     }
 
-    /**
-     * Redis 캐시에서 IP 제거
-     */
     private void removeFromRedisCache(String ipAddress) {
         try {
             redisTemplate.opsForSet().remove(BANNED_IP_KEY, ipAddress);
@@ -183,9 +168,6 @@ public class IPBanService {
         }
     }
 
-    /**
-     * 차단 연장
-     */
     @Transactional
     public void extendBan(String ipAddress, Long additionalMinutes) {
         IPBanEntity entity = ipBanRepository.findActiveByIpAddress(ipAddress)
@@ -203,9 +185,6 @@ public class IPBanService {
         log.info("IP ban extended: {} | Additional minutes: {}", ipAddress, additionalMinutes);
     }
 
-    /**
-     * IP 활동 로그 조회 (관리자용) — 동적 필터 (ip/activityType/isSuspicious)
-     */
     @Transactional(readOnly = true)
     public List<IPActivityEntity> getIPActivities(
             String ipAddress,
@@ -226,7 +205,6 @@ public class IPBanService {
         log.debug("[IPACT] filters -> ip={}, type={}, suspicious={}, since={}, limit={}",
                 ip, typeEnum, isSuspicious, since, size);
 
-        // 리포지토리의 동적 검색 메서드로 단일 경로 처리
         return ipActivityRepository.searchActivities(since, ip, typeEnum, isSuspicious, pageable);
     }
 
@@ -238,12 +216,9 @@ public class IPBanService {
             }
         }
         log.warn("[IPACT] Unknown activityType string '{}'; ignoring type filter.", s);
-        return null; // 모르는 값이면 타입 필터 미적용
+        return null;
     }
 
-    /**
-     * 의심스러운 IP 목록 조회 (집계)
-     */
     @Transactional(readOnly = true)
     public List<com.mjsec.ctf.dto.IPActivityDto.SuspiciousIPSummary> getSuspiciousIPsSummary(Integer hoursBack) {
         LocalDateTime since = LocalDateTime.now().minusHours(hoursBack != null ? hoursBack : 24);

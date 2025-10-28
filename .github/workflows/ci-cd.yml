@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: Docker Compose CI
 
 on:
@@ -33,6 +34,12 @@ jobs:
       DOMAIN: localhost
       WWW_DOMAIN: localhost
 
+      # >>> Discord alert bot (CI에서는 호출 방지 권장)
+      CTF_ALERT_ENABLED: "false"
+      CTF_ALERT_ENDPOINT: ${{ secrets.CTF_ALERT_ENDPOINT }}
+      CTF_ALERT_API_KEY:  ${{ secrets.CTF_ALERT_API_KEY }}
+      CTF_ALERT_ENVIRONMENT: "ci"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -61,15 +68,22 @@ jobs:
             echo "SPRING_CLOUD_GCP_STORAGE_BUCKET=${{ env.SPRING_CLOUD_GCP_STORAGE_BUCKET }}"
             echo "DOMAIN=${{ env.DOMAIN }}"
             echo "WWW_DOMAIN=${{ env.WWW_DOMAIN }}"
+
+            # >>> Discord alert bot
+            echo "CTF_ALERT_ENABLED=${{ env.CTF_ALERT_ENABLED }}"
+            echo "CTF_ALERT_ENDPOINT=${{ env.CTF_ALERT_ENDPOINT }}"
+            echo "CTF_ALERT_API_KEY=${{ env.CTF_ALERT_API_KEY }}"
+            echo "CTF_ALERT_ENVIRONMENT=${{ env.CTF_ALERT_ENVIRONMENT }}"
           } > .env
-          cat .env | sed 's/^\(.*PASSWORD\|JWT_SECRET\|API_KEY\)=.*/\1=****/'
+
+          # mask secrets in logs
+          cat .env | sed 's/^\(.*PASSWORD\|JWT_SECRET\|CTF_ALERT_API_KEY\|API_KEY\)=.*/\1=****/'
 
       - name: Show Docker versions
         run: |
           docker --version
           docker compose version
 
-      # backend 이미지 로컬 빌드
       - name: Build Docker images
         run: docker compose build backend
 
