@@ -45,7 +45,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # SSH 준비
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -59,7 +58,6 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 "$REMOTE_HOST" "echo OK"
 
-      # 원격 docker compose v2 보장
       - name: Ensure docker compose v2 on remote
         continue-on-error: true
         run: |
@@ -86,7 +84,6 @@ jobs:
             echo "docker compose v2 installed"
           EOSSH
 
-      # Docker 데몬 기동 보장
       - name: Ensure Docker service is running
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -95,7 +92,6 @@ jobs:
             sudo docker info >/dev/null
           EOSSH
 
-      # 원격 디렉터리 준비
       - name: Prepare remote dirs (no .env here)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -111,7 +107,6 @@ jobs:
                          "$REMOTE_DIR/certbot/logs"
           EOSSH
 
-      # .env 생성 → 업로드 (root:root 600로 유지)
       - name: Build .env locally and upload
         env:
           VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}
@@ -172,7 +167,6 @@ jobs:
           scp -o StrictHostKeyChecking=no .env.ci "$REMOTE_HOST":/tmp/.env
           ssh "$REMOTE_HOST" "sudo mv /tmp/.env '${{ env.REMOTE_DIR }}/.env' && sudo chown root:root '${{ env.REMOTE_DIR }}/.env' && sudo chmod 600 '${{ env.REMOTE_DIR }}/.env'"
 
-      # docker-compose / 템플릿 업로드
       - name: Upload docker-compose.yml via /tmp
         run: |
           scp -o StrictHostKeyChecking=no docker-compose.yml "$REMOTE_HOST":/tmp/docker-compose.yml
@@ -187,27 +181,21 @@ jobs:
             sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
 
-      # 🔹 여기에만 추가: NGINX limit zone 단일 선언 파일 생성 (중복 방지)
+      # 🔹 limit_zone들을 전역(한 곳)에서만 선언
       - name: Install NGINX limit zones (00-limits.conf)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
-            # 디렉터리 보장
             sudo install -d -m 0755 /home/ubuntu/app/nginx/conf.d
-
-            # sudo tee 로 파일 생성(쉘 확장 방지용 quoted heredoc)
             sudo tee /home/ubuntu/app/nginx/conf.d/00-limits.conf >/dev/null <<'CONF'
             limit_conn_zone $binary_remote_addr           zone=conn_per_ip:10m;
             limit_req_zone  $binary_remote_addr           zone=api_per_ip:10m      rate=10r/s;
             limit_req_zone  $binary_remote_addr$uri       zone=api_per_ip_uri:10m  rate=5r/s;
             CONF
-
             sudo chown root:root /home/ubuntu/app/nginx/conf.d/00-limits.conf
             sudo chmod 644 /home/ubuntu/app/nginx/conf.d/00-limits.conf
           EOSSH
 
-
-      # 👉 GCP 키 업로드를 먼저 해서 마운트 경로가 준비되도록 (중요)
       - name: Upload GCP Service Account (place before backend restart)
         env:
           GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -226,7 +214,6 @@ jobs:
             rm -f gcp.json
           fi
 
-      # ✅ 항상 백엔드 이미지를 최신으로 갱신하고 재기동
       - name: Update backend image (pull + recreate)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -238,35 +225,33 @@ jobs:
             sudo docker inspect $(sudo docker compose ps -q backend) --format '{{.Config.Image}}'
           EOSSH
 
-      # 1) HTTP 기동 (envsubst → up). compose는 sudo로 실행 (.env 접근 가능)
       - name: Start stack (HTTP only)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-
-            # HTTP 설정으로 nginx 시작/리로드
+            sudo docker compose up -d nginx backend frontend redis || true
+            # HTTP 템플릿 적용 + limit_zone 중복 라인 방지
             sudo docker compose exec nginx sh -c '
-            envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
-                    > /etc/nginx/conf.d/default.conf \
-            && nginx -t \
-            && nginx -s reload
+              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
+                > /etc/nginx/conf.d/default.conf \
+              && sed -i "/^[[:space:]]*limit_\\(conn\\|req\\)_zone/d" /etc/nginx/conf.d/default.conf \
+              && nginx -t && nginx -s reload
             ' || {
-              echo "nginx exec failed, trying container recreation"
+              echo "nginx exec failed, recreating container"
               sudo docker compose down --remove-orphans || true
               sudo docker compose pull || true
               sudo docker compose up -d nginx backend frontend redis
               sleep 5
               sudo docker compose exec nginx sh -c '
-              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
-                      > /etc/nginx/conf.d/default.conf \
-              && nginx -t \
-              && nginx -s reload
+                envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
+                  > /etc/nginx/conf.d/default.conf \
+                && sed -i "/^[[:space:]]*limit_\\(conn\\|req\\)_zone/d" /etc/nginx/conf.d/default.conf \
+                && nginx -t && nginx -s reload
               '
             }
           EOSSH
 
-      # 80 확인 (DNS 무시, IP 고정)
       - name: Wait for HTTP (via fixed IP)
         run: |
           set -euo pipefail
@@ -287,7 +272,6 @@ jobs:
             echo "WWW not reachable via IP (might be no DNS)."
           fi
 
-      # 2) 인증서 발급/갱신 (certbot 컨테이너 직접 실행)
       - name: Issue/Renew SSL via certbot
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -302,26 +286,23 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      # 3) HTTPS 전환 & NGINX 리로드
       - name: Apply HTTPS config & reload nginx
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-
             sudo docker compose exec nginx sh -c '
               envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.https.conf.template \
-                      > /etc/nginx/conf.d/default.conf \
-              && nginx -t \
-              && nginx -s reload
+                > /etc/nginx/conf.d/default.conf \
+              && sed -i "/^[[:space:]]*limit_\\(conn\\|req\\)_zone/d" /etc/nginx/conf.d/default.conf \
+              && nginx -t && nginx -s reload
             '
             echo "=== HTTPS config applied ==="
-            sudo docker compose exec nginx head -10 /etc/nginx/conf.d/default.conf
-            sleep 3
-            sudo docker compose logs nginx --tail=5
+            sudo docker compose exec nginx head -20 /etc/nginx/conf.d/default.conf || true
+            sleep 2
+            sudo docker compose logs nginx --tail=50
           EOSSH
 
-      # 443 확인 (DNS 무시, SNI만 호스트로 강제)
       - name: Verify HTTPS (apex & www via fixed IP)
         run: |
           set -euo pipefail
