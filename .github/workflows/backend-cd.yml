@@ -1,4 +1,3 @@
-# .github/workflows/cd.yml
 name: Backend & NGINX CD (Auto-SSL)
 
 on:
@@ -46,6 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SSH 준비
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -59,6 +59,7 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 "$REMOTE_HOST" "echo OK"
 
+      # 원격 docker compose v2 보장
       - name: Ensure docker compose v2 on remote
         continue-on-error: true
         run: |
@@ -85,6 +86,7 @@ jobs:
             echo "docker compose v2 installed"
           EOSSH
 
+      # Docker 데몬 기동 보장
       - name: Ensure Docker service is running
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -93,6 +95,7 @@ jobs:
             sudo docker info >/dev/null
           EOSSH
 
+      # 원격 디렉터리 준비
       - name: Prepare remote dirs (no .env here)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -108,6 +111,7 @@ jobs:
                          "$REMOTE_DIR/certbot/logs"
           EOSSH
 
+      # .env 생성 → 업로드 (root:root 600로 유지)
       - name: Build .env locally and upload
         env:
           VITE_API_URL_SECRET: ${{ secrets.VITE_API_URL }}
@@ -148,7 +152,7 @@ jobs:
           SPRING_WEB_CORS_ALLOWED_ORIGINS=https://${{ env.DOMAIN }},https://${{ env.WWW_DOMAIN }}
           IMAGE_TAG=${{ env.IMAGE_TAG }}
 
-          # >>> GCP Storage(Spring) override
+          # >>> GCP Storage(Spring) override (중요)
           SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION=file:/secrets/gcp_service_account.json
           SPRING_CLOUD_GCP_STORAGE_BUCKET=${{ secrets.BUCKET }}
 
@@ -168,6 +172,7 @@ jobs:
           scp -o StrictHostKeyChecking=no .env.ci "$REMOTE_HOST":/tmp/.env
           ssh "$REMOTE_HOST" "sudo mv /tmp/.env '${{ env.REMOTE_DIR }}/.env' && sudo chown root:root '${{ env.REMOTE_DIR }}/.env' && sudo chmod 600 '${{ env.REMOTE_DIR }}/.env'"
 
+      # docker-compose / 템플릿 업로드
       - name: Upload docker-compose.yml via /tmp
         run: |
           scp -o StrictHostKeyChecking=no docker-compose.yml "$REMOTE_HOST":/tmp/docker-compose.yml
@@ -182,6 +187,7 @@ jobs:
             sudo mv /tmp/default.https.conf.template '${{ env.REMOTE_DIR }}/nginx/default.https.conf.template';
           "
 
+      # 👉 GCP 키 업로드를 먼저 해서 마운트 경로가 준비되도록 (중요)
       - name: Upload GCP Service Account (place before backend restart)
         env:
           GCP_SA: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -200,6 +206,7 @@ jobs:
             rm -f gcp.json
           fi
 
+      # ✅ 항상 백엔드 이미지를 최신으로 갱신하고 재기동
       - name: Update backend image (pull + recreate)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -211,64 +218,33 @@ jobs:
             sudo docker inspect $(sudo docker compose ps -q backend) --format '{{.Config.Image}}'
           EOSSH
 
-      # ===== 여기부터: 자동 envsubst 무력화 + 안전 부팅 =====
-      - name: Inject script to disable nginx auto-envsubst and start stack (fixed perms)
+      # 1) HTTP 기동 (envsubst → up). compose는 sudo로 실행 (.env 접근 가능)
+      - name: Start stack (HTTP only)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            # 1) /tmp에 스크립트 작성(권한 문제 회피)
-            cat >/tmp/05-disable-autosubst.sh <<'SH'
-            #!/bin/sh
-            set -e
-            # 공식 엔트리포인트가 처리하기 전에 템플릿 확장자 비활성화
-            for f in /etc/nginx/templates/*.template; do
-              [ -e "$f" ] || continue
-              mv "$f" "$f.disabled" 2>/dev/null || true
-            done
-            exit 0
-            SH
-
-            # 2) 컨테이너 재생성(create) 후 스크립트 주입
-            sudo docker compose down --remove-orphans || true
-            sudo docker compose pull || true
-            # 모든 서비스 create (nginx 포함)
-            sudo docker compose create
-
-            NGINX_CID="$(sudo docker compose ps -q nginx)"
-            # entrypoint.d 로 복사 + 실행권한 부여
-            sudo docker cp /tmp/05-disable-autosubst.sh "$NGINX_CID":/docker-entrypoint.d/05-disable-autosubst.sh
-            sudo docker exec "$NGINX_CID" chmod +x /docker-entrypoint.d/05-disable-autosubst.sh
-
-            # 3) 스택 기동(첫 부팅은 패키지 기본 default.conf로 올라옴)
-            sudo docker compose start || sudo docker compose up -d
-            sleep 4
-            sudo docker compose ps
-          EOSSH
-
-      - name: Start stack (HTTP only, manual envsubst)
-        run: |
-          ssh "$REMOTE_HOST" <<'EOSSH'
-            set -euo pipefail
-            cd '${{ env.REMOTE_DIR }}'
-            # 패키지 기본 default.conf 제거 후 우리가 생성
-            sudo docker compose exec nginx sh -lc '
-              rm -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf;
-              envsubst "$DOMAIN $WWW_DOMAIN" < /etc/nginx/templates/default.http.conf.template.disabled > /etc/nginx/conf.d/default.conf;
-              nginx -t && nginx -s reload
+            # HTTP 설정으로 nginx 시작/리로드
+            sudo docker compose exec nginx sh -c '
+            envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
+                    > /etc/nginx/conf.d/default.conf \
+            && nginx -s reload
             ' || {
               echo "nginx exec failed, trying container recreation"
-              sudo docker compose restart nginx
-              sleep 3
-              sudo docker compose exec nginx sh -lc '
-                rm -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf;
-                envsubst "$DOMAIN $WWW_DOMAIN" < /etc/nginx/templates/default.http.conf.template.disabled > /etc/nginx/conf.d/default.conf;
-                nginx -t && nginx -s reload
+              sudo docker compose down --remove-orphans || true
+              sudo docker compose pull || true
+              sudo docker compose up -d nginx backend frontend redis
+              sleep 5
+              sudo docker compose exec nginx sh -c '
+              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
+                      > /etc/nginx/conf.d/default.conf \
+              && nginx -s reload
               '
             }
           EOSSH
 
+      # 80 확인 (DNS 무시, IP 고정)
       - name: Wait for HTTP (via fixed IP)
         run: |
           set -euo pipefail
@@ -289,6 +265,7 @@ jobs:
             echo "WWW not reachable via IP (might be no DNS)."
           fi
 
+      # 2) 인증서 발급/갱신 (certbot 컨테이너 직접 실행)
       - name: Issue/Renew SSL via certbot
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
@@ -303,22 +280,26 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      - name: Apply HTTPS config & reload nginx (manual envsubst)
+      # 3) HTTPS 전환 & NGINX 리로드
+      - name: Apply HTTPS config & reload nginx
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-            sudo docker compose exec nginx sh -lc '
-              rm -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf;
-              envsubst "$DOMAIN $WWW_DOMAIN" < /etc/nginx/templates/default.https.conf.template.disabled > /etc/nginx/conf.d/default.conf;
-              nginx -t && nginx -s reload
+
+            sudo docker compose exec nginx sh -c '
+              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.https.conf.template \
+                      > /etc/nginx/conf.d/default.conf \
+              && nginx -t \
+              && nginx -s reload
             '
             echo "=== HTTPS config applied ==="
-            sudo docker compose exec nginx head -20 /etc/nginx/conf.d/default.conf || true
+            sudo docker compose exec nginx head -10 /etc/nginx/conf.d/default.conf
             sleep 3
-            sudo docker compose logs nginx --tail=20 || true
+            sudo docker compose logs nginx --tail=5
           EOSSH
 
+      # 443 확인 (DNS 무시, SNI만 호스트로 강제)
       - name: Verify HTTPS (apex & www via fixed IP)
         run: |
           set -euo pipefail
