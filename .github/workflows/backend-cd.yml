@@ -192,14 +192,20 @@ jobs:
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
-            cat > '${{ env.REMOTE_DIR }}/nginx/conf.d/00-limits.conf' <<'CONF'
+            # 디렉터리 보장
+            sudo install -d -m 0755 /home/ubuntu/app/nginx/conf.d
+
+            # sudo tee 로 파일 생성(쉘 확장 방지용 quoted heredoc)
+            sudo tee /home/ubuntu/app/nginx/conf.d/00-limits.conf >/dev/null <<'CONF'
             limit_conn_zone $binary_remote_addr           zone=conn_per_ip:10m;
             limit_req_zone  $binary_remote_addr           zone=api_per_ip:10m      rate=10r/s;
             limit_req_zone  $binary_remote_addr$uri       zone=api_per_ip_uri:10m  rate=5r/s;
             CONF
-            sudo chown root:root '${{ env.REMOTE_DIR }}/nginx/conf.d/00-limits.conf'
-            sudo chmod 644 '${{ env.REMOTE_DIR }}/nginx/conf.d/00-limits.conf'
+
+            sudo chown root:root /home/ubuntu/app/nginx/conf.d/00-limits.conf
+            sudo chmod 644 /home/ubuntu/app/nginx/conf.d/00-limits.conf
           EOSSH
+
 
       # 👉 GCP 키 업로드를 먼저 해서 마운트 경로가 준비되도록 (중요)
       - name: Upload GCP Service Account (place before backend restart)
