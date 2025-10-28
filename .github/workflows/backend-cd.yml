@@ -191,9 +191,9 @@ jobs:
 
             # 임시 파일로 먼저 쓴 뒤 교체(부분쓰기/깨짐 방지)
             sudo tee "${CONF}.tmp" >/dev/null <<'CONF'
-            limit_conn_zone $binary_remote_addr zone=conn_per_ip:10m;
-            limit_req_zone  $binary_remote_addr zone=api_per_ip:10m rate=10r/s;
-            limit_req_zone  $binary_remote_addr$uri zone=api_per_ip_uri:10m rate=5r/s;
+            limit_conn_zone $binary_remote_addr           zone=conn_per_ip:10m;
+            limit_req_zone  $binary_remote_addr           zone=api_per_ip:10m      rate=10r/s;
+            limit_req_zone  $binary_remote_addr$uri       zone=api_per_ip_uri:10m  rate=5r/s;
             CONF
 
             # CRLF 제거 후 소유권/권한 정리, 원자 교체
@@ -247,13 +247,17 @@ jobs:
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
             sudo docker compose up -d nginx backend frontend redis || true
+            # HTTP 템플릿 적용 + 자동 생성본 삭제(중복 방지) + limit_zone 라인 제거
             sudo docker compose exec nginx sh -lc '
               set -e
               envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template > /etc/nginx/conf.d/default.conf
+              rm -f /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf
               sed -i "/^[[:space:]]*limit_\\(conn\\|req\\)_zone/d" /etc/nginx/conf.d/default.conf
               nginx -t || { echo "[!] nginx -t failed, dump head:"; nginx -T | sed -n \"1,200p\"; exit 1; }
               nginx -s reload
               echo "Reloaded (HTTP)"
+              echo "--- conf.d list ---"; ls -1 /etc/nginx/conf.d
+              echo; echo "--- grep server_name ---"; grep -R "server_name" -n /etc/nginx/conf.d || true
             '
           EOSSH
 
@@ -298,12 +302,16 @@ jobs:
             sudo docker compose exec nginx sh -lc '
               set -e
               envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.https.conf.template > /etc/nginx/conf.d/default.conf
+              # 자동 생성본 삭제(중복 방지)
+              rm -f /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf
               sed -i "/^[[:space:]]*limit_\\(conn\\|req\\)_zone/d" /etc/nginx/conf.d/default.conf
               nginx -t || { echo "[!] nginx -t failed, dump head:"; nginx -T | sed -n \"1,200p\"; exit 1; }
               nginx -s reload
               echo "Reloaded (HTTPS)"
               echo "=== /etc/nginx/conf.d/00-limits.conf ==="
               nl -ba /etc/nginx/conf.d/00-limits.conf || true
+              echo "--- conf.d list ---"; ls -1 /etc/nginx/conf.d
+              echo; echo "--- grep server_name ---"; grep -R "server_name" -n /etc/nginx/conf.d || true
             '
             sudo docker compose logs nginx --tail=50
           EOSSH
