@@ -1,43 +1,52 @@
-# ============================
-# rate/conn limit ZONE 정의 (http 컨텍스트)
-# conf.d/*.conf는 http{} 안에서 include 되므로, server 바깥에 선언 가능
-# ============================
-limit_conn_zone $binary_remote_addr          zone=conn_per_ip:10m;
-limit_req_zone  $binary_remote_addr          zone=api_per_ip:10m      rate=10r/s;
-limit_req_zone  $binary_remote_addr$uri      zone=api_per_ip_uri:10m  rate=5r/s;
+# ─────────────────────────────────────────────────────────────────
+# ZONES (이 파일 단독 적용 시에만 선언됨 → 중복 선언 없음)
+# ─────────────────────────────────────────────────────────────────
+limit_conn_zone $binary_remote_addr         zone=conn_per_ip:10m;
+limit_req_zone  $binary_remote_addr         zone=api_per_ip:10m      rate=10r/s;
+limit_req_zone  $binary_remote_addr$uri     zone=api_per_ip_uri:10m  rate=5r/s;
 
-# 80: ACME 허용 + 전체 HTTPS 리다이렉트
+# ─────────────────────────────────────────────────────────────────
+# 80: ACME 허용 + HTTPS 리다이렉트
+# ─────────────────────────────────────────────────────────────────
 server {
   listen 80;
   listen [::]:80;
   server_name $DOMAIN $WWW_DOMAIN;
 
+  # ACME challenge (Let's Encrypt)
   location ^~ /.well-known/acme-challenge/ {
     root /var/www/certbot;
     allow all;
   }
+
+  # 모든 요청을 HTTPS로
   location / { return 301 https://$host$request_uri; }
 }
 
-# 443: apex(권장 canonical) — 실제 서비스
+# ─────────────────────────────────────────────────────────────────
+# 443: apex (서비스 본 도메인)
+# ─────────────────────────────────────────────────────────────────
 server {
-  listen 443 ssl http2;
-  listen [::]:443 ssl http2;
+  listen 443 ssl;
+  listen [::]:443 ssl;
   server_name $DOMAIN;
+
+  # 최신 nginx 문법: listen에 http2 제거 → 아래처럼 별도 on
+  http2 on;
 
   ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
 
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
-  # 연결/요청 제한 (위에서 선언한 zone 사용)
+  # 연결 제한 (IP당 동시 커넥션)
   limit_conn conn_per_ip 20;
 
   # Frontend
   location / {
     limit_req zone=api_per_ip     burst=30 nodelay;
-    proxy_pass http://frontend:80;
 
+    proxy_pass http://frontend:80;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
     proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -64,7 +73,7 @@ server {
     client_max_body_size 20m;
   }
 
-  # SSE
+  # Server-Sent Events(Leaderboard)
   location = /api/leaderboard/stream {
     proxy_pass http://backend:8080/api/leaderboard/stream;
     proxy_http_version 1.1;
@@ -84,11 +93,15 @@ server {
   }
 }
 
-# 443: www → apex 리다이렉트 (같은 인증서 사용)
+# ─────────────────────────────────────────────────────────────────
+# 443: www → apex 리다이렉트
+# ─────────────────────────────────────────────────────────────────
 server {
-  listen 443 ssl http2;
-  listen [::]:443 ssl http2;
+  listen 443 ssl;
+  listen [::]:443 ssl;
   server_name $WWW_DOMAIN;
+
+  http2 on;
 
   ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
