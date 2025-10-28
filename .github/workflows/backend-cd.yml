@@ -187,15 +187,14 @@ jobs:
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             sudo install -d -m 0755 /home/ubuntu/app/nginx/conf.d
-            CONF=/home/ubuntu/app/nginx/conf.d/00-limits.conf
-            sudo bash -lc 'cat > "'"$CONF"'" <<'"'"'EOF'"'"'
+            sudo tee /home/ubuntu/app/nginx/conf.d/00-limits.conf >/dev/null <<'CONF'
             limit_conn_zone $binary_remote_addr zone=conn_per_ip:10m;
-            limit_req_zone  $binary_remote_addr zone=api_per_ip:10r/s    rate=10r/s;
+            limit_req_zone  $binary_remote_addr zone=api_per_ip:10m rate=10r/s;
             limit_req_zone  $binary_remote_addr$uri zone=api_per_ip_uri:10m rate=5r/s;
-            EOF'
-            sudo sed -i "s/\r$//" "$CONF"
-            sudo chown root:root "$CONF"
-            sudo chmod 0644 "$CONF"
+            CONF
+            sudo sed -i "s/\r$//" /home/ubuntu/app/nginx/conf.d/00-limits.conf
+            sudo chown root:root /home/ubuntu/app/nginx/conf.d/00-limits.conf
+            sudo chmod 0644 /home/ubuntu/app/nginx/conf.d/00-limits.conf
           EOSSH
 
       - name: Upload GCP Service Account (place before backend restart)
@@ -233,7 +232,6 @@ jobs:
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
             sudo docker compose up -d nginx backend frontend redis || true
-            # HTTP 템플릿 적용 + default.conf 내 zone 라인 강제 제거
             sudo docker compose exec nginx sh -lc '
               set -e
               envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template > /etc/nginx/conf.d/default.conf
