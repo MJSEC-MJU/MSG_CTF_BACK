@@ -1,5 +1,6 @@
 server {
   listen 80;
+  listen [::]:80;
   server_name $DOMAIN $WWW_DOMAIN;
 
   # ACME challenge
@@ -11,23 +12,23 @@ server {
   # Frontend (권장: 프록시)
   location / {
     proxy_pass http://frontend:80;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     client_max_body_size 50m;
   }
 
   # Backend API
   location /api/ {
-    proxy_pass http://backend:8080/api/;
-    proxy_buffering off;
-    proxy_cache off;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Authorization $http_authorization;
+    proxy_pass        http://backend:8080/api/;
+    proxy_buffering   off;
+    proxy_cache       off;
+    proxy_set_header  Host              $host;
+    proxy_set_header  X-Real-IP         $remote_addr;
+    proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header  X-Forwarded-Proto $scheme;
+    proxy_set_header  Authorization     $http_authorization;
     client_max_body_size 20m;
   }
 
@@ -38,11 +39,12 @@ server {
     proxy_buffering off; proxy_cache off; chunked_transfer_encoding off;
     add_header X-Accel-Buffering no;
     proxy_read_timeout 3600s; proxy_send_timeout 3600s;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Authorization $http_authorization;
-    proxy_set_header Origin $http_origin;
+    proxy_set_header Authorization     $http_authorization;
+    proxy_set_header Origin            $http_origin;
   }
 }

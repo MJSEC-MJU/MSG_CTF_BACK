@@ -11,6 +11,7 @@ import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.*;
 import com.mjsec.ctf.type.ErrorCode;
+import com.mjsec.ctf.util.IPAddressUtil;
 import io.micrometer.common.util.StringUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,9 @@ public class ChallengeService {
     // ▼ 시그니처 코드/잠금
     private final TeamSignatureUnlockRepository unlockRepo;
     private final SignatureCodeRepository codeRepo;
+
+    // 공격 탐지 서비스
+    private final ThreatDetectionService threatDetectionService;
 
     @Value("${api.key}")
     private String apiKey;
@@ -121,7 +125,7 @@ public class ChallengeService {
         }
     }
 
-    // 특정 문제 상세 조회
+    // 특정 문제 상세 조회 (일반 사용자용)
     public ChallengeDto.Detail getDetailChallenge(Long challengeId){
         log.info("Fetching details for challengeId: {}", challengeId);
 
@@ -132,6 +136,16 @@ public class ChallengeService {
         assertSignatureUnlockedOrThrow(challenge);
 
         return ChallengeDto.Detail.fromEntity(challenge);
+    }
+
+    // 특정 문제 상세 조회 (관리자용 - 모든 필드 포함, flag 제외)
+    public ChallengeDto.AdminDetail getAdminDetailChallenge(Long challengeId){
+        log.info("Admin fetching full details for challengeId: {}", challengeId);
+
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        return ChallengeDto.AdminDetail.fromEntity(challenge);
     }
 
     // 문제 생성
@@ -236,6 +250,7 @@ public class ChallengeService {
                     .category(category)
                     .mileage(mileage)
                     .club(newClub)
+                    .solvers(challenge.getSolvers())  // 기존 solvers 값 유지
                     .build();
 
             // 기존 파일 URL 유지
@@ -315,11 +330,12 @@ public class ChallengeService {
     }
 
     @Transactional
-    public String submit(String loginId, Long challengeId, String flag) {
+    public String submit(String loginId, Long challengeId, String flag, String clientIP) {
 
         String lockKey = "challengeLock:" + challengeId;
         RLock lock = redissonClient.getLock(lockKey);
         boolean locked = false;
+        boolean isInternalIP = IPAddressUtil.isLocalIP(clientIP);
 
         try {
             locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
@@ -379,17 +395,26 @@ public class ChallengeService {
                             .build()
             );
 
-            long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
-            if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
-                return "Wait";
-            }
-
+            // 플래그 검증
             if (!passwordEncoder.matches(flag, challenge.getFlag())) {
+                //  오답 제출 시 공격 감지 시스템에 먼저 기록 (Wait 체크 이전)
+                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId, isInternalIP);
+
+                // Wait 체크 (사용자 편의를 위한 Rate Limiting)
+                long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
+                if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
+                    return "Wait";
+                }
+
                 submission.setAttemptCount(submission.getAttemptCount() + 1);
                 submission.setLastAttemptTime(LocalDateTime.now());
                 submissionRepository.save(submission);
+
                 return "Wrong";
             } else {
+
+                //  정답 제출 시 기록 (자동 차단 방지)
+                threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId, isInternalIP);
 
                 HistoryEntity history = HistoryEntity.builder()
                         .loginId(user.getLoginId())
