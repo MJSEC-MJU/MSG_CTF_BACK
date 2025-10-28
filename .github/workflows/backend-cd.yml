@@ -187,14 +187,21 @@ jobs:
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             sudo install -d -m 0755 /home/ubuntu/app/nginx/conf.d
-            sudo tee /home/ubuntu/app/nginx/conf.d/00-limits.conf >/dev/null <<'CONF'
-            limit_conn_zone $binary_remote_addr           zone=conn_per_ip:10m;
-            limit_req_zone  $binary_remote_addr           zone=api_per_ip:10m      rate=10r/s;
-            limit_req_zone  $binary_remote_addr$uri       zone=api_per_ip_uri:10m  rate=5r/s;
-            CONF
-            sudo chown root:root /home/ubuntu/app/nginx/conf.d/00-limits.conf
-            sudo chmod 644 /home/ubuntu/app/nginx/conf.d/00-limits.conf
+            CONF=/home/ubuntu/app/nginx/conf.d/00-limits.conf
+
+            # 정확한 내용으로 덮어쓰기 (인덴트/공백 없음)
+            sudo bash -lc 'cat > "'"$CONF"'" <<'"'"'EOF'"'"'
+            limit_conn_zone $binary_remote_addr zone=conn_per_ip:10m;
+            limit_req_zone  $binary_remote_addr zone=api_per_ip:10m      rate=10r/s;
+            limit_req_zone  $binary_remote_addr$uri zone=api_per_ip_uri:10m  rate=5r/s;
+            EOF'
+
+            # CRLF 제거 및 권한 정리
+            sudo sed -i "s/\r$//" "$CONF"
+            sudo chown root:root "$CONF"
+            sudo chmod 0644 "$CONF"
           EOSSH
+
 
       - name: Upload GCP Service Account (place before backend restart)
         env:
