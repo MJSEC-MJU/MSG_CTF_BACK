@@ -211,26 +211,59 @@ jobs:
             sudo docker inspect $(sudo docker compose ps -q backend) --format '{{.Config.Image}}'
           EOSSH
 
-      - name: Start stack (HTTP only)
+      # ===== 여기부터: 자동 envsubst 무력화 + 안전 부팅 =====
+      - name: Inject script to disable nginx auto-envsubst and start stack
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            sudo docker compose exec nginx sh -c '
-            envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
-                    > /etc/nginx/conf.d/default.conf \
-            && nginx -s reload
+            # 1) 비활성 스크립트 작성(템플릿들을 .disabled 로 rename)
+            cat > nginx/05-disable-autosubst.sh <<'SH'
+            #!/bin/sh
+            set -e
+            for f in /etc/nginx/templates/*.template; do
+              [ -e "$f" ] || continue
+              mv "$f" "$f.disabled" 2>/dev/null || true
+            done
+            # 기본 default.conf(패키지)는 남겨둬서 초기 부팅 성공 보장
+            exit 0
+            SH
+            chmod +x nginx/05-disable-autosubst.sh
+
+            # 2) 컨테이너 재생성(create) → 스크립트 주입 → start
+            sudo docker compose down --remove-orphans || true
+            sudo docker compose pull || true
+            sudo docker compose create nginx backend frontend redis
+
+            NGINX_CID=$(sudo docker compose ps -q nginx)
+            # 컨테이너 내부 /docker-entrypoint.d/ 로 스크립트 복사
+            sudo docker cp nginx/05-disable-autosubst.sh "$NGINX_CID":/docker-entrypoint.d/05-disable-autosubst.sh
+
+            # 컨테이너 시작
+            sudo docker compose start redis mysql backend frontend nginx || sudo docker compose up -d
+            sleep 4
+            sudo docker compose ps
+          EOSSH
+
+      - name: Start stack (HTTP only, manual envsubst)
+        run: |
+          ssh "$REMOTE_HOST" <<'EOSSH'
+            set -euo pipefail
+            cd '${{ env.REMOTE_DIR }}'
+            # 패키지 기본 default.conf 제거 후 우리가 생성
+            sudo docker compose exec nginx sh -lc '
+              rm -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf;
+              envsubst "$DOMAIN $WWW_DOMAIN" < /etc/nginx/templates/default.http.conf.template.disabled > /etc/nginx/conf.d/default.conf;
+              nginx -t && nginx -s reload
             ' || {
               echo "nginx exec failed, trying container recreation"
-              sudo docker compose down --remove-orphans || true
-              sudo docker compose pull || true
-              sudo docker compose up -d nginx backend frontend redis
-              sleep 5
-              sudo docker compose exec nginx sh -c '
-              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.http.conf.template \
-                      > /etc/nginx/conf.d/default.conf \
-              && nginx -s reload
+              sudo docker compose restart nginx
+              sleep 3
+              sudo docker compose exec nginx sh -lc '
+                rm -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf;
+                envsubst "$DOMAIN $WWW_DOMAIN" < /etc/nginx/templates/default.http.conf.template.disabled > /etc/nginx/conf.d/default.conf;
+                nginx -t && nginx -s reload
               '
             }
           EOSSH
@@ -269,22 +302,20 @@ jobs:
               --agree-tos --no-eff-email --rsa-key-size 4096
           EOSSH
 
-      - name: Apply HTTPS config & reload nginx
+      - name: Apply HTTPS config & reload nginx (manual envsubst)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
-
-            sudo docker compose exec nginx sh -c '
-              envsubst '\''$DOMAIN $WWW_DOMAIN'\'' < /etc/nginx/templates/default.https.conf.template \
-                      > /etc/nginx/conf.d/default.conf \
-              && nginx -t \
-              && nginx -s reload
+            sudo docker compose exec nginx sh -lc '
+              rm -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.https.conf;
+              envsubst "$DOMAIN $WWW_DOMAIN" < /etc/nginx/templates/default.https.conf.template.disabled > /etc/nginx/conf.d/default.conf;
+              nginx -t && nginx -s reload
             '
             echo "=== HTTPS config applied ==="
-            sudo docker compose exec nginx head -10 /etc/nginx/conf.d/default.conf
+            sudo docker compose exec nginx head -20 /etc/nginx/conf.d/default.conf || true
             sleep 3
-            sudo docker compose logs nginx --tail=5
+            sudo docker compose logs nginx --tail=20 || true
           EOSSH
 
       - name: Verify HTTPS (apex & www via fixed IP)
