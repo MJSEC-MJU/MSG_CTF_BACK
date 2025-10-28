@@ -187,14 +187,29 @@ jobs:
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             sudo install -d -m 0755 /home/ubuntu/app/nginx/conf.d
-            sudo tee /home/ubuntu/app/nginx/conf.d/00-limits.conf >/dev/null <<'CONF'
+            CONF=/home/ubuntu/app/nginx/conf.d/00-limits.conf
+
+            # 임시 파일로 먼저 쓴 뒤 교체(부분쓰기/깨짐 방지)
+            sudo tee "${CONF}.tmp" >/dev/null <<'CONF'
             limit_conn_zone $binary_remote_addr zone=conn_per_ip:10m;
             limit_req_zone  $binary_remote_addr zone=api_per_ip:10m rate=10r/s;
             limit_req_zone  $binary_remote_addr$uri zone=api_per_ip_uri:10m rate=5r/s;
             CONF
-            sudo sed -i "s/\r$//" /home/ubuntu/app/nginx/conf.d/00-limits.conf
-            sudo chown root:root /home/ubuntu/app/nginx/conf.d/00-limits.conf
-            sudo chmod 0644 /home/ubuntu/app/nginx/conf.d/00-limits.conf
+
+            # CRLF 제거 후 소유권/권한 정리, 원자 교체
+            sudo sed -i 's/\r$//' "${CONF}.tmp"
+            sudo chown root:root "${CONF}.tmp"
+            sudo chmod 0644 "${CONF}.tmp"
+            sudo mv -f "${CONF}.tmp" "${CONF}"
+
+            # 내용 검증(오타 방지용)
+            echo '--- 00-limits.conf ---'
+            sudo nl -ba "${CONF}"
+            # 잘못된 패턴이 남아있으면 실패시켜 재발 방지
+            if sudo grep -n 'zone=api_per_ip:10r/s' "${CONF}"; then
+              echo '[FATAL] zone=api_per_ip:10r/s 발견됨 → 10m 이어야 합니다.' >&2
+              exit 1
+            fi
           EOSSH
 
       - name: Upload GCP Service Account (place before backend restart)
