@@ -1,66 +1,44 @@
-# ─────────────────────────────────────────────────────────────────
-# ZONES (conf.d는 http{} 안에 인클루드되므로 여기 선언 가능)
-# ─────────────────────────────────────────────────────────────────
-limit_conn_zone $binary_remote_addr         zone=conn_per_ip:10m;
-limit_req_zone  $binary_remote_addr         zone=api_per_ip:10m      rate=10r/s;
-limit_req_zone  $binary_remote_addr$uri     zone=api_per_ip_uri:10m  rate=5r/s;
-
-# ─────────────────────────────────────────────────────────────────
-# 80: ACME + 실제 서비스(초기에는 HTTP로 먼저 동작)
-# ─────────────────────────────────────────────────────────────────
 server {
   listen 80;
   listen [::]:80;
   server_name $DOMAIN $WWW_DOMAIN;
 
-  # ACME challenge (Let's Encrypt)
+  # ACME challenge
   location ^~ /.well-known/acme-challenge/ {
     root /var/www/certbot;
     allow all;
   }
 
-  # Frontend
+  # Frontend (권장: 프록시)
   location / {
-    # (필요시) 요청 제한
-    limit_req zone=api_per_ip     burst=30 nodelay;
-
     proxy_pass http://frontend:80;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
     proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-
     client_max_body_size 50m;
   }
 
   # Backend API
   location /api/ {
-    limit_req zone=api_per_ip     burst=30 nodelay;
-    limit_req zone=api_per_ip_uri burst=10 nodelay;
-
     proxy_pass        http://backend:8080/api/;
     proxy_buffering   off;
     proxy_cache       off;
-
     proxy_set_header  Host              $host;
     proxy_set_header  X-Real-IP         $remote_addr;
     proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header  X-Forwarded-Proto $scheme;
     proxy_set_header  Authorization     $http_authorization;
-
     client_max_body_size 20m;
   }
 
-  # Server-Sent Events(Leaderboard)
+  # SSE
   location = /api/leaderboard/stream {
     proxy_pass http://backend:8080/api/leaderboard/stream;
     proxy_http_version 1.1;
-
     proxy_buffering off; proxy_cache off; chunked_transfer_encoding off;
     add_header X-Accel-Buffering no;
-
-    proxy_read_timeout 3600s;
-    proxy_send_timeout 3600s;
+    proxy_read_timeout 3600s; proxy_send_timeout 3600s;
 
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
