@@ -212,36 +212,37 @@ jobs:
           EOSSH
 
       # ===== 여기부터: 자동 envsubst 무력화 + 안전 부팅 =====
-      - name: Inject script to disable nginx auto-envsubst and start stack
+      - name: Inject script to disable nginx auto-envsubst and start stack (fixed perms)
         run: |
           ssh "$REMOTE_HOST" <<'EOSSH'
             set -euo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            # 1) 비활성 스크립트 작성(템플릿들을 .disabled 로 rename)
-            cat > nginx/05-disable-autosubst.sh <<'SH'
+            # 1) /tmp에 스크립트 작성(권한 문제 회피)
+            cat >/tmp/05-disable-autosubst.sh <<'SH'
             #!/bin/sh
             set -e
+            # 공식 엔트리포인트가 처리하기 전에 템플릿 확장자 비활성화
             for f in /etc/nginx/templates/*.template; do
               [ -e "$f" ] || continue
               mv "$f" "$f.disabled" 2>/dev/null || true
             done
-            # 기본 default.conf(패키지)는 남겨둬서 초기 부팅 성공 보장
             exit 0
             SH
-            chmod +x nginx/05-disable-autosubst.sh
 
-            # 2) 컨테이너 재생성(create) → 스크립트 주입 → start
+            # 2) 컨테이너 재생성(create) 후 스크립트 주입
             sudo docker compose down --remove-orphans || true
             sudo docker compose pull || true
-            sudo docker compose create nginx backend frontend redis
+            # 모든 서비스 create (nginx 포함)
+            sudo docker compose create
 
-            NGINX_CID=$(sudo docker compose ps -q nginx)
-            # 컨테이너 내부 /docker-entrypoint.d/ 로 스크립트 복사
-            sudo docker cp nginx/05-disable-autosubst.sh "$NGINX_CID":/docker-entrypoint.d/05-disable-autosubst.sh
+            NGINX_CID="$(sudo docker compose ps -q nginx)"
+            # entrypoint.d 로 복사 + 실행권한 부여
+            sudo docker cp /tmp/05-disable-autosubst.sh "$NGINX_CID":/docker-entrypoint.d/05-disable-autosubst.sh
+            sudo docker exec "$NGINX_CID" chmod +x /docker-entrypoint.d/05-disable-autosubst.sh
 
-            # 컨테이너 시작
-            sudo docker compose start redis mysql backend frontend nginx || sudo docker compose up -d
+            # 3) 스택 기동(첫 부팅은 패키지 기본 default.conf로 올라옴)
+            sudo docker compose start || sudo docker compose up -d
             sleep 4
             sudo docker compose ps
           EOSSH
