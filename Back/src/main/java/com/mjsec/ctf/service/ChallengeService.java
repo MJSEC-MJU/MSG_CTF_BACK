@@ -135,6 +135,10 @@ public class ChallengeService {
         // SIGNATURE 접근 통제
         assertSignatureUnlockedOrThrow(challenge);
 
+        // 실시간으로 solvers 카운트 계산 - 정확한 값 보장
+        long actualSolvers = historyRepository.countDistinctByChallengeId(challengeId);
+        challenge.setSolvers((int) actualSolvers);
+
         return ChallengeDto.Detail.fromEntity(challenge);
     }
 
@@ -350,7 +354,8 @@ public class ChallengeService {
             UserEntity user = userRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
 
-            ChallengeEntity challenge = challengeRepository.findById(challengeId)
+            // 비관적 락으로 Challenge 조회 - 동시성 제어
+            ChallengeEntity challenge = challengeRepository.findByIdWithLock(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
 
             // SIGNATURE 접근 통제
@@ -455,20 +460,18 @@ public class ChallengeService {
                             }
                         }
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                } catch (InterruptedException ie) {
+                    log.warn("firstBloodLock interrupted", ie);
                 } finally {
                     if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
                         firstBloodLock.unlock();
                     }
                 }
 
-                // 팀 마일리지/점수 반영
-                // - 시그니처: 마일리지만 적립(점수 0으로 전달)
-                // - 일반 문제: 점수 + 마일리지 적립
-                if (user.getCurrentTeamId() != null) {
+                // 팀 점수/마일리지 처리 (퍼스트 블러드 판정 후)
+                if (team.isPresent()) {
                     int baseMileage = challenge.getMileage();
-                    int bonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
+                    int bonus = isFirstBlood ? (int) Math.ceil(baseMileage * 0.30) : 0;
                     int finalMileage = baseMileage + bonus;
 
                     int awardedPoints = isSignature ? 0 : challenge.getPoints(); // 시그니처는 점수 0
@@ -488,10 +491,11 @@ public class ChallengeService {
                     updateChallengeScore(challenge);
                 }
 
+                // solvers 증가 - 비관적 락으로 보호됨
                 challenge.setSolvers(challenge.getSolvers() + 1);
                 challengeRepository.save(challenge);
 
-                // 기존 제출 기록만 삭제 (신규 객체는 저장도 안 했으니 삭제 불필요)
+                // 기존 제출 기록만 삭제
                 existingOpt.ifPresent(submissionRepository::delete);
 
                 updateAllTeamTotalPoints();
