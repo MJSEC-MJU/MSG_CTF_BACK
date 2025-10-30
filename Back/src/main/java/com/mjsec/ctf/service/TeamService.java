@@ -16,14 +16,19 @@ import com.mjsec.ctf.repository.TeamHistoryRepository;
 import com.mjsec.ctf.repository.TeamPaymentHistoryRepository;
 import com.mjsec.ctf.repository.TeamRepository;
 import com.mjsec.ctf.repository.UserRepository;
+import com.mjsec.ctf.type.ChallengeCategory;
 import com.mjsec.ctf.type.ErrorCode;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -149,8 +154,17 @@ public class TeamService {
         TeamEntity team = teamRepository.findById(user.getCurrentTeamId())
                 .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
 
-        team.addSolvedChallenge(challengeId, points, mileage);
-        teamRepository.save(team);
+        boolean newlySolved = team.addSolvedChallenge(challengeId);
+        if (!newlySolved) {
+            log.debug("Team {} already solved challenge {}, skipping duplicate submission.", team.getTeamId(), challengeId);
+            return;
+        }
+
+        if (mileage > 0) {
+            team.addMileage(mileage);
+        }
+
+        recalculateSingleTeam(team);
     }
 
     public boolean useTeamMileage(Long teamId, int amount, Long requesterUserId) {
@@ -177,6 +191,37 @@ public class TeamService {
     public Optional<TeamEntity> getUserTeam(Long teamId) {
 
         return teamRepository.findById(teamId);
+    }
+
+    @Transactional
+    public void recalculateTeamPoints(Long teamId) {
+        TeamEntity team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+        recalculateSingleTeam(team);
+    }
+
+    @Transactional
+    public void recalculateTeamPoints(TeamEntity team) {
+        if (team == null || team.getTeamId() == null) {
+            throw new RestApiException(ErrorCode.TEAM_NOT_FOUND);
+        }
+        recalculateSingleTeam(team);
+    }
+
+    @Transactional
+    public void recalculateTeamsByChallenge(Long challengeId) {
+        List<TeamEntity> teams = teamRepository.findTeamsBySolvedChallengeId(String.valueOf(challengeId));
+        for (TeamEntity team : teams) {
+            recalculateSingleTeam(team);
+        }
+    }
+
+    @Transactional
+    public void recalculateAllTeamPoints() {
+        List<TeamEntity> teams = teamRepository.findAll();
+        for (TeamEntity team : teams) {
+            recalculateSingleTeam(team);
+        }
     }
 
     public List<TeamEntity> getTeamRanking() {
@@ -330,5 +375,63 @@ public class TeamService {
                 loginId, team.getTeamName(), historyDtos.size());
 
         return historyDtos;
+    }
+
+    private void recalculateSingleTeam(TeamEntity team) {
+        List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
+
+        if (solvedChallengeIds == null || solvedChallengeIds.isEmpty()) {
+            team.setTotalPoint(0);
+            team.setLastSolvedTime(null);
+            teamRepository.save(team);
+            return;
+        }
+
+        List<ChallengeEntity> challenges = challengeRepository.findAllById(solvedChallengeIds);
+        Map<Long, ChallengeEntity> challengeMap = challenges.stream()
+                .collect(Collectors.toMap(ChallengeEntity::getChallengeId, Function.identity(), (left, right) -> left));
+
+        List<HistoryEntity> histories = historyRepository.findByChallengeIdIn(solvedChallengeIds).stream()
+                .filter(history -> !history.isUserDeleted())
+                .collect(Collectors.toList());
+
+        List<UserEntity> teamMembers = userRepository.findAllById(team.getMemberUserIds());
+        Set<String> memberLoginIds = teamMembers.stream()
+                .map(UserEntity::getLoginId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        int totalPoints = 0;
+        LocalDateTime lastSolvedTime = null;
+
+        for (Long challengeId : solvedChallengeIds) {
+            ChallengeEntity challenge = challengeMap.get(challengeId);
+            if (challenge == null) {
+                continue;
+            }
+
+            if (challenge.getCategory() == ChallengeCategory.SIGNATURE) {
+                continue;
+            }
+
+            totalPoints += challenge.getPoints();
+
+            Optional<LocalDateTime> latestSolveTime = histories.stream()
+                    .filter(history -> challengeId.equals(history.getChallengeId()))
+                    .filter(history -> memberLoginIds.contains(history.getLoginId()))
+                    .map(HistoryEntity::getSolvedTime)
+                    .max(Comparator.naturalOrder());
+
+            if (latestSolveTime.isPresent()) {
+                LocalDateTime solvedTime = latestSolveTime.get();
+                if (lastSolvedTime == null || solvedTime.isAfter(lastSolvedTime)) {
+                    lastSolvedTime = solvedTime;
+                }
+            }
+        }
+
+        team.setTotalPoint(totalPoints);
+        team.setLastSolvedTime(lastSolvedTime);
+        teamRepository.save(team);
     }
 }

@@ -36,7 +36,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -308,7 +307,7 @@ public class ChallengeService {
         );
         for (TeamEntity team : affectedTeams) {
             team.getSolvedChallengeIds().remove(challengeId);
-            recalculateTeamPoints(team);
+            teamService.recalculateTeamPoints(team);
         }
 
         // 4) 마지막으로 챌린지 삭제
@@ -472,6 +471,26 @@ public class ChallengeService {
                     submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId);
             existingOpt.ifPresent(submissionRepository::delete);
 
+            // 🔴 핵심: 락 안에서 Challenge를 비관적 락으로 다시 조회
+            // 락 밖에서 조회한 challenge 객체는 stale data이므로 다시 조회 필수!
+            ChallengeEntity lockedChallenge = challengeRepository.findByIdWithLock(challengeId)
+                    .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+            boolean isSignature = (lockedChallenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE);
+
+            // solvers 증가 (DB에서 최신 값 기준)
+            lockedChallenge.setSolvers(lockedChallenge.getSolvers() + 1);
+
+            // 다이나믹 스코어링
+            if (!isSignature) {
+                updateChallengeScore(lockedChallenge);
+            }
+
+            challengeRepository.save(lockedChallenge);
+
+            log.info("[락 내부 - solvers 업데이트] challengeId={}, newSolvers={}, newPoints={}",
+                    challengeId, lockedChallenge.getSolvers(), lockedChallenge.getPoints());
+
             long lockDuration = System.currentTimeMillis() - startTime;
             log.info("[락 내부 처리 완료] loginId={}, challengeId={}, 소요시간={}ms",
                     loginId, challengeId, lockDuration);
@@ -558,72 +577,8 @@ public class ChallengeService {
     @Transactional
     public void updateAllTeamTotalPoints() {
         log.info("전체 팀 점수 재계산 시작");
-
-        List<TeamEntity> allTeams = teamService.getTeamRanking(); // 모든 팀 조회
-
-        for (TeamEntity team : allTeams) {
-            recalculateTeamPoints(team);
-        }
-
+        teamService.recalculateAllTeamPoints();
         log.info("전체 팀 점수 재계산 완료");
-    }
-
-    @Transactional
-    public void recalculateTeamPoints(TeamEntity team) {
-        // 1. 팀이 푼 모든 문제를 한 번에 조회 (IN 쿼리)
-        List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
-        if (solvedChallengeIds.isEmpty()) {
-            team.setTotalPoint(0);
-            team.setLastSolvedTime(null);
-            teamService.saveTeam(team);
-            return;
-        }
-
-        // [최적화] 한 번의 쿼리로 모든 문제 조회
-        List<ChallengeEntity> challenges = challengeRepository.findAllById(solvedChallengeIds);
-        Map<Long, ChallengeEntity> challengeMap = challenges.stream()
-                .collect(Collectors.toMap(ChallengeEntity::getChallengeId, Function.identity()));
-
-        // [최적화] 한 번의 쿼리로 관련 히스토리 모두 조회
-        List<HistoryEntity> histories = historyRepository.findByChallengeIdIn(solvedChallengeIds);
-
-        // [최적화] 팀원 ID로 한 번에 조회
-        List<UserEntity> teamMembers = userRepository.findAllById(team.getMemberUserIds());
-        Set<String> memberLoginIds = teamMembers.stream()
-                .map(UserEntity::getLoginId)
-                .collect(Collectors.toSet());
-
-        // 2. 메모리에서 계산 — 시그니처는 점수 계산에서 제외(마일리지는 별도 필드라 여기서 건들 것 없음)
-        int totalPoints = 0;
-        LocalDateTime lastSolvedTime = null;
-
-        for (Long cid : solvedChallengeIds) {
-            ChallengeEntity c = challengeMap.get(cid);
-            if (c == null) continue;
-
-            if (c.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE) {
-                continue; // 점수 제외
-            }
-
-            totalPoints += c.getPoints();
-
-            Optional<LocalDateTime> latestForThisChallenge = histories.stream()
-                    .filter(h -> h.getChallengeId().equals(cid))
-                    .filter(h -> memberLoginIds.contains(h.getLoginId()))
-                    .map(HistoryEntity::getSolvedTime)
-                    .max(Comparator.naturalOrder());
-
-            if (latestForThisChallenge.isPresent()) {
-                LocalDateTime solved = latestForThisChallenge.get();
-                if (lastSolvedTime == null || solved.isAfter(lastSolvedTime)) {
-                    lastSolvedTime = solved;
-                }
-            }
-        }
-
-        team.setTotalPoint(totalPoints);
-        team.setLastSolvedTime(lastSolvedTime);
-        teamService.saveTeam(team);
     }
 
     // 관리자: 전체 제출 기록 조회
@@ -846,7 +801,7 @@ public class ChallengeService {
         }
 
         // 6. 영향받은 모든 팀의 점수 재계산
-        updateAllTeamTotalPoints();
+        teamService.recalculateAllTeamPoints();
 
         //새로운 퍼스트 블러드에게 보너스 지급
         if (wasFirstBlood) {

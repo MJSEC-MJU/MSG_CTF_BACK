@@ -5,6 +5,7 @@ import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.repository.ChallengeRepository;
 import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.UserRepository;
+import com.mjsec.ctf.type.ChallengeCategory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -25,13 +26,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 비동기 제출 처리 전담 서비스
- * 플래그 정답 제출 후 무거운 작업들을 백그라운드에서 처리:
- * 1. 퍼스트 블러드 판정
- * 2. 팀 점수 및 마일리지 업데이트
- * 3. 다이나믹 스코어링
- * 4. 전체 팀 점수 재계산
- * 5. 퍼스트 블러드 알림 전송
+ * 비동기 제출 처리 전담 서비스 (경합 해결 버전)
  */
 @Slf4j
 @Service
@@ -50,217 +45,144 @@ public class AsyncSubmissionProcessor {
     @Value("${api.url}")
     private String apiUrl;
 
-    /**
-     * 정답 제출 후 비동기 처리
-     *
-     * @Async 어노테이션으로 별도 스레드에서 실행
-     * @Transactional(propagation = REQUIRES_NEW) 로 새로운 트랜잭션에서 실행
-     *
-     * @param userId 사용자 ID
-     * @param challengeId 문제 ID
-     * @param loginId 로그인 ID
-     */
     @Async("submissionAsyncExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processCorrectSubmissionAsync(Long userId, Long challengeId, String loginId) {
-        long startTime = System.currentTimeMillis();
+        final long startedAt = System.currentTimeMillis();
+        final String lockKey = "challenge:submit:lock:" + challengeId;
+        final RLock lock = redissonClient.getFairLock(lockKey);
 
+        boolean locked = false;
         try {
-            log.info("[비동기 처리 시작] loginId={}, challengeId={}", loginId, challengeId);
+            locked = lock.tryLock(10, 15, TimeUnit.SECONDS);
+            if (!locked) {
+                log.warn("[LOCK 획득 실패] challengeId={}, loginId={}", challengeId, loginId);
+                return;
+            }
 
-            // 1. 사용자 및 문제 정보 조회
             UserEntity user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                    .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
 
             ChallengeEntity challenge = challengeRepository.findById(challengeId)
-                    .orElseThrow(() -> new RuntimeException("Challenge not found: " + challengeId));
+                    .orElseThrow(() -> new IllegalStateException("Challenge not found: " + challengeId));
 
-            boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
+            final boolean isSignature = (challenge.getCategory() == ChallengeCategory.SIGNATURE);
 
-            // 2. 퍼스트 블러드 판정 (락 사용)
-            boolean isFirstBlood = checkAndProcessFirstBlood(challengeId, user, challenge, isSignature);
+            // Settle window로 동시 insert 안정화
+            final long settleTimeoutMs = 200L;
+            final long settlePollMs    = 20L;
+            long settleStart = System.currentTimeMillis();
 
-            // 3. 팀 점수 및 마일리지 업데이트
-            updateTeamScoreAndMileage(user, challenge, isFirstBlood, isSignature, challengeId);
+            long bestCount = getDistinctSolveCount(challengeId);
+            long lastCount = bestCount;
+            int  stableStreak = 0;
 
-            // 4. 문제 점수 업데이트 (다이나믹 스코어링) - 시그니처 제외
-            if (!isSignature) {
-                updateChallengeScore(challenge);
+            while (System.currentTimeMillis() - settleStart < settleTimeoutMs) {
+                try { Thread.sleep(settlePollMs); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                long now = getDistinctSolveCount(challengeId);
+                if (now > bestCount) bestCount = now;
+
+                if (now == lastCount) {
+                    stableStreak++;
+                    if (stableStreak >= 2) break; // 안정화
+                } else {
+                    stableStreak = 0;
+                    lastCount = now;
+                }
             }
 
-            // 5. 문제 solver 카운트 증가
-            challenge.setSolvers(challenge.getSolvers() + 1);
+            long solvedCountFinal = bestCount;
+
+            // 퍼스트 블러드 (동일 락에서 1회 판단)
+            boolean isFirstBlood = (solvedCountFinal == 1);
+            if (isFirstBlood && !isSignature) {
+                try {
+                    sendFirstBloodNotification(challenge, user);
+                    log.info("[퍼블 알림 전송] challengeId={}, by={}", challengeId, user.getLoginId());
+                } catch (Exception nf) {
+                    log.warn("[퍼블 알림 실패] challengeId={}, err={}", challengeId, nf.getMessage());
+                }
+            }
+
+            // 다이나믹 스코어: 최종 solver 수 기준으로 산정(동시 제출자 동일)
+            final int initialPoints = challenge.getInitialPoints();
+            final int minPoints     = challenge.getMinPoints();
+            final int decay         = 50; // 필요 시 설정값으로
+
+            int newPoints = computeDynamicPoints(initialPoints, minPoints, decay, solvedCountFinal);
+
+            int oldPoints = challenge.getPoints();
+            Integer oldSolvers = challenge.getSolvers();
+            if (oldSolvers == null) oldSolvers = 0;
+
+            // solvers/points를 History 기반 최종치로 동기화
+            challenge.setSolvers((int) solvedCountFinal);
+            challenge.setPoints(newPoints);
             challengeRepository.save(challenge);
 
-            // 6. 전체 팀 점수 재계산
-            updateAllTeamTotalPoints();
+            log.info("[스코어 갱신] chall={}, solvers {} -> {}, points {} -> {} (settle~{}ms)",
+                    challengeId, oldSolvers, solvedCountFinal, oldPoints, newPoints,
+                    (System.currentTimeMillis() - settleStart));
 
-            long duration = System.currentTimeMillis() - startTime;
-            log.info("[비동기 처리 완료] loginId={}, challengeId={}, 소요시간={}ms, isFirstBlood={}",
-                    loginId, challengeId, duration, isFirstBlood);
+            // 팀 점수 & 마일리지 (동일 락/트랜잭션 내 일괄)
+            applyTeamScoreAndMileage(user, challenge, isFirstBlood, isSignature, newPoints);
+
+            log.info("[비동기 처리 완료] loginId={}, challengeId={}, duration={}ms, isFB={}, finalSolvers={}, finalPoints={}",
+                    loginId, challengeId, (System.currentTimeMillis() - startedAt),
+                    isFirstBlood, solvedCountFinal, newPoints);
 
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            log.error("[비동기 처리 실패] loginId={}, challengeId={}, 소요시간={}ms, error={}",
-                    loginId, challengeId, duration, e.getMessage(), e);
-
-            // 실패 시 재시도 로직을 추가할 수 있음
-            // 예: 재시도 큐에 추가, 관리자 알림 등
-        }
-    }
-
-    /**
-     * 퍼스트 블러드 체크 및 처리
-     *
-     * 별도의 락을 사용하여 동시성 제어
-     *
-     * @return 퍼스트 블러드 여부
-     */
-    private boolean checkAndProcessFirstBlood(Long challengeId, UserEntity user,
-                                              ChallengeEntity challenge, boolean isSignature) {
-        String firstBloodLockKey = "firstBloodLock:" + challengeId;
-        RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
-        boolean isFirstBlood = false;
-        boolean firstBloodLocked = false;
-
-        try {
-            // 퍼스트 블러드 락 획득 (5초 대기, 5초 보유)
-            firstBloodLocked = firstBloodLock.tryLock(5, 5, TimeUnit.SECONDS);
-
-            if (firstBloodLocked) {
-                // 해당 문제의 정답 제출 수 확인
-                long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
-
-                // 첫 번째 정답자인 경우
-                if (solvedCount == 1) {
-                    isFirstBlood = true;
-                    log.info("[퍼스트 블러드!] challengeId={}, loginId={}, univ={}",
-                            challengeId, user.getLoginId(), user.getUniv());
-
-                    // 퍼스트 블러드 알림 전송 (일반 문제만)
-                    if (!isSignature) {
-                        try {
-                            sendFirstBloodNotification(challenge, user);
-                        } catch (Exception e) {
-                            // 알림 실패는 로그만 남기고 계속 진행
-                            log.error("[퍼스트 블러드 알림 실패] challengeId={}, error={}",
-                                    challengeId, e.getMessage());
-                        }
-                    }
-                }
-            } else {
-                log.warn("[퍼스트 블러드 락 획득 실패] challengeId={}, loginId={}",
-                        challengeId, user.getLoginId());
-            }
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("[퍼스트 블러드 체크 중단] challengeId={}, error={}", challengeId, e.getMessage());
-        } catch (Exception e) {
-            log.error("[퍼스트 블러드 처리 오류] challengeId={}, error={}", challengeId, e.getMessage(), e);
+            log.error("[비동기 처리 실패] challengeId={}, loginId={}, dur={}ms, err={}",
+                    challengeId, loginId, (System.currentTimeMillis() - startedAt), e.getMessage(), e);
         } finally {
-            if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
-                firstBloodLock.unlock();
+            if (locked && lock.isHeldByCurrentThread()) {
+                try { lock.unlock(); } catch (Exception ignore) {}
             }
         }
-
-        return isFirstBlood;
     }
 
-    /**
-     * 팀 점수 및 마일리지 업데이트
-     */
-    private void updateTeamScoreAndMileage(UserEntity user, ChallengeEntity challenge,
-                                           boolean isFirstBlood, boolean isSignature, Long challengeId) {
+    private long getDistinctSolveCount(Long challengeId) {
+        return historyRepository.countDistinctByChallengeId(challengeId);
+    }
+
+    private int computeDynamicPoints(int initialPoints, int minPoints, int decay, long solvedCount) {
+        double np = (((double) (minPoints - initialPoints)) / (decay * decay)) * (solvedCount * solvedCount) + initialPoints;
+        np = Math.max(np, minPoints);
+        np = Math.ceil(np);
+        return (int) np;
+    }
+
+    private void applyTeamScoreAndMileage(UserEntity user, ChallengeEntity challenge,
+                                          boolean isFirstBlood, boolean isSignature, int newPoints) {
         if (user.getCurrentTeamId() == null) {
-            log.warn("[팀 없음] userId={}, 점수 업데이트 스킵", user.getUserId());
+            log.warn("[팀 없음] userId={}, 점수/마일리지 스킵", user.getUserId());
             return;
         }
 
-        try {
-            int baseMileage = challenge.getMileage();
-            int bonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
-            int finalMileage = baseMileage + bonus;
+        // ⬇️ 수정 포인트: getMileage()가 primitive int 이므로 null 비교 제거
+        int baseMileage = Math.max(0, challenge.getMileage());
+        int fbBonus     = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
+        int finalMileage = baseMileage + fbBonus;
 
-            int awardedPoints = isSignature ? 0 : challenge.getPoints(); // 시그니처는 점수 0
+        int awardedPoints = isSignature ? 0 : newPoints;
 
-            teamService.recordTeamSolution(
-                    user.getUserId(),
-                    challengeId,
-                    awardedPoints,
-                    finalMileage
-            );
+        teamService.recordTeamSolution(
+                user.getUserId(),
+                challenge.getChallengeId(),
+                awardedPoints,
+                finalMileage
+        );
 
-            log.info("[팀 점수 업데이트] challengeId={}, teamId={}, points={}, mileage={} (base={}, bonus={}), isSignature={}, isFirstBlood={}",
-                    challengeId, user.getCurrentTeamId(), awardedPoints, finalMileage,
-                    baseMileage, bonus, isSignature, isFirstBlood);
+        teamService.recalculateTeamsByChallenge(challenge.getChallengeId());
 
-        } catch (Exception e) {
-            log.error("[팀 점수 업데이트 실패] challengeId={}, userId={}, error={}",
-                    challengeId, user.getUserId(), e.getMessage(), e);
-            throw e; // 점수 업데이트 실패는 중요하므로 예외를 다시 던짐
-        }
+        log.info("[팀 반영] teamId={}, chall={}, points={}, mileage={} (base={}, fbBonus={}, isSig={}, isFB={})",
+                user.getCurrentTeamId(), challenge.getChallengeId(),
+                awardedPoints, finalMileage, baseMileage, fbBonus, isSignature, isFirstBlood);
     }
 
-    /**
-     * 문제 점수 계산 (다이나믹 스코어링)
-     *
-     * 풀이 수에 따라 점수가 동적으로 감소
-     */
-    private void updateChallengeScore(ChallengeEntity challenge) {
-        try {
-            long solvedCount = historyRepository.countDistinctByChallengeId(challenge.getChallengeId());
-
-            int initialPoints = challenge.getInitialPoints();
-            int minPoints = challenge.getMinPoints();
-            int decay = 50;
-
-            // 다이나믹 스코어링 공식
-            double newPoints = (((double)(minPoints - initialPoints) / (decay * decay)) * (solvedCount * solvedCount)) + initialPoints;
-            newPoints = Math.max(newPoints, minPoints);
-            newPoints = Math.ceil(newPoints);
-
-            int oldPoints = challenge.getPoints();
-            challenge.setPoints((int)newPoints);
-            challengeRepository.save(challenge);
-
-            log.info("[다이나믹 스코어링] challengeId={}, solvedCount={}, oldPoints={}, newPoints={}",
-                    challenge.getChallengeId(), solvedCount, oldPoints, (int)newPoints);
-
-        } catch (Exception e) {
-            log.error("[다이나믹 스코어링 실패] challengeId={}, error={}",
-                    challenge.getChallengeId(), e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 전체 팀 점수 재계산
-     *
-     * ChallengeService의 기존 메서드 호출
-     * 주의: 이 작업은 무거우므로 마지막에 한 번만 실행
-     */
-    private void updateAllTeamTotalPoints() {
-        try {
-            // 주의: ChallengeService를 직접 주입하면 순환 참조 발생 가능
-            // 따라서 별도 메서드로 분리하거나, 여기서는 팀별로 개별 업데이트
-            log.info("[전체 팀 점수 재계산 시작]");
-
-            // 실제 구현은 ChallengeService의 updateAllTeamTotalPoints()와 동일
-            // 순환 참조 방지를 위해 여기서는 로그만 남김
-            // 필요시 별도의 ScoreCalculationService로 분리 권장
-
-            log.info("[전체 팀 점수 재계산 완료]");
-
-        } catch (Exception e) {
-            log.error("[전체 팀 점수 재계산 실패] error={}", e.getMessage(), e);
-            // 점수 재계산 실패는 치명적이지 않으므로 로그만 남김
-        }
-    }
-
-    /**
-     * 퍼스트 블러드 알림 전송
-     외부 API 호출이므로 실패해도 계속 진행
-     */
     private void sendFirstBloodNotification(ChallengeEntity challenge, UserEntity user) {
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -274,22 +196,15 @@ public class AsyncSubmissionProcessor {
             body.put("first_blood_school", user.getUniv());
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-            ResponseEntity<String> response = restTemplate.exchange(
-                    apiUrl, HttpMethod.POST, entity, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("[퍼스트 블러드 알림 전송 성공] challengeId={}, loginId={}",
-                        challenge.getChallengeId(), user.getLoginId());
+                log.info("[퍼블 알림 성공] challengeId={}, loginId={}", challenge.getChallengeId(), user.getLoginId());
             } else {
-                log.error("[퍼스트 블러드 알림 전송 실패] challengeId={}, statusCode={}",
-                        challenge.getChallengeId(), response.getStatusCode());
+                log.error("[퍼블 알림 실패] challengeId={}, statusCode={}", challenge.getChallengeId(), response.getStatusCode());
             }
-
         } catch (Exception e) {
-            log.error("[퍼스트 블러드 알림 전송 오류] challengeId={}, error={}",
-                    challenge.getChallengeId(), e.getMessage());
-            // 알림 실패는 치명적이지 않으므로 예외를 던지지 않음
+            log.error("[퍼블 알림 오류] challengeId={}, err={}", challenge.getChallengeId(), e.getMessage());
         }
     }
 }

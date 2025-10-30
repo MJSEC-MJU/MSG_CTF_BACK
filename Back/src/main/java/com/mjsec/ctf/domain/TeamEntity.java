@@ -91,14 +91,13 @@ public class TeamEntity extends BaseEntity {
     }
 
 
-    public void addSolvedChallenge(Long challengeId, int points, int mileage) {
-
+    public boolean addSolvedChallenge(Long challengeId) {
         if (!solvedChallengeIds.contains(challengeId)) {
             solvedChallengeIds.add(challengeId);
-            this.totalPoint += points;
             this.lastSolvedTime = LocalDateTime.now();
-            addMileage(mileage);
+            return true;
         }
+        return false;
     }
 
 
