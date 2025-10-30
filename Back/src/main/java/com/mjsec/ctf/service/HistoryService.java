@@ -1,12 +1,9 @@
 package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.domain.ChallengeEntity;
-import com.mjsec.ctf.domain.HistoryEntity;
 import com.mjsec.ctf.domain.TeamHistoryEntity;
-import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.dto.TeamHistoryDto;
 import com.mjsec.ctf.repository.ChallengeRepository;
-import com.mjsec.ctf.repository.HistoryRepository;
 import com.mjsec.ctf.repository.TeamHistoryRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
