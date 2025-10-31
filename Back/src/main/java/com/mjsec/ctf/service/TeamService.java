@@ -377,6 +377,50 @@ public class TeamService {
         return historyDtos;
     }
 
+    @Transactional
+    public void deleteTeam(String teamName) {
+        log.info("팀 삭제 시작: teamName={}", teamName);
+
+        //팀 존재 확인
+        TeamEntity team = teamRepository.findByTeamName(teamName)
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        Long teamId = team.getTeamId();
+
+        //팀 제출 히스토리 삭제
+        List<TeamHistoryEntity> teamHistories = teamHistoryRepository.findByTeamNameOrderBySolvedTimeAsc(teamName);
+        if (!teamHistories.isEmpty()) {
+            teamHistoryRepository.deleteAll(teamHistories);
+            log.info("팀 제출 히스토리 삭제 완료: teamName={}, 삭제된 히스토리 개수={}", teamName, teamHistories.size());
+        }
+
+        //팀 결제 히스토리 삭제
+        List<TeamPaymentHistoryEntity> paymentHistories = teamPaymentHistoryRepository.findByTeamIdOrderByCreatedAtDesc(teamId);
+        if (!paymentHistories.isEmpty()) {
+            teamPaymentHistoryRepository.deleteAll(paymentHistories);
+            log.info("팀 결제 히스토리 삭제 완료: teamName={}, 삭제된 결제 히스토리 개수={}", teamName, paymentHistories.size());
+        }
+
+        //팀원들의 팀 소속 해제 (유저는 삭제하지 않음)
+        List<Long> memberUserIds = team.getMemberUserIds();
+        if (memberUserIds != null && !memberUserIds.isEmpty()) {
+            for (Long userId : memberUserIds) {
+                Optional<UserEntity> userOpt = userRepository.findById(userId);
+                if (userOpt.isPresent()) {
+                    UserEntity user = userOpt.get();
+                    user.leaveTeam(); // currentTeamId를 null로 설정
+                    userRepository.save(user);
+                    log.info("팀원 소속 해제: userId={}, loginId={}", userId, user.getLoginId());
+                }
+            }
+            log.info("팀원 소속 해제 완료: teamName={}, 해제된 팀원 수={}", teamName, memberUserIds.size());
+        }
+
+        //팀 삭제
+        teamRepository.delete(team);
+        log.info("팀 삭제 완료: teamName={}, teamId={}", teamName, teamId);
+    }
+
     private void recalculateSingleTeam(TeamEntity team) {
         List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
 
