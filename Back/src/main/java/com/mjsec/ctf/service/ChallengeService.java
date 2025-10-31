@@ -36,7 +36,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,12 +55,14 @@ public class ChallengeService {
     private final RedissonClient redissonClient;
     private final TeamRepository teamRepository;
 
-    // ▼ 시그니처 코드/잠금
+    // 시그니처 코드/잠금
     private final TeamSignatureUnlockRepository unlockRepo;
     private final SignatureCodeRepository codeRepo;
 
     // 공격 탐지 서비스
     private final ThreatDetectionService threatDetectionService;
+
+    private final AsyncSubmissionProcessor asyncSubmissionProcessor;
 
     @Value("${api.key}")
     private String apiKey;
@@ -134,6 +135,10 @@ public class ChallengeService {
 
         // SIGNATURE 접근 통제
         assertSignatureUnlockedOrThrow(challenge);
+
+        // 실시간으로 solvers 카운트 계산 - 정확한 값 보장
+        long actualSolvers = historyRepository.countDistinctByChallengeId(challengeId);
+        challenge.setSolvers((int) actualSolvers);
 
         return ChallengeDto.Detail.fromEntity(challenge);
     }
@@ -302,7 +307,7 @@ public class ChallengeService {
         );
         for (TeamEntity team : affectedTeams) {
             team.getSolvedChallengeIds().remove(challengeId);
-            recalculateTeamPoints(team);
+            teamService.recalculateTeamPoints(team);
         }
 
         // 4) 마지막으로 챌린지 삭제
@@ -331,58 +336,62 @@ public class ChallengeService {
 
     @Transactional
     public String submit(String loginId, Long challengeId, String flag, String clientIP) {
-
-        String lockKey = "challengeLock:" + challengeId;
-        RLock lock = redissonClient.getLock(lockKey);
-        boolean locked = false;
+        long startTime = System.currentTimeMillis();
         boolean isInternalIP = IPAddressUtil.isLocalIP(clientIP);
 
-        try {
-            locked = lock.tryLock(10, 10, TimeUnit.SECONDS);
-            if (!locked) {
-                return "Try again later";
+        //기본 검증 (락 없이 빠르게 처리)
+
+        // 플래그 null/공백 체크
+        if (flag == null || StringUtils.isBlank(flag)) {
+            return "Flag cannot be null or empty";
+        }
+
+        // 사용자 조회
+        UserEntity user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+
+        // 문제 조회
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        // SIGNATURE 접근 통제
+        assertSignatureUnlockedOrThrow(challenge);
+
+        // 관리자는 플래그 검증만 하고 점수/기록은 남기지 않음
+        if (user.getRole() != null && user.getRole().equals("ROLE_ADMIN")) {
+            if (passwordEncoder.matches(flag, challenge.getFlag())) {
+                log.info("Admin {} verified challenge {} - Correct", loginId, challengeId);
+                return "Correct";
+            } else {
+                log.info("Admin {} verified challenge {} - Wrong", loginId, challengeId);
+                return "Wrong";
             }
+        }
 
-            if (flag == null || StringUtils.isBlank(flag)) {
-                return "Flag cannot be null or empty";
-            }
+        // 팀 소속 확인
+        if (user.getCurrentTeamId() == null) {
+            throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
+        }
 
-            UserEntity user = userRepository.findByLoginId(loginId)
-                    .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
+        // 개인 중복 제출 방지 (락 없이 먼저 체크)
+        if (historyRepository.existsByLoginIdAndChallengeId(loginId, challengeId)) {
+            return "Submitted";
+        }
 
-            ChallengeEntity challenge = challengeRepository.findById(challengeId)
-                    .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+        // 팀 단위 중복 제출 방지
+        Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());
+        if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
+            return "Submitted";
+        }
 
-            // SIGNATURE 접근 통제
-            assertSignatureUnlockedOrThrow(challenge);
+        // 오답 처리 (락 없이 처리)
 
-            if (user.getRole() != null && user.getRole().equals("ROLE_ADMIN")) {
-                // Admin은 플래그 검증만 하고 점수/기록은 남기지 않음
-                if (passwordEncoder.matches(flag, challenge.getFlag())) {
-                    log.info("Admin {} verified challenge {} - Correct", loginId, challengeId);
-                    return "Correct";
-                } else {
-                    log.info("Admin {} verified challenge {} - Wrong", loginId, challengeId);
-                    return "Wrong";
-                }
-            }
+        // 플래그 검증
+        if (!passwordEncoder.matches(flag, challenge.getFlag())) {
+            // 오답 제출 시 공격 감지 시스템에 기록
+            threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId, isInternalIP);
 
-            if (user.getCurrentTeamId() == null) {
-                throw new RestApiException(ErrorCode.MUST_BE_BELONG_TEAM);
-            }
-
-            // 개인 중복 제출 방지
-            if (historyRepository.existsByLoginIdAndChallengeId(loginId, challengeId)) {
-                return "Submitted";
-            }
-
-            // 팀 단위 중복 제출 방지
-            Optional<TeamEntity> team = teamService.getUserTeam(user.getCurrentTeamId());
-            if (team.isPresent() && team.get().hasSolvedChallenge(challengeId)) {
-                return "Submitted";
-            }
-
-            // 기존 제출 기록 여부 확인 (새 객체 delete 예외 방지)
+            // 기존 제출 기록 확인
             Optional<SubmissionEntity> existingOpt =
                     submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId);
 
@@ -395,117 +404,131 @@ public class ChallengeService {
                             .build()
             );
 
-            // 플래그 검증
-            if (!passwordEncoder.matches(flag, challenge.getFlag())) {
-                //  오답 제출 시 공격 감지 시스템에 먼저 기록 (Wait 체크 이전)
-                threatDetectionService.recordFlagAttempt(clientIP, false, challengeId, user.getUserId(), loginId, isInternalIP);
+            // Wait 체크 (브루트포스 방지)
+            long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(
+                    submission.getLastAttemptTime(), LocalDateTime.now());
 
-                // Wait 체크 (사용자 편의를 위한 Rate Limiting)
-                long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(submission.getLastAttemptTime(), LocalDateTime.now());
-                if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
-                    return "Wait";
-                }
+            if (submission.getAttemptCount() > 2 && secondsSinceLastAttempt < 30) {
+                return "Wait";
+            }
 
-                submission.setAttemptCount(submission.getAttemptCount() + 1);
-                submission.setLastAttemptTime(LocalDateTime.now());
-                submissionRepository.save(submission);
+            // 오답 시도 횟수 증가
+            submission.setAttemptCount(submission.getAttemptCount() + 1);
+            submission.setLastAttemptTime(LocalDateTime.now());
+            submissionRepository.save(submission);
 
-                return "Wrong";
-            } else {
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("[오답 처리] loginId={}, challengeId={}, 소요시간={}ms", loginId, challengeId, duration);
 
-                //  정답 제출 시 기록 (자동 차단 방지)
-                threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId, isInternalIP);
+            return "Wrong";
+        }
 
-                HistoryEntity history = HistoryEntity.builder()
-                        .loginId(user.getLoginId())
+        //정답 처리 (최소한의 락만 사용)
+        String lockKey = "challengeLock:" + challengeId;
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean locked = false;
+
+        try {
+            // 락 획득 (5초 대기, 10초 보유)
+            // 기존: tryLock(10, 10) → 변경: tryLock(5, 10)
+            // 대기 시간을 줄여서 빠르게 실패하도록 함
+            locked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+
+            if (!locked) {
+                log.warn("[락 획득 실패] loginId={}, challengeId={}", loginId, challengeId);
+                return "Try again later";
+            }
+
+            // 락 획득 후 다시 한 번 중복 체크 (동시 요청 방지)
+            if (historyRepository.existsByLoginIdAndChallengeId(loginId, challengeId)) {
+                return "Submitted";
+            }
+
+            // 정답 제출 기록 (공격 감지 방지)
+            threatDetectionService.recordFlagAttempt(clientIP, true, challengeId, user.getUserId(), loginId, isInternalIP);
+
+            // HistoryEntity 저장 (가장 중요한 작업만 락 안에서 수행)
+            HistoryEntity history = HistoryEntity.builder()
+                    .loginId(user.getLoginId())
+                    .challengeId(challenge.getChallengeId())
+                    .solvedTime(LocalDateTime.now())
+                    .univ(user.getUniv())
+                    .build();
+            historyRepository.save(history);
+
+            // TeamHistory 저장
+            if (team.isPresent()) {
+                TeamHistoryEntity teamHistory = TeamHistoryEntity.builder()
+                        .teamName(team.get().getTeamName())
                         .challengeId(challenge.getChallengeId())
                         .solvedTime(LocalDateTime.now())
-                        .univ(user.getUniv())
                         .build();
-                historyRepository.save(history);
-
-                if (team.isPresent()) {
-                    TeamHistoryEntity teamHistory = TeamHistoryEntity.builder()
-                            .teamName(team.get().getTeamName())
-                            .challengeId(challenge.getChallengeId())
-                            .solvedTime(LocalDateTime.now())
-                            .build();
-
-                    teamHistoryRepository.save(teamHistory);
-                }
-
-                // 첫 번째 recordTeamSolution 호출 제거 (퍼스트 블러드 판정 전에 호출하면 보너스가 무시되는 버그 발생)
-                boolean isSignature = challenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE;
-                boolean isFirstBlood = false;
-
-                // 퍼스트블러드 판정: 카테고리 무관하게 '보너스 계산'을 위해 판정
-                String firstBloodLockKey = "firstBloodLock:" + challengeId;
-                RLock firstBloodLock = redissonClient.getLock(firstBloodLockKey);
-                boolean firstBloodLocked = false;
-
-                try {
-                    firstBloodLocked = firstBloodLock.tryLock(5, 5, TimeUnit.SECONDS);
-                    if (firstBloodLocked) {
-                        long solvedCount = historyRepository.countDistinctByChallengeId(challengeId);
-                        if (solvedCount == 1) {
-                            isFirstBlood = true;
-                            // 알림은 정책상 일반 문제만(원래대로 유지). 시그니처에도 보내고 싶으면 if 제거.
-                            if (!isSignature) {
-                                sendFirstBloodNotification(challenge, user);
-                            }
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    if (firstBloodLocked && firstBloodLock.isHeldByCurrentThread()) {
-                        firstBloodLock.unlock();
-                    }
-                }
-
-                // 팀 마일리지/점수 반영
-                // - 시그니처: 마일리지만 적립(점수 0으로 전달)
-                // - 일반 문제: 점수 + 마일리지 적립
-                if (user.getCurrentTeamId() != null) {
-                    int baseMileage = challenge.getMileage();
-                    int bonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
-                    int finalMileage = baseMileage + bonus;
-
-                    int awardedPoints = isSignature ? 0 : challenge.getPoints(); // 시그니처는 점수 0
-                    teamService.recordTeamSolution(
-                            user.getUserId(),
-                            challengeId,
-                            awardedPoints,
-                            finalMileage
-                    );
-
-                    log.info("Mileage award: challengeId={}, base={}, isFirstBlood={}, bonus={}, final={}, teamId={}, isSignature={}",
-                            challengeId, baseMileage, isFirstBlood, bonus, finalMileage, user.getCurrentTeamId(), isSignature);
-                }
-
-                // 문제 점수 업데이트(다이나믹 스코어링): 시그니처는 제외 유지
-                if (!isSignature) {
-                    updateChallengeScore(challenge);
-                }
-
-                challenge.setSolvers(challenge.getSolvers() + 1);
-                challengeRepository.save(challenge);
-
-                // 기존 제출 기록만 삭제 (신규 객체는 저장도 안 했으니 삭제 불필요)
-                existingOpt.ifPresent(submissionRepository::delete);
-
-                updateAllTeamTotalPoints();
-
-                return "Correct";
+                teamHistoryRepository.save(teamHistory);
             }
+
+            // 기존 제출 기록 삭제 (오답 시도 기록)
+            Optional<SubmissionEntity> existingOpt =
+                    submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId);
+            existingOpt.ifPresent(submissionRepository::delete);
+
+            // 🔴 핵심: 락 안에서 Challenge를 비관적 락으로 다시 조회
+            // 락 밖에서 조회한 challenge 객체는 stale data이므로 다시 조회 필수!
+            ChallengeEntity lockedChallenge = challengeRepository.findByIdWithLock(challengeId)
+                    .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+            boolean isSignature = (lockedChallenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE);
+
+            // solvers 증가 (DB에서 최신 값 기준)
+            lockedChallenge.setSolvers(lockedChallenge.getSolvers() + 1);
+
+            // 다이나믹 스코어링
+            if (!isSignature) {
+                updateChallengeScore(lockedChallenge);
+            }
+
+            challengeRepository.save(lockedChallenge);
+
+            log.info("[락 내부 - solvers 업데이트] challengeId={}, newSolvers={}, newPoints={}",
+                    challengeId, lockedChallenge.getSolvers(), lockedChallenge.getPoints());
+
+            long lockDuration = System.currentTimeMillis() - startTime;
+            log.info("[락 내부 처리 완료] loginId={}, challengeId={}, 소요시간={}ms",
+                    loginId, challengeId, lockDuration);
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.error("[제출 처리 중단] loginId={}, challengeId={}, error={}",
+                    loginId, challengeId, e.getMessage());
             return "Error while processing";
         } finally {
+            // 락 해제
             if (locked && lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
         }
+
+        // 무거운 작업은 비동기로 처리 (락 밖에서 실행)
+        try {
+            // AsyncSubmissionProcessor를 통해 비동기 처리
+            // 이 메서드는 즉시 반환되고, 실제 작업은 백그라운드에서 실행됨
+            asyncSubmissionProcessor.processCorrectSubmissionAsync(
+                    user.getUserId(),
+                    challengeId,
+                    loginId
+            );
+        } catch (Exception e) {
+            // 비동기 작업 스케줄링 실패 시 로그만 남기고 계속 진행
+            // 사용자에게는 정답 처리된 것으로 표시됨
+            log.error("[비동기 작업 스케줄링 실패] loginId={}, challengeId={}, error={}",
+                    loginId, challengeId, e.getMessage(), e);
+        }
+
+        long totalDuration = System.currentTimeMillis() - startTime;
+        log.info("[정답 처리 완료] loginId={}, challengeId={}, 전체소요시간={}ms (비동기 작업 제외)",
+                loginId, challengeId, totalDuration);
+
+        // 즉시 정답 응답 반환 (점수 계산 등은 백그라운드에서 처리 중)
+        return "Correct";
     }
 
     // 문제 점수 계산기
@@ -554,72 +577,8 @@ public class ChallengeService {
     @Transactional
     public void updateAllTeamTotalPoints() {
         log.info("전체 팀 점수 재계산 시작");
-
-        List<TeamEntity> allTeams = teamService.getTeamRanking(); // 모든 팀 조회
-
-        for (TeamEntity team : allTeams) {
-            recalculateTeamPoints(team);
-        }
-
+        teamService.recalculateAllTeamPoints();
         log.info("전체 팀 점수 재계산 완료");
-    }
-
-    @Transactional
-    public void recalculateTeamPoints(TeamEntity team) {
-        // 1. 팀이 푼 모든 문제를 한 번에 조회 (IN 쿼리)
-        List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
-        if (solvedChallengeIds.isEmpty()) {
-            team.setTotalPoint(0);
-            team.setLastSolvedTime(null);
-            teamService.saveTeam(team);
-            return;
-        }
-
-        // [최적화] 한 번의 쿼리로 모든 문제 조회
-        List<ChallengeEntity> challenges = challengeRepository.findAllById(solvedChallengeIds);
-        Map<Long, ChallengeEntity> challengeMap = challenges.stream()
-                .collect(Collectors.toMap(ChallengeEntity::getChallengeId, Function.identity()));
-
-        // [최적화] 한 번의 쿼리로 관련 히스토리 모두 조회
-        List<HistoryEntity> histories = historyRepository.findByChallengeIdIn(solvedChallengeIds);
-
-        // [최적화] 팀원 ID로 한 번에 조회
-        List<UserEntity> teamMembers = userRepository.findAllById(team.getMemberUserIds());
-        Set<String> memberLoginIds = teamMembers.stream()
-                .map(UserEntity::getLoginId)
-                .collect(Collectors.toSet());
-
-        // 2. 메모리에서 계산 — 시그니처는 점수 계산에서 제외(마일리지는 별도 필드라 여기서 건들 것 없음)
-        int totalPoints = 0;
-        LocalDateTime lastSolvedTime = null;
-
-        for (Long cid : solvedChallengeIds) {
-            ChallengeEntity c = challengeMap.get(cid);
-            if (c == null) continue;
-
-            if (c.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE) {
-                continue; // 점수 제외
-            }
-
-            totalPoints += c.getPoints();
-
-            Optional<LocalDateTime> latestForThisChallenge = histories.stream()
-                    .filter(h -> h.getChallengeId().equals(cid))
-                    .filter(h -> memberLoginIds.contains(h.getLoginId()))
-                    .map(HistoryEntity::getSolvedTime)
-                    .max(Comparator.naturalOrder());
-
-            if (latestForThisChallenge.isPresent()) {
-                LocalDateTime solved = latestForThisChallenge.get();
-                if (lastSolvedTime == null || solved.isAfter(lastSolvedTime)) {
-                    lastSolvedTime = solved;
-                }
-            }
-        }
-
-        team.setTotalPoint(totalPoints);
-        team.setLastSolvedTime(lastSolvedTime);
-        teamService.saveTeam(team);
     }
 
     // 관리자: 전체 제출 기록 조회
@@ -842,7 +801,7 @@ public class ChallengeService {
         }
 
         // 6. 영향받은 모든 팀의 점수 재계산
-        updateAllTeamTotalPoints();
+        teamService.recalculateAllTeamPoints();
 
         //새로운 퍼스트 블러드에게 보너스 지급
         if (wasFirstBlood) {

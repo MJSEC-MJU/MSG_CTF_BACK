@@ -1,0 +1,260 @@
+{
+  "users": [
+    {
+      "loginId": "testuser1",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser2",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser3",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser4",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser5",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser6",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser7",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser8",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser9",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser10",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser11",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser12",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser13",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser14",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser15",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser16",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser17",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser18",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser19",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser20",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser21",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser22",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser23",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser24",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser25",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser26",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser27",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser28",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser29",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser30",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser31",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser32",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser33",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser34",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser35",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser36",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser37",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser38",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser39",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser40",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser41",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser42",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser43",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser44",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser45",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser46",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser47",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser48",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser49",
+      "password": "Test1234@"
+    },
+    {
+      "loginId": "testuser50",
+      "password": "Test1234@"
+    }
+  ],
+  "teams": [
+    "TestTeam1",
+    "TestTeam2",
+    "TestTeam3",
+    "TestTeam4",
+    "TestTeam5",
+    "TestTeam6",
+    "TestTeam7",
+    "TestTeam8",
+    "TestTeam9",
+    "TestTeam10",
+    "TestTeam11",
+    "TestTeam12",
+    "TestTeam13",
+    "TestTeam14",
+    "TestTeam15",
+    "TestTeam16",
+    "TestTeam17",
+    "TestTeam18",
+    "TestTeam19",
+    "TestTeam20",
+    "TestTeam21",
+    "TestTeam22",
+    "TestTeam23",
+    "TestTeam24",
+    "TestTeam25",
+    "TestTeam26",
+    "TestTeam27",
+    "TestTeam28",
+    "TestTeam29",
+    "TestTeam30",
+    "TestTeam31",
+    "TestTeam32",
+    "TestTeam33",
+    "TestTeam34",
+    "TestTeam35",
+    "TestTeam36",
+    "TestTeam37",
+    "TestTeam38",
+    "TestTeam39",
+    "TestTeam40",
+    "TestTeam41",
+    "TestTeam42",
+    "TestTeam43",
+    "TestTeam44",
+    "TestTeam45",
+    "TestTeam46",
+    "TestTeam47",
+    "TestTeam48",
+    "TestTeam49",
+    "TestTeam50"
+  ],
+  "challenge": {
+    "id": 1,
+    "flag": "FLAG{test_concurrency_2025}"
+  }
+}
