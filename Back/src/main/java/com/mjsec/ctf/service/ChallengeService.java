@@ -269,7 +269,7 @@ public class ChallengeService {
             }
         }
 
-        if (file != null) {
+        if (file != null && !file.isEmpty()) {
             String fileUrl = fileService.store(file);
             challenge.setFileUrl(fileUrl);
         }
