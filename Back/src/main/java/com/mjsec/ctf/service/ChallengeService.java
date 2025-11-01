@@ -490,9 +490,18 @@ public class ChallengeService {
             // solvers 증가 (DB에서 최신 값 기준)
             lockedChallenge.setSolvers(lockedChallenge.getSolvers() + 1);
 
-            // 다이나믹 스코어링
+            // 다이나믹 스코어링 (증가된 solvers 기준으로 직접 계산)
             if (!isSignature) {
-                updateChallengeScore(lockedChallenge);
+                int initialPoints = lockedChallenge.getInitialPoints();
+                int minPoints = lockedChallenge.getMinPoints();
+                int decay = 50;
+                long solvedCount = lockedChallenge.getSolvers();  // 🔴 증가된 solvers 값 사용
+
+                double newPoints = (((double)(minPoints - initialPoints) / (decay * decay)) * (solvedCount * solvedCount)) + initialPoints;
+                newPoints = Math.max(newPoints, minPoints);
+                newPoints = Math.ceil(newPoints);
+
+                lockedChallenge.setPoints((int)newPoints);
             }
 
             challengeRepository.save(lockedChallenge);
