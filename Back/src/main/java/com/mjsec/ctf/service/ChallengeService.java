@@ -509,6 +509,13 @@ public class ChallengeService {
             // 🔴 계산된 최신 점수 저장 (비동기로 전달하기 위함)
             calculatedPoints = lockedChallenge.getPoints();
 
+            // 🔴 문제 점수가 변경되었으므로 이 문제를 푼 모든 팀의 점수 재계산 (락 안에서!)
+            if (!isSignature) {
+                teamService.recalculateTeamsByChallenge(challengeId);
+                log.info("[락 내부 - 팀 점수 재계산 완료] challengeId={}, newPoints={}",
+                        challengeId, calculatedPoints);
+            }
+
             log.info("[락 내부 - solvers 업데이트] challengeId={}, newSolvers={}, newPoints={}, isFirstBlood={}",
                     challengeId, lockedChallenge.getSolvers(), lockedChallenge.getPoints(), isFirstBlood);
 
