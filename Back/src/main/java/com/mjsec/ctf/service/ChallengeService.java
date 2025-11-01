@@ -198,7 +198,7 @@ public class ChallengeService {
                 .category(category)
                 .mileage(mileage)
                 .club(challengeDto.getClub())
-                .build(); // 저장
+                .build();
 
         if (file != null) {
             String fileUrl = fileService.store(file);
@@ -471,7 +471,7 @@ public class ChallengeService {
                     submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId);
             existingOpt.ifPresent(submissionRepository::delete);
 
-            // 🔴 핵심: 락 안에서 Challenge를 비관적 락으로 다시 조회
+            // 락 안에서 Challenge를 비관적 락으로 다시 조회
             // 락 밖에서 조회한 challenge 객체는 stale data이므로 다시 조회 필수!
             ChallengeEntity lockedChallenge = challengeRepository.findByIdWithLock(challengeId)
                     .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));

@@ -20,17 +20,11 @@ import com.mjsec.ctf.type.ChallengeCategory;
 import com.mjsec.ctf.type.ErrorCode;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -43,12 +37,14 @@ public class TeamService {
     private final TeamHistoryRepository teamHistoryRepository;
     private final ChallengeRepository challengeRepository;
     private final HistoryRepository historyRepository;
+    private final ChallengeService challengeService;
 
     public TeamService(TeamRepository teamRepository, UserRepository userRepository,
                        TeamPaymentHistoryRepository teamPaymentHistoryRepository,
                        TeamHistoryRepository teamHistoryRepository,
                        ChallengeRepository challengeRepository,
-                       HistoryRepository historyRepository) {
+                       HistoryRepository historyRepository,
+                       @Lazy ChallengeService challengeService) {
 
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
@@ -56,6 +52,7 @@ public class TeamService {
         this.teamHistoryRepository = teamHistoryRepository;
         this.challengeRepository = challengeRepository;
         this.historyRepository = historyRepository;
+        this.challengeService = challengeService;
     }
 
     public void createTeam(String teamName) {
@@ -375,6 +372,201 @@ public class TeamService {
                 loginId, team.getTeamName(), historyDtos.size());
 
         return historyDtos;
+    }
+
+
+    /**
+     * 팀 삭제 메서드
+     * - 팀 제출 히스토리 삭제 및 영향받은 문제들의 solvers 감소
+     * - 영향받은 문제들의 다이나믹 스코어 재계산 (ChallengeService.updateChallengeScore 활용)
+     * - 팀 결제 히스토리 삭제
+     * - 팀원들의 팀 소속 해제 (유저는 삭제하지 않음)
+     * - 전체 팀 점수 재계산
+     * - 팀 삭제
+     */
+    @Transactional
+    public void deleteTeam(String teamName) {
+        log.info("팀 삭제 시작: teamName={}", teamName);
+
+        long startTime = System.currentTimeMillis();
+
+        // 팀 존재 확인
+        TeamEntity team = teamRepository.findByTeamName(teamName)
+                .orElseThrow(() -> new RestApiException(ErrorCode.TEAM_NOT_FOUND));
+
+        Long teamId = team.getTeamId();
+        List<Long> memberUserIds = team.getMemberUserIds();
+
+        // 팀원들의 loginId 조회
+        List<String> memberLoginIds = new ArrayList<>();
+        if (memberUserIds != null && !memberUserIds.isEmpty()) {
+            for (Long userId : memberUserIds) {
+                Optional<UserEntity> userOpt = userRepository.findById(userId);
+                if (userOpt.isPresent()) {
+                    memberLoginIds.add(userOpt.get().getLoginId());
+                }
+            }
+        }
+
+        // 팀 제출 히스토리 삭제 및 영향받은 문제 ID 수집
+        List<TeamHistoryEntity> teamHistories = teamHistoryRepository.findByTeamNameOrderBySolvedTimeAsc(teamName);
+        Set<Long> affectedChallengeIds = new HashSet<>();
+
+        if (!teamHistories.isEmpty()) {
+            // 영향받은 문제 ID 수집
+            for (TeamHistoryEntity history : teamHistories) {
+                affectedChallengeIds.add(history.getChallengeId());
+            }
+
+            // 팀 제출 히스토리 삭제
+            teamHistoryRepository.deleteAll(teamHistories);
+            log.info("팀 제출 히스토리 삭제 완료: teamName={}, 삭제된 히스토리 개수={}", teamName, teamHistories.size());
+        }
+
+        // 영향받은 문제들의 퍼스트 블러드 확인
+        Map<Long, Boolean> wasFirstBloodMap = new HashMap<>();
+        for (Long challengeId : affectedChallengeIds) {
+            // 해당 문제의 모든 히스토리 조회
+            List<HistoryEntity> allHistories = historyRepository.findByChallengeId(challengeId);
+
+            if (!allHistories.isEmpty()) {
+                // 전체 중 가장 빠른 제출 찾기
+                Optional<HistoryEntity> globalFirstBloodOpt = allHistories.stream()
+                        .filter(h -> h.getLoginId() != null)
+                        .min(Comparator.comparing(HistoryEntity::getSolvedTime));
+
+                // 삭제된 팀원이 퍼스트 블러드였는지 확인
+                boolean wasFirstBlood = false;
+                if (globalFirstBloodOpt.isPresent()) {
+                    String firstBloodLoginId = globalFirstBloodOpt.get().getLoginId();
+                    wasFirstBlood = memberLoginIds.contains(firstBloodLoginId);
+                }
+
+                wasFirstBloodMap.put(challengeId, wasFirstBlood);
+            }
+        }
+
+        // 삭제된 팀원의 개인 히스토리 삭제 (영향받은 문제만)
+        for (Long challengeId : affectedChallengeIds) {
+            for (String loginId : memberLoginIds) {
+                Optional<HistoryEntity> historyOpt = historyRepository.findByLoginIdAndChallengeId(loginId, challengeId);
+                if (historyOpt.isPresent()) {
+                    historyRepository.delete(historyOpt.get());
+                    log.info("개인 히스토리 삭제: loginId={}, challengeId={}", loginId, challengeId);
+                }
+            }
+        }
+
+        // 영향받은 문제들의 solvers 감소, 다이나믹 스코어 재계산, 퍼스트 블러드 재할당
+        for (Long challengeId : affectedChallengeIds) {
+            Optional<ChallengeEntity> challengeOpt = challengeRepository.findById(challengeId);
+            if (challengeOpt.isPresent()) {
+                ChallengeEntity challenge = challengeOpt.get();
+
+                // solvers 감소
+                challenge.setSolvers(Math.max(0, challenge.getSolvers() - 1));
+                challengeRepository.save(challenge);
+                log.info("Challenge solvers 감소: challengeId={}, newSolvers={}", challengeId, challenge.getSolvers());
+
+                // 다이나믹 스코어 재계산 (SIGNATURE 카테고리 제외)
+                if (challenge.getCategory() != ChallengeCategory.SIGNATURE) {
+                    challengeService.updateChallengeScore(challenge);
+                    log.info("다이나믹 스코어 재계산 완료: challengeId={}, newPoints={}",
+                            challengeId, challenge.getPoints());
+                }
+
+                // 퍼스트 블러드 재할당
+                Boolean wasFirstBlood = wasFirstBloodMap.get(challengeId);
+                if (Boolean.TRUE.equals(wasFirstBlood)) {
+                    reassignFirstBlood(challengeId);
+                }
+            }
+        }
+
+        // 팀 결제 히스토리 삭제
+        List<TeamPaymentHistoryEntity> paymentHistories = teamPaymentHistoryRepository.findByTeamIdOrderByCreatedAtDesc(teamId);
+        if (!paymentHistories.isEmpty()) {
+            teamPaymentHistoryRepository.deleteAll(paymentHistories);
+            log.info("팀 결제 히스토리 삭제 완료: teamName={}, 삭제된 결제 히스토리 개수={}", teamName, paymentHistories.size());
+        }
+
+        // 팀원들의 팀 소속 해제 (유저는 삭제하지 않음)
+        if (memberUserIds != null && !memberUserIds.isEmpty()) {
+            for (Long userId : memberUserIds) {
+                Optional<UserEntity> userOpt = userRepository.findById(userId);
+                if (userOpt.isPresent()) {
+                    UserEntity user = userOpt.get();
+                    user.leaveTeam(); // currentTeamId를 null로 설정
+                    userRepository.save(user);
+                    log.info("팀원 소속 해제: userId={}, loginId={}", userId, user.getLoginId());
+                }
+            }
+            log.info("팀원 소속 해제 완료: teamName={}, 해제된 팀원 수={}", teamName, memberUserIds.size());
+        }
+
+        // 전체 팀 점수 재계산 (다이나믹 스코어 변경으로 인한 다른 팀들의 점수 재계산)
+        recalculateAllTeamPoints();
+        log.info("전체 팀 점수 재계산 완료");
+
+        // 팀 삭제
+        teamRepository.delete(team);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("팀 삭제 완료: teamName={}, teamId={}, 영향받은 문제 수={}, 소요시간={}ms",
+                teamName, teamId, affectedChallengeIds.size(), duration);
+    }
+
+    @Transactional
+    public void reassignFirstBlood(Long challengeId) {
+        log.info("퍼스트 블러드 재할당 시작: challengeId={}", challengeId);
+
+        ChallengeEntity challenge = challengeRepository.findById(challengeId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
+
+        // 삭제 후 남은 제출 기록 중 가장 빠른 것 찾기
+        List<HistoryEntity> remainingHistories = historyRepository.findByChallengeId(challengeId);
+
+        Optional<HistoryEntity> newFirstBloodOpt = remainingHistories.stream()
+                .filter(h -> h.getLoginId() != null)
+                .min(Comparator.comparing(HistoryEntity::getSolvedTime));
+
+        if (newFirstBloodOpt.isPresent()) {
+            HistoryEntity newFirstBloodHistory = newFirstBloodOpt.get();
+
+            Optional<UserEntity> newFirstUserOpt = userRepository.findByLoginId(newFirstBloodHistory.getLoginId());
+
+            if (newFirstUserOpt.isPresent()) {
+                UserEntity newFirstUser = newFirstUserOpt.get();
+
+                if (newFirstUser.getCurrentTeamId() != null) {
+                    Optional<TeamEntity> newFirstTeamOpt = teamRepository.findById(newFirstUser.getCurrentTeamId());
+
+                    if (newFirstTeamOpt.isPresent()) {
+                        TeamEntity newFirstTeam = newFirstTeamOpt.get();
+
+                        // 보너스 마일리지 계산 (30%)
+                        int baseMileage = challenge.getMileage();
+                        int bonus = (int) Math.ceil(baseMileage * 0.30);
+
+                        // 새 퍼스트 블러드 팀에게 보너스만 추가 지급
+                        // (기본 마일리지는 이미 받았으므로 보너스만 추가)
+                        newFirstTeam.addMileage(bonus);
+                        teamRepository.save(newFirstTeam);
+
+                        log.info("새 퍼스트 블러드 보너스 지급: teamId={}, teamName={}, bonus={}, challengeId={}, loginId={}",
+                                newFirstTeam.getTeamId(), newFirstTeam.getTeamName(), bonus, challengeId, newFirstBloodHistory.getLoginId());
+                    } else {
+                        log.warn("새 퍼스트 블러드 팀을 찾을 수 없음: teamId={}", newFirstUser.getCurrentTeamId());
+                    }
+                } else {
+                    log.warn("새 퍼스트 블러드 유저에게 팀이 없음: loginId={}", newFirstUser.getLoginId());
+                }
+            } else {
+                log.warn("새 퍼스트 블러드 유저를 찾을 수 없음: loginId={}", newFirstBloodHistory.getLoginId());
+            }
+        } else {
+            log.info("삭제 후 남은 제출 기록이 없음: challengeId={}", challengeId);
+        }
     }
 
     private void recalculateSingleTeam(TeamEntity team) {
