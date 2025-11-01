@@ -44,6 +44,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다."),
     LEADERBOARD_NOT_FOUND(HttpStatus.NOT_FOUND, "유저에 대한 리더보드를 찾을 수 없습니다."),
+    EARLY_EXIT_USER(HttpStatus.FORBIDDEN, "조기 퇴소자는 문제를 제출할 수 없습니다."),
 
     INVALID_TOKEN(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "만료된 토큰입니다."),

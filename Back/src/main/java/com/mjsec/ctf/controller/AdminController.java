@@ -126,6 +126,7 @@ public class AdminController {
                 updatedUser.getRole().name(),
                 updatedUser.getTotalPoint(),
                 updatedUser.getUniv(),
+                updatedUser.isEarlyExit(),
                 updatedUser.getCreatedAt(),
                 updatedUser.getUpdatedAt()
         );
@@ -139,6 +140,18 @@ public class AdminController {
         userService.deleteMember(userId);
         log.info("관리자에 의해 회원 {} 삭제 완료", userId);
         return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.DELETE_SUCCESS));
+    }
+
+    @Operation(summary = "회원 조기 퇴소 상태 변경 (관리자)", description = "관리자 권한으로 특정 회원의 조기 퇴소 여부를 설정합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/member/{userId}/early-exit")
+    public ResponseEntity<SuccessResponse<Void>> updateEarlyExitStatus(
+            @PathVariable Long userId,
+            @RequestBody UserDto.EarlyExitUpdate request
+    ) {
+        userService.updateEarlyExitStatus(userId, request.isEarlyExit());
+        log.info("관리자가 사용자 {}의 조기 퇴소 상태를 {}로 변경했습니다.", userId, request.isEarlyExit());
+        return ResponseEntity.ok(SuccessResponse.of(ResponseMessage.UPDATE_EARLY_EXIT_STATUS_SUCCESS));
     }
 
     @Operation(summary = "회원 추가 (관리자)", description = "관리자 권한으로 이메일 인증 없이 새로운 회원 계정을 생성합니다.")
@@ -159,7 +172,7 @@ public class AdminController {
         List<UserDto.Response> responseList = users.stream()
                 .map(user -> new UserDto.Response(
                         user.getUserId(), user.getEmail(), user.getLoginId(), user.getRole().name(),
-                        user.getTotalPoint(), user.getUniv(), user.getCreatedAt(), user.getUpdatedAt()
+                        user.getTotalPoint(), user.getUniv(), user.isEarlyExit(), user.getCreatedAt(), user.getUpdatedAt()
                 ))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
@@ -177,6 +190,7 @@ public class AdminController {
                 user.getRole().name(),
                 user.getTotalPoint(),
                 user.getUniv(),
+                user.isEarlyExit(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

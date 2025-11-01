@@ -350,6 +350,10 @@ public class ChallengeService {
         UserEntity user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.USER_NOT_FOUND));
 
+        if (user.isEarlyExit()) {
+            throw new RestApiException(ErrorCode.EARLY_EXIT_USER);
+        }
+
         // 문제 조회
         ChallengeEntity challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.CHALLENGE_NOT_FOUND));
