@@ -50,6 +50,10 @@ public class UserEntity extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<RefreshEntity> refreshTokens;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean earlyExit = false;
+
     public boolean hasTeam() {
 
         return currentTeamId != null;
@@ -63,5 +67,13 @@ public class UserEntity extends BaseEntity {
     public void leaveTeam() {
 
         this.currentTeamId = null;
+    }
+
+    public void markEarlyExit() {
+        this.earlyExit = true;
+    }
+
+    public void cancelEarlyExit() {
+        this.earlyExit = false;
     }
 }

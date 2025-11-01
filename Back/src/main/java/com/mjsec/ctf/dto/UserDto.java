@@ -72,7 +72,13 @@ public class UserDto {
         private String role;
         private Integer totalPoint;
         private String univ;
+        private boolean earlyExit;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+    }
+
+    @Data
+    public static class EarlyExitUpdate {
+        private boolean earlyExit;
     }
 }
