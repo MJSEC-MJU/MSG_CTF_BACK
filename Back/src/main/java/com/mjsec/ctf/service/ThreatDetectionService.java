@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 
 /**
@@ -109,6 +110,29 @@ public class ThreatDetectionService {
         Pattern.CASE_INSENSITIVE
     );
 
+    private static final int MAX_INSPECTION_LENGTH = 2048;
+
+    private static final String[] STATIC_RESOURCE_PREFIXES = {
+        "/css", "/js", "/images", "/img", "/static", "/webjars", "/favicon", "/fonts"
+    };
+
+    private static String trimForInspection(String value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.length() <= MAX_INSPECTION_LENGTH) {
+            return value;
+        }
+        return value.substring(0, MAX_INSPECTION_LENGTH);
+    }
+
+    private static boolean isStaticResource(String uri) {
+        if (uri == null) {
+            return false;
+        }
+        return Arrays.stream(STATIC_RESOURCE_PREFIXES).anyMatch(uri::startsWith);
+    }
+
     /**
      * 플래그 오답 기록 및 브루트포스 감지
      */
@@ -145,7 +169,7 @@ public class ThreatDetectionService {
 
         // 내부 IP는 기록만 하고 차단하지 않음
         if (isInternalIP) {
-            log.info("Flag brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            log.debug("Flag brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
             return;
         }
 
@@ -198,7 +222,7 @@ public class ThreatDetectionService {
 
         // 내부 IP는 기록만 하고 차단하지 않음
         if (isInternalIP) {
-            log.info("Login brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            log.debug("Login brute force detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
             return;
         }
 
@@ -234,7 +258,7 @@ public class ThreatDetectionService {
         activity.setIsSuspicious(false);
         ipActivityRepository.save(activity);
 
-        log.info("Login success recorded: IP {} | User: {}", ipAddress, loginId);
+        log.debug("Login success recorded: IP {} | User: {}", ipAddress, loginId);
     }
 
     /**
@@ -292,6 +316,10 @@ public class ThreatDetectionService {
         }
 
         String requestUri = request.getRequestURI();
+        if (isStaticResource(requestUri)) {
+            return false;
+        }
+
         String queryString = request.getQueryString();
 
         // 요청 파라미터 검사
@@ -306,6 +334,10 @@ public class ThreatDetectionService {
                 queryString = URLDecoder.decode(queryString, StandardCharsets.UTF_8);
             } catch (Exception e) {
                 log.warn("Failed to decode query string: {}", queryString);
+            }
+
+            if (queryString != null) {
+                queryString = trimForInspection(queryString);
             }
 
             // Query String 검사 (SQL Injection)
@@ -369,6 +401,7 @@ public class ThreatDetectionService {
         if (!isSuspicious) {
             String userAgent = request.getHeader("User-Agent");
             if (userAgent != null) {
+                userAgent = trimForInspection(userAgent);
                 if (SQL_KEYWORDS.matcher(userAgent).find() ||
                     SQL_COMMENTS.matcher(userAgent).find() ||
                     XSS_SCRIPT_TAG.matcher(userAgent).find() ||
@@ -384,6 +417,7 @@ public class ThreatDetectionService {
         if (!isSuspicious) {
             String referer = request.getHeader("Referer");
             if (referer != null) {
+                referer = trimForInspection(referer);
                 if (XSS_JAVASCRIPT_URI.matcher(referer).find() ||
                     XSS_SCRIPT_TAG.matcher(referer).find()) {
                     isSuspicious = true;
@@ -462,7 +496,7 @@ public class ThreatDetectionService {
 
         // 내부 IP는 기록만 하고 차단하지 않음
         if (isInternalIP) {
-            log.info("404 scanning detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
+            log.debug("404 scanning detected for INTERNAL IP: {} (logged but not blocked)", ipAddress);
             return;
         }
 
@@ -494,9 +528,9 @@ public class ThreatDetectionService {
         try {
             // 화이트리스트 체크 - 화이트리스트에 있는 IP는 절대 자동 차단하지 않음
             if (ipWhitelistService.isWhitelisted(ipAddress)) {
-                log.info("IP {} is whitelisted, skipping auto-ban | Reason: {} | Detected User: {}",
-                        ipAddress, reason, detectedLoginId != null ? detectedLoginId : "Unknown");
-                return;
+            log.debug("IP {} is whitelisted, skipping auto-ban | Reason: {} | Detected User: {}",
+                    ipAddress, reason, detectedLoginId != null ? detectedLoginId : "Unknown");
+            return;
             }
 
             // 이미 차단된 IP인지 확인
@@ -532,7 +566,7 @@ public class ThreatDetectionService {
             LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
             int deletedCount = ipActivityRepository.deleteOldActivities(sevenDaysAgo);
 
-            log.info("Cleaned up {} old activity records (older than 7 days)", deletedCount);
+            log.debug("Cleaned up {} old activity records (older than 7 days)", deletedCount);
         } catch (Exception e) {
             log.error("Failed to cleanup old activities: {}", e.getMessage(), e);
         }

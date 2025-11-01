@@ -81,7 +81,7 @@ public class AlertService {
                     ban.getBannedAt(), ban.getExpiresAt());
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            // ✅ 디코봇이 기대하는 키와 값
+            //  디코봇이 기대하는 키와 값
             payload.put("ipAddress", ban.getIpAddress());
             payload.put("reason", ban.getReason());
             payload.put("banType", String.valueOf(ban.getBanType())); // "TEMPORARY" | "PERMANENT"

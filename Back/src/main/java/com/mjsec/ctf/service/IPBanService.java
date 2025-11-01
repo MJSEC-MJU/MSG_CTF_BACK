@@ -66,14 +66,14 @@ public class IPBanService {
         IPBanEntity savedEntity = ipBanRepository.save(banEntity);
         addToRedisCache(ipAddress);
 
-        log.info("IP banned: {} | Type: {} | Reason: {} | By: {} | ExpiresAt={}",
+        log.warn("IP banned: {} | Type: {} | Reason: {} | By: {} | ExpiresAt={}",
                 ipAddress, banType, reason, adminLoginId, savedEntity.getExpiresAt());
         log.debug("[IPBAN] saved id={} createdAt={} updatedAt={}",
                 savedEntity.getId(), savedEntity.getCreatedAt(), savedEntity.getUpdatedAt());
 
         // 디코봇 알림 호출 직전 로그
         try {
-            log.info("[IPBAN] sending alert to bot: ip={} type={} durationMinutes={} endpoint-config-check: (see AlertService init log)",
+            log.debug("[IPBAN] sending alert to bot: ip={} type={} durationMinutes={} endpoint-config-check: (see AlertService init log)",
                     ipAddress, banType, durationMinutes);
             alertService.notifyIpBanned(savedEntity, adminLoginId);
         } catch (Exception e) {
@@ -89,7 +89,7 @@ public class IPBanService {
             entity.setIsActive(false);
             ipBanRepository.save(entity);
             removeFromRedisCache(ipAddress);
-            log.info("IP unbanned: {}", ipAddress);
+            log.warn("IP unbanned: {}", ipAddress);
         });
     }
 
@@ -121,7 +121,7 @@ public class IPBanService {
     public void cleanupExpiredBans() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            log.info("Scheduled Task: cleaning up expired IP bans at {}", now);
+            log.debug("Scheduled Task: cleaning up expired IP bans at {}", now);
 
             List<IPBanEntity> expiredBans = ipBanRepository.findExpiredBans(now);
             for (IPBanEntity ban : expiredBans) {
@@ -129,7 +129,7 @@ public class IPBanService {
                 ipBanRepository.save(ban);
                 removeFromRedisCache(ban.getIpAddress());
             }
-            log.info("{} expired IP bans deactivated", expiredBans.size());
+            log.debug("{} expired IP bans deactivated", expiredBans.size());
         } catch (Exception e) {
             log.error("Error during cleanupExpiredBans: ", e);
         }
@@ -137,7 +137,7 @@ public class IPBanService {
 
     @Transactional
     public void rebuildCache() {
-        log.info("Rebuilding IP ban cache from database");
+        log.debug("Rebuilding IP ban cache from database");
         redisTemplate.delete(BANNED_IP_KEY);
 
         List<IPBanEntity> activeBans = ipBanRepository.findAllActiveBans()
@@ -149,7 +149,7 @@ public class IPBanService {
             addToRedisCache(ban.getIpAddress());
         }
 
-        log.info("Cache rebuilt with {} active IP bans", activeBans.size());
+        log.debug("Cache rebuilt with {} active IP bans", activeBans.size());
     }
 
     private void addToRedisCache(String ipAddress) {
@@ -182,7 +182,7 @@ public class IPBanService {
 
         entity.setExpiresAt(entity.getExpiresAt().plusMinutes(additionalMinutes));
         ipBanRepository.save(entity);
-        log.info("IP ban extended: {} | Additional minutes: {}", ipAddress, additionalMinutes);
+        log.warn("IP ban extended: {} | Additional minutes: {}", ipAddress, additionalMinutes);
     }
 
     @Transactional(readOnly = true)
