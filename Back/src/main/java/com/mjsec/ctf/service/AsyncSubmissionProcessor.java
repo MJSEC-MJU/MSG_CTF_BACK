@@ -47,7 +47,7 @@ public class AsyncSubmissionProcessor {
 
     @Async("submissionAsyncExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processCorrectSubmissionAsync(Long userId, Long challengeId, String loginId) {
+    public void processCorrectSubmissionAsync(Long userId, Long challengeId, String loginId, boolean isFirstBlood, int calculatedPoints) {
         final long startedAt = System.currentTimeMillis();
         final String lockKey = "challenge:submit:lock:" + challengeId;
         final RLock lock = redissonClient.getFairLock(lockKey);
@@ -68,36 +68,10 @@ public class AsyncSubmissionProcessor {
 
             final boolean isSignature = (challenge.getCategory() == ChallengeCategory.SIGNATURE);
 
-            // Settle window로 동시 insert 안정화
-            final long settleTimeoutMs = 200L;
-            final long settlePollMs    = 20L;
-            long settleStart = System.currentTimeMillis();
+            // 🔴 퍼스트 블러드 판정과 점수 계산은 락 안에서 이미 완료됨 (파라미터로 전달받음)
+            // 비동기에서는 전달받은 값들을 그대로 사용
 
-            long bestCount = getDistinctSolveCount(challengeId);
-            long lastCount = bestCount;
-            int  stableStreak = 0;
-
-            while (System.currentTimeMillis() - settleStart < settleTimeoutMs) {
-                try { Thread.sleep(settlePollMs); } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                long now = getDistinctSolveCount(challengeId);
-                if (now > bestCount) bestCount = now;
-
-                if (now == lastCount) {
-                    stableStreak++;
-                    if (stableStreak >= 2) break; // 안정화
-                } else {
-                    stableStreak = 0;
-                    lastCount = now;
-                }
-            }
-
-            long solvedCountFinal = bestCount;
-
-            // 퍼스트 블러드 (동일 락에서 1회 판단)
-            boolean isFirstBlood = (solvedCountFinal == 1);
+            // 퍼스트 블러드 알림 전송
             if (isFirstBlood && !isSignature) {
                 try {
                     sendFirstBloodNotification(challenge, user);
@@ -107,32 +81,12 @@ public class AsyncSubmissionProcessor {
                 }
             }
 
-            // 다이나믹 스코어: 최종 solver 수 기준으로 산정(동시 제출자 동일)
-            final int initialPoints = challenge.getInitialPoints();
-            final int minPoints     = challenge.getMinPoints();
-            final int decay         = 50; // 필요 시 설정값으로
+            // 팀 점수 & 마일리지 업데이트 (락 안에서 계산된 점수 사용)
+            applyTeamScoreAndMileage(user, challenge, isFirstBlood, isSignature, calculatedPoints);
 
-            int newPoints = computeDynamicPoints(initialPoints, minPoints, decay, solvedCountFinal);
-
-            int oldPoints = challenge.getPoints();
-            Integer oldSolvers = challenge.getSolvers();
-            if (oldSolvers == null) oldSolvers = 0;
-
-            // solvers/points를 History 기반 최종치로 동기화
-            challenge.setSolvers((int) solvedCountFinal);
-            challenge.setPoints(newPoints);
-            challengeRepository.save(challenge);
-
-            log.info("[스코어 갱신] chall={}, solvers {} -> {}, points {} -> {} (settle~{}ms)",
-                    challengeId, oldSolvers, solvedCountFinal, oldPoints, newPoints,
-                    (System.currentTimeMillis() - settleStart));
-
-            // 팀 점수 & 마일리지 (동일 락/트랜잭션 내 일괄)
-            applyTeamScoreAndMileage(user, challenge, isFirstBlood, isSignature, newPoints);
-
-            log.info("[비동기 처리 완료] loginId={}, challengeId={}, duration={}ms, isFB={}, finalSolvers={}, finalPoints={}",
+            log.info("[비동기 처리 완료] loginId={}, challengeId={}, duration={}ms, isFB={}, calculatedPoints={}",
                     loginId, challengeId, (System.currentTimeMillis() - startedAt),
-                    isFirstBlood, solvedCountFinal, newPoints);
+                    isFirstBlood, calculatedPoints);
 
         } catch (Exception e) {
             log.error("[비동기 처리 실패] challengeId={}, loginId={}, dur={}ms, err={}",
@@ -142,17 +96,6 @@ public class AsyncSubmissionProcessor {
                 try { lock.unlock(); } catch (Exception ignore) {}
             }
         }
-    }
-
-    private long getDistinctSolveCount(Long challengeId) {
-        return historyRepository.countDistinctByChallengeId(challengeId);
-    }
-
-    private int computeDynamicPoints(int initialPoints, int minPoints, int decay, long solvedCount) {
-        double np = (((double) (minPoints - initialPoints)) / (decay * decay)) * (solvedCount * solvedCount) + initialPoints;
-        np = Math.max(np, minPoints);
-        np = Math.ceil(np);
-        return (int) np;
     }
 
     private void applyTeamScoreAndMileage(UserEntity user, ChallengeEntity challenge,

@@ -431,6 +431,8 @@ public class ChallengeService {
         String lockKey = "challengeLock:" + challengeId;
         RLock lock = redissonClient.getLock(lockKey);
         boolean locked = false;
+        boolean isFirstBlood = false;  // 락 안에서 판정
+        int calculatedPoints = 0;       // 락 안에서 계산된 최신 점수
 
         try {
             // 락 획득 (5초 대기, 10초 보유)
@@ -482,6 +484,9 @@ public class ChallengeService {
 
             boolean isSignature = (lockedChallenge.getCategory() == com.mjsec.ctf.type.ChallengeCategory.SIGNATURE);
 
+            // 🔴 퍼스트 블러드 판정 (solvers 증가 이전에 체크)
+            isFirstBlood = (lockedChallenge.getSolvers() == 0);
+
             // solvers 증가 (DB에서 최신 값 기준)
             lockedChallenge.setSolvers(lockedChallenge.getSolvers() + 1);
 
@@ -492,8 +497,11 @@ public class ChallengeService {
 
             challengeRepository.save(lockedChallenge);
 
-            log.info("[락 내부 - solvers 업데이트] challengeId={}, newSolvers={}, newPoints={}",
-                    challengeId, lockedChallenge.getSolvers(), lockedChallenge.getPoints());
+            // 🔴 계산된 최신 점수 저장 (비동기로 전달하기 위함)
+            calculatedPoints = lockedChallenge.getPoints();
+
+            log.info("[락 내부 - solvers 업데이트] challengeId={}, newSolvers={}, newPoints={}, isFirstBlood={}",
+                    challengeId, lockedChallenge.getSolvers(), lockedChallenge.getPoints(), isFirstBlood);
 
             long lockDuration = System.currentTimeMillis() - startTime;
             log.info("[락 내부 처리 완료] loginId={}, challengeId={}, 소요시간={}ms",
@@ -514,11 +522,13 @@ public class ChallengeService {
         // 무거운 작업은 비동기로 처리 (락 밖에서 실행)
         try {
             // AsyncSubmissionProcessor를 통해 비동기 처리
-            // 이 메서드는 즉시 반환되고, 실제 작업은 백그라운드에서 실행됨
+            // 🔴 락 안에서 판정된 퍼스트 블러드와 계산된 점수를 전달
             asyncSubmissionProcessor.processCorrectSubmissionAsync(
                     user.getUserId(),
                     challengeId,
-                    loginId
+                    loginId,
+                    isFirstBlood,
+                    calculatedPoints
             );
         } catch (Exception e) {
             // 비동기 작업 스케줄링 실패 시 로그만 남기고 계속 진행
