@@ -119,7 +119,7 @@ public class AsyncSubmissionProcessor {
                 finalMileage
         );
 
-        // 🔴 recalculateTeamsByChallenge 제거 - recordTeamSolution이 증분 업데이트 수행
+        teamService.recalculateTeamsByChallenge(challenge.getChallengeId());
 
         log.info("[팀 반영] teamId={}, chall={}, points={}, mileage={} (base={}, fbBonus={}, isSig={}, isFB={})",
                 user.getCurrentTeamId(), challenge.getChallengeId(),
