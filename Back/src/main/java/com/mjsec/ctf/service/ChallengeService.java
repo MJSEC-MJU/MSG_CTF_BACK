@@ -484,6 +484,11 @@ public class ChallengeService {
                     submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId);
             existingOpt.ifPresent(submissionRepository::delete);
 
+            // 🔴 직전 save(insert/delete) 변경사항을 먼저 플러시하여 유실 방지
+            entityManager.flush();
+            // 🔴 영속성 컨텍스트를 비워서 비관적 락이 최신 데이터를 읽도록 강제
+            entityManager.clear();
+
             // 락 안에서 Challenge를 비관적 락으로 다시 조회
             // 락 밖에서 조회한 challenge 객체는 stale data이므로 다시 조회 필수!
             ChallengeEntity lockedChallenge = challengeRepository.findByIdWithLock(challengeId)
