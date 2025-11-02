@@ -484,6 +484,8 @@ public class ChallengeService {
                     submissionRepository.findByLoginIdAndChallengeId(loginId, challengeId);
             existingOpt.ifPresent(submissionRepository::delete);
 
+            // 🔴 직전 save(insert/delete) 변경사항을 먼저 플러시하여 유실 방지
+            entityManager.flush();
             // 🔴 영속성 컨텍스트를 비워서 비관적 락이 최신 데이터를 읽도록 강제
             entityManager.clear();
 
