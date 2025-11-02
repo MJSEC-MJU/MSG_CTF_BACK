@@ -54,8 +54,10 @@ public class ChallengeDto {
         private String category;
         private boolean solved;
         private String club;
+        private boolean hasFile;
 
         public static Simple fromEntity(ChallengeEntity challenge, boolean solved) {
+            boolean hasFile = (challenge.getFileUrl() != null && !challenge.getFileUrl().isBlank());
             return Simple.builder()
                     .challengeId(challenge.getChallengeId())
                     .title(challenge.getTitle())
@@ -65,6 +67,7 @@ public class ChallengeDto {
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
                     .solved(solved)
                     .club(challenge.getClub())
+                    .hasFile(hasFile)
                     .build();
         }
     }
@@ -84,8 +87,10 @@ public class ChallengeDto {
         private int solvers;
         private String category;
         private String club;
+        private boolean hasFile;
 
         public static Detail fromEntity(ChallengeEntity challenge) {
+            boolean hasFile = (challenge.getFileUrl() != null && !challenge.getFileUrl().isBlank());
             return Detail.builder()
                     .challengeId(challenge.getChallengeId())
                     .title(challenge.getTitle())
@@ -96,6 +101,7 @@ public class ChallengeDto {
                     .solvers(challenge.getSolvers())
                     .category(challenge.getCategory() != null ? challenge.getCategory().toString() : null)
                     .club(challenge.getClub())
+                    .hasFile(hasFile)
                     .build();
         }
     }
