@@ -245,11 +245,16 @@ public class ChallengeService {
             int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
             int mileage =  challengeDto.getMileage();
 
+            // 플래그: 새 값이 있으면 암호화해서 저장, 없으면 기존 값 유지
+            String flagToSave = (challengeDto.getFlag() != null && !challengeDto.getFlag().isBlank())
+                    ? passwordEncoder.encode(challengeDto.getFlag())
+                    : challenge.getFlag();
+
             ChallengeEntity updatedChallenge = ChallengeEntity.builder()
                     .challengeId(challenge.getChallengeId())
                     .title(challengeDto.getTitle())
                     .description(challengeDto.getDescription())
-                    .flag(passwordEncoder.encode(challengeDto.getFlag()))
+                    .flag(flagToSave)
                     .points(points)
                     .minPoints(minPoints)
                     .initialPoints(initialPoints)
