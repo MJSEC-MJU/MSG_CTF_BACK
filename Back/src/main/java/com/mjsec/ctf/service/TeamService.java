@@ -164,7 +164,10 @@ public class TeamService {
             team.addMileage(mileage);
         }
 
-        recalculateSingleTeam(team);
+        // 🔴 점수는 recalculateTeamsByChallenge에서 일괄 재계산됨
+        // 여기서는 solvedChallengeIds에 추가와 마일리지만 처리
+        team.setLastSolvedTime(java.time.LocalDateTime.now());
+        teamRepository.save(team);
     }
 
     public boolean useTeamMileage(Long teamId, int amount, Long requesterUserId) {
