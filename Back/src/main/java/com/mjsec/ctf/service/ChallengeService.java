@@ -26,6 +26,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -243,11 +245,16 @@ public class ChallengeService {
             int initialPoints = isSignature ? 0 : challengeDto.getInitialPoints();
             int mileage =  challengeDto.getMileage();
 
+            // 플래그: 새 값이 있으면 암호화해서 저장, 없으면 기존 값 유지
+            String flagToSave = (challengeDto.getFlag() != null && !challengeDto.getFlag().isBlank())
+                    ? passwordEncoder.encode(challengeDto.getFlag())
+                    : challenge.getFlag();
+
             ChallengeEntity updatedChallenge = ChallengeEntity.builder()
                     .challengeId(challenge.getChallengeId())
                     .title(challengeDto.getTitle())
                     .description(challengeDto.getDescription())
-                    .flag(passwordEncoder.encode(challengeDto.getFlag()))
+                    .flag(flagToSave)
                     .points(points)
                     .minPoints(minPoints)
                     .initialPoints(initialPoints)
@@ -429,7 +436,8 @@ public class ChallengeService {
 
         //정답 처리 (최소한의 락만 사용)
         String lockKey = "challengeLock:" + challengeId;
-        RLock lock = redissonClient.getLock(lockKey);
+        // 공정 락으로 대기열 순서(선착순) 보장
+        RLock lock = redissonClient.getFairLock(lockKey);
         boolean locked = false;
         boolean isFirstBlood = false;  // 락 안에서 판정
         int calculatedPoints = 0;       // 락 안에서 계산된 최신 점수
@@ -561,6 +569,29 @@ public class ChallengeService {
             if (locked && lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
+        }
+
+        // 트랜잭션 커밋 직후 팀 점수 재계산을 실행하여 스냅샷 이슈 방지
+        try {
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            teamService.recalculateTeamsByChallenge(challengeId);
+                            log.info("[커밋 후 재계산 완료] challengeId={}", challengeId);
+                        } catch (Exception e) {
+                            log.warn("[커밋 후 재계산 실패] challengeId={}, err={}", challengeId, e.getMessage(), e);
+                        }
+                    }
+                });
+            } else {
+                // 트랜잭션이 비활성인 경우 즉시 재계산 (안전장치)
+                teamService.recalculateTeamsByChallenge(challengeId);
+                log.info("[즉시 재계산 수행] challengeId={}", challengeId);
+            }
+        } catch (Exception e) {
+            log.warn("[재계산 스케줄링 실패] challengeId={}, err={}", challengeId, e.getMessage(), e);
         }
 
         // 무거운 작업은 비동기로 처리 (락 밖에서 실행)
