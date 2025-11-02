@@ -49,17 +49,8 @@ public class AsyncSubmissionProcessor {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processCorrectSubmissionAsync(Long userId, Long challengeId, String loginId, boolean isFirstBlood, int calculatedPoints) {
         final long startedAt = System.currentTimeMillis();
-        final String lockKey = "challenge:submit:lock:" + challengeId;
-        final RLock lock = redissonClient.getFairLock(lockKey);
 
-        boolean locked = false;
         try {
-            locked = lock.tryLock(10, 15, TimeUnit.SECONDS);
-            if (!locked) {
-                log.warn("[LOCK 획득 실패] challengeId={}, loginId={}", challengeId, loginId);
-                return;
-            }
-
             UserEntity user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
 
@@ -68,8 +59,8 @@ public class AsyncSubmissionProcessor {
 
             final boolean isSignature = (challenge.getCategory() == ChallengeCategory.SIGNATURE);
 
-            // 🔴 퍼스트 블러드 판정과 점수 계산은 락 안에서 이미 완료됨 (파라미터로 전달받음)
-            // 비동기에서는 전달받은 값들을 그대로 사용
+            // 🔴 팀 점수/마일리지 업데이트는 이미 ChallengeService의 락 안에서 완료됨
+            // 비동기에서는 퍼스트 블러드 알림만 전송
 
             // 퍼스트 블러드 알림 전송
             if (isFirstBlood && !isSignature) {
@@ -81,20 +72,12 @@ public class AsyncSubmissionProcessor {
                 }
             }
 
-            // 팀 점수 & 마일리지 업데이트 (락 안에서 계산된 점수 사용)
-            applyTeamScoreAndMileage(user, challenge, isFirstBlood, isSignature, calculatedPoints);
-
-            log.info("[비동기 처리 완료] loginId={}, challengeId={}, duration={}ms, isFB={}, calculatedPoints={}",
-                    loginId, challengeId, (System.currentTimeMillis() - startedAt),
-                    isFirstBlood, calculatedPoints);
+            log.info("[비동기 처리 완료] loginId={}, challengeId={}, duration={}ms, isFB={}",
+                    loginId, challengeId, (System.currentTimeMillis() - startedAt), isFirstBlood);
 
         } catch (Exception e) {
             log.error("[비동기 처리 실패] challengeId={}, loginId={}, dur={}ms, err={}",
                     challengeId, loginId, (System.currentTimeMillis() - startedAt), e.getMessage(), e);
-        } finally {
-            if (locked && lock.isHeldByCurrentThread()) {
-                try { lock.unlock(); } catch (Exception ignore) {}
-            }
         }
     }
 
