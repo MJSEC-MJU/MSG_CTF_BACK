@@ -11,6 +11,7 @@ import com.mjsec.ctf.dto.ChallengeDto;
 import com.mjsec.ctf.exception.RestApiException;
 import com.mjsec.ctf.repository.*;
 import com.mjsec.ctf.type.ErrorCode;
+import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.util.IPAddressUtil;
 import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.EntityManager;
@@ -370,7 +371,7 @@ public class ChallengeService {
         assertSignatureUnlockedOrThrow(challenge);
 
         // 관리자는 플래그 검증만 하고 점수/기록은 남기지 않음
-        if (user.getRole() != null && user.getRole().equals("ROLE_ADMIN")) {
+        if (user.getRole() == UserRole.ROLE_ADMIN) {
             if (passwordEncoder.matches(flag, challenge.getFlag())) {
                 log.info("Admin {} verified challenge {} - Correct", loginId, challengeId);
                 return "Correct";
