@@ -509,6 +509,15 @@ public class ChallengeService {
             // 🔴 계산된 최신 점수 저장 (비동기로 전달하기 위함)
             calculatedPoints = lockedChallenge.getPoints();
 
+            // 🔴 마일리지 계산 (퍼스트 블러드 보너스 포함)
+            int baseMileage = Math.max(0, lockedChallenge.getMileage());
+            int fbBonus = (isFirstBlood && baseMileage > 0) ? (int) Math.ceil(baseMileage * 0.30) : 0;
+            int finalMileage = baseMileage + fbBonus;
+            int awardedPoints = isSignature ? 0 : calculatedPoints;
+
+            // 🔴 지금 막 푼 팀의 솔루션 기록 (락 안에서!)
+            teamService.recordTeamSolution(user.getUserId(), challengeId, awardedPoints, finalMileage);
+
             // 🔴 문제 점수가 변경되었으므로 이 문제를 푼 모든 팀의 점수 재계산 (락 안에서!)
             if (!isSignature) {
                 teamService.recalculateTeamsByChallenge(challengeId);
