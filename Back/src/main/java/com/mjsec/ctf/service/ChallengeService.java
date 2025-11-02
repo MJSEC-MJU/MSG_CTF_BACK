@@ -444,16 +444,10 @@ public class ChallengeService {
 
         try {
             long lockStartTime = System.currentTimeMillis();
-            // 락 획득 (5초 대기, 10초 보유)
-            // 기존: tryLock(10, 10) → 변경: tryLock(5, 10)
-            // 대기 시간을 줄여서 빠르게 실패하도록 함
-            locked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+            // 공정 락 대기열에서 순서대로 대기 후 획득 (워치독으로 자동 연장)
+            lock.lock();
+            locked = true;
             long lockWaitTime = System.currentTimeMillis() - lockStartTime;
-
-            if (!locked) {
-                log.warn("[락 획득 실패] loginId={}, challengeId={}, waitTime={}ms", loginId, challengeId, lockWaitTime);
-                return "Try again later";
-            }
 
             log.info("[락 획득 성공] loginId={}, challengeId={}, waitTime={}ms, lockKey={}",
                     loginId, challengeId, lockWaitTime, lockKey);
