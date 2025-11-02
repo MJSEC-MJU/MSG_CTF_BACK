@@ -508,6 +508,11 @@ public class ChallengeService {
 
             challengeRepository.save(lockedChallenge);
 
+            // 🔴 Challenge 변경사항을 DB에 즉시 반영 (다음 요청이 최신 solvers를 읽을 수 있도록)
+            entityManager.flush();
+            log.info("[락 내부 - Challenge flush 완료] challengeId={}, newSolvers={}, newPoints={}",
+                    challengeId, lockedChallenge.getSolvers(), lockedChallenge.getPoints());
+
             // 🔴 계산된 최신 점수 저장 (비동기로 전달하기 위함)
             calculatedPoints = lockedChallenge.getPoints();
 
