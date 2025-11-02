@@ -160,19 +160,11 @@ public class TeamService {
         if (mileage > 0) {
             team.addMileage(mileage);
         }
-
-        // 🔴 전달받은 points를 직접 추가 (recalculate 대신 증분 업데이트)
-        if (points > 0) {
-            team.setTotalPoint(team.getTotalPoint() + points);
-        }
-
-        // lastSolvedTime 업데이트 (addSolvedChallenge에서 이미 설정되지만 명시적으로)
+        // 🔴 점수는 recalculateTeamsByChallenge에서 일괄 재계산됨
+        // 여기서는 solvedChallengeIds에 추가와 마일리지만 처리
         team.setLastSolvedTime(java.time.LocalDateTime.now());
-
         teamRepository.save(team);
 
-        log.info("[팀 점수 증분 업데이트] teamId={}, challengeId={}, addedPoints={}, newTotal={}",
-                team.getTeamId(), challengeId, points, team.getTotalPoint());
     }
 
     public boolean useTeamMileage(Long teamId, int amount, Long requesterUserId) {
