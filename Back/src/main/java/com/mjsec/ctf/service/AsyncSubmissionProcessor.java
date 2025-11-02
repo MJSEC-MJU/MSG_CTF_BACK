@@ -104,6 +104,7 @@ public class AsyncSubmissionProcessor {
 
         // 🔴 recalculateTeamsByChallenge는 이미 ChallengeService의 락 안에서 수행됨
 
+
         log.info("[팀 반영] teamId={}, chall={}, points={}, mileage={} (base={}, fbBonus={}, isSig={}, isFB={})",
                 user.getCurrentTeamId(), challenge.getChallengeId(),
                 awardedPoints, finalMileage, baseMileage, fbBonus, isSignature, isFirstBlood);

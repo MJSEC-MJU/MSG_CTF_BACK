@@ -266,6 +266,16 @@ public class AdminController {
                 .body(SuccessResponse.of(ResponseMessage.GRANT_MILEAGE_SUCCESS));
     }
 
+    @Operation(summary = "팀 삭제", description = "관리자 권한으로 팀을 삭제합니다. 팀 제출 히스토리도 함께 삭제되며, 팀원들은 삭제되지 않고 팀 소속만 해제됩니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/team/delete/{teamName}")
+    public ResponseEntity<SuccessResponse<Void>> deleteTeam(@PathVariable String teamName) {
+        teamService.deleteTeam(teamName);
+        log.info("관리자에 의해 팀 {} 삭제 완료", teamName);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(ResponseMessage.DELETE_TEAM_SUCCESS));
+    }
+
     // -------------------------------
     // 결제 관리
     // -------------------------------
