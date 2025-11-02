@@ -304,9 +304,7 @@ public class ChallengeService {
         historyRepository.deleteByChallengeId(challengeId);
 
         // 3) 해당 문제를 푼 팀 정리 + 재계산
-        List<TeamEntity> affectedTeams = teamRepository.findTeamsBySolvedChallengeId(
-                String.valueOf(challengeId)
-        );
+        List<TeamEntity> affectedTeams = teamRepository.findTeamsBySolvedChallengeId(challengeId);
         for (TeamEntity team : affectedTeams) {
             team.getSolvedChallengeIds().remove(challengeId);
             teamService.recalculateTeamPoints(team);
