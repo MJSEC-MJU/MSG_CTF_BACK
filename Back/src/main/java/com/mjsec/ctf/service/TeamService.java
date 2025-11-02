@@ -210,10 +210,14 @@ public class TeamService {
 
     @Transactional
     public void recalculateTeamsByChallenge(Long challengeId) {
-        List<TeamEntity> teams = teamRepository.findTeamsBySolvedChallengeId(String.valueOf(challengeId));
+        log.info("[recalculateTeamsByChallenge] 시작: challengeId={}", challengeId);
+        List<TeamEntity> teams = teamRepository.findTeamsBySolvedChallengeId(challengeId);
+        log.info("[recalculateTeamsByChallenge] 조회된 팀 개수={}", teams.size());
         for (TeamEntity team : teams) {
+            log.info("[recalculateTeamsByChallenge] 팀 재계산: teamId={}, teamName={}", team.getTeamId(), team.getTeamName());
             recalculateSingleTeam(team);
         }
+        log.info("[recalculateTeamsByChallenge] 완료: challengeId={}, 재계산된 팀 개수={}", challengeId, teams.size());
     }
 
     @Transactional
@@ -573,12 +577,15 @@ public class TeamService {
     }
 
     private void recalculateSingleTeam(TeamEntity team) {
+        int oldTotalPoint = team.getTotalPoint();
         List<Long> solvedChallengeIds = team.getSolvedChallengeIds();
 
         if (solvedChallengeIds == null || solvedChallengeIds.isEmpty()) {
             team.setTotalPoint(0);
             team.setLastSolvedTime(null);
             teamRepository.save(team);
+            log.info("[recalculateSingleTeam] 팀 점수 업데이트: teamId={}, teamName={}, 푼 문제 없음, oldPoints={}, newPoints=0",
+                    team.getTeamId(), team.getTeamName(), oldTotalPoint);
             return;
         }
 
@@ -628,5 +635,8 @@ public class TeamService {
         team.setTotalPoint(totalPoints);
         team.setLastSolvedTime(lastSolvedTime);
         teamRepository.save(team);
+
+        log.info("[recalculateSingleTeam] 팀 점수 업데이트: teamId={}, teamName={}, 푼 문제 개수={}, oldPoints={}, newPoints={}",
+                team.getTeamId(), team.getTeamName(), solvedChallengeIds.size(), oldTotalPoint, totalPoints);
     }
 }
