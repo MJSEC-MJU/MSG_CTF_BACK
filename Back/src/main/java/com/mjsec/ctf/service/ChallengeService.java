@@ -13,6 +13,7 @@ import com.mjsec.ctf.repository.*;
 import com.mjsec.ctf.type.ErrorCode;
 import com.mjsec.ctf.util.IPAddressUtil;
 import io.micrometer.common.util.StringUtils;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 @Service
 public class ChallengeService {
 
+    private final EntityManager entityManager;
     private final TeamService teamService;
     private final FileService fileService;
     private final ChallengeRepository challengeRepository;
@@ -517,6 +519,10 @@ public class ChallengeService {
 
             // 🔴 지금 막 푼 팀의 솔루션 기록 (락 안에서!)
             teamService.recordTeamSolution(user.getUserId(), challengeId, awardedPoints, finalMileage);
+
+            // 🔴 JPA 변경사항을 DB에 즉시 반영 (flush)
+            entityManager.flush();
+            log.info("[락 내부 - flush 완료] challengeId={}, userId={}", challengeId, user.getUserId());
 
             // 🔴 문제 점수가 변경되었으므로 이 문제를 푼 모든 팀의 점수 재계산 (락 안에서!)
             if (!isSignature) {
