@@ -553,10 +553,12 @@ public class ChallengeService {
             log.info("[락 내부 처리 완료] loginId={}, challengeId={}, 소요시간={}ms",
                     loginId, challengeId, lockDuration);
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("[제출 처리 중단] loginId={}, challengeId={}, error={}",
-                    loginId, challengeId, e.getMessage());
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            log.error("[제출 처리 실패] loginId={}, challengeId={}, error={}",
+                    loginId, challengeId, e.getMessage(), e);
             return "Error while processing";
         } finally {
             // 락 해제
