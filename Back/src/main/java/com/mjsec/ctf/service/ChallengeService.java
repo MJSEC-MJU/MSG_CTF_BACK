@@ -67,6 +67,7 @@ public class ChallengeService {
     private final ThreatDetectionService threatDetectionService;
 
     private final AsyncSubmissionProcessor asyncSubmissionProcessor;
+    private final TeamRecalcDebouncer teamRecalcDebouncer;
 
     @Value("${api.key}")
     private String apiKey;
@@ -341,7 +342,7 @@ public class ChallengeService {
         return fileService.download(fileId);
     }
 
-    @Transactional
+    @org.springframework.transaction.annotation.Transactional
     public String submit(String loginId, Long challengeId, String flag, String clientIP) {
         long startTime = System.currentTimeMillis();
         boolean isInternalIP = IPAddressUtil.isLocalIP(clientIP);
@@ -567,27 +568,27 @@ public class ChallengeService {
             }
         }
 
-        // 트랜잭션 커밋 직후 팀 점수 재계산을 실행하여 스냅샷 이슈 방지
+        // 트랜잭션 커밋 직후 디바운스 재계산 예약 (스냅샷/중복 방지)
         try {
             if (TransactionSynchronizationManager.isActualTransactionActive()) {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
                         try {
-                            teamService.recalculateTeamsByChallenge(challengeId);
-                            log.info("[커밋 후 재계산 완료] challengeId={}", challengeId);
+                            teamRecalcDebouncer.scheduleChallengeRecalc(challengeId);
+                            log.info("[커밋 후 재계산 예약] challengeId={}", challengeId);
                         } catch (Exception e) {
-                            log.warn("[커밋 후 재계산 실패] challengeId={}, err={}", challengeId, e.getMessage(), e);
+                            log.warn("[커밋 후 재계산 예약 실패] challengeId={}, err={}", challengeId, e.getMessage(), e);
                         }
                     }
                 });
             } else {
-                // 트랜잭션이 비활성인 경우 즉시 재계산 (안전장치)
-                teamService.recalculateTeamsByChallenge(challengeId);
-                log.info("[즉시 재계산 수행] challengeId={}", challengeId);
+                // 트랜잭션이 비활성인 경우 즉시 예약 (안전장치)
+                teamRecalcDebouncer.scheduleChallengeRecalc(challengeId);
+                log.info("[즉시 재계산 예약] challengeId={}", challengeId);
             }
         } catch (Exception e) {
-            log.warn("[재계산 스케줄링 실패] challengeId={}, err={}", challengeId, e.getMessage(), e);
+            log.warn("[재계산 예약 실패] challengeId={}, err={}", challengeId, e.getMessage(), e);
         }
 
         // 무거운 작업은 비동기로 처리 (락 밖에서 실행)
