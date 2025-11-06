@@ -31,7 +31,8 @@ server {
 
   # Frontend
   location / {
-    limit_req zone=api_per_ip     burst=30 nodelay;
+    # 부하 테스트 대응: burst 증가 (100명 동시 접속 대응)
+    limit_req zone=api_per_ip     burst=200 nodelay;
     proxy_pass http://frontend:80;
 
     proxy_set_header Host              $host;
@@ -44,8 +45,9 @@ server {
 
   # Backend API
   location /api/ {
-    limit_req zone=api_per_ip     burst=30 nodelay;
-    limit_req zone=api_per_ip_uri burst=10 nodelay;
+    # 부하 테스트 대응: burst 증가 (100명 동시 접속 대응)
+    limit_req zone=api_per_ip     burst=200 nodelay;
+    limit_req zone=api_per_ip_uri burst=50 nodelay;
 
     proxy_pass        http://backend:8080/api/;
     proxy_buffering   off;
