@@ -26,7 +26,8 @@ server {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
   # 연결 제한 (존은 다른 파일에서 정의되어 있어야 함)
-  limit_conn conn_per_ip 20;
+  # 부하 테스트 대응: 100명(50팀×2명) 동시 접속 + 여유분 → 200명 대응
+  limit_conn conn_per_ip 300;
 
   # Frontend
   location / {
@@ -55,6 +56,11 @@ server {
     proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header  X-Forwarded-Proto $scheme;
     proxy_set_header  Authorization     $http_authorization;
+
+    # 부하 테스트 대응: 타임아웃 증가
+    proxy_connect_timeout 60s;
+    proxy_send_timeout    60s;
+    proxy_read_timeout    60s;
 
     client_max_body_size 200m;
   }
