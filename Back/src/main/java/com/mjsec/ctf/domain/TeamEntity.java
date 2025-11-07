@@ -22,7 +22,12 @@ import io.hypersistence.utils.hibernate.type.json.JsonType;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@Table(name = "team") // @SQLDelete의 테이블명과 일치시킴
+@Table(name = "team",
+        indexes = {
+                @Index(name = "idx_team_ranking", columnList = "totalPoint DESC, lastSolvedTime ASC"),
+                @Index(name = "idx_team_name", columnList = "teamName", unique = true)
+        }
+)
 @SQLDelete(sql = "UPDATE team SET deleted_at = NOW() WHERE team_id = ?")
 @SQLRestriction("deleted_at is null")
 public class TeamEntity extends BaseEntity {

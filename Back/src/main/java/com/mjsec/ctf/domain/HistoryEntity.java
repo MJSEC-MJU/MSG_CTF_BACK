@@ -11,6 +11,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@Table(name = "history_entity",
+        indexes = {
+                @Index(name = "idx_history_login_challenge", columnList = "loginId, challengeId", unique = true),
+                @Index(name = "idx_history_login_id", columnList = "loginId"),
+                @Index(name = "idx_history_challenge_id", columnList = "challengeId")
+        }
+)
 public class HistoryEntity {
 
     @Id
