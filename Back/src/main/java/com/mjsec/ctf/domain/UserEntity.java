@@ -12,6 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "user_entity", indexes = {
+        @Index(name = "idx_user_login_id", columnList = "loginId", unique = true),
+        @Index(name = "idx_user_email", columnList = "email", unique = true)
+})
 public class UserEntity extends BaseEntity {
 
     @Id
