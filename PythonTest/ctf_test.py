@@ -28,9 +28,9 @@ BASE_URL = "http://localhost:8080"
 ADMIN_LOGIN_ID = "admin"
 ADMIN_PASSWORD = "1234"
 
-TEST_USERS_COUNT = 50
-TEST_TEAMS_COUNT = 50
-CONCURRENT_REQUESTS = 50
+TEST_USERS_COUNT = 100
+TEST_TEAMS_COUNT = 100
+CONCURRENT_REQUESTS = 100
 
 # ==========================================
 # API 클라이언트
