@@ -1,6 +1,8 @@
 package com.mjsec.ctf.filter;
 
+import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.repository.BlacklistedTokenRepository;
+import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -22,10 +25,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final UserRepository userRepository;
 
-    public JwtFilter(JwtService jwtService, BlacklistedTokenRepository blacklistedTokenRepository) {
+    public JwtFilter(JwtService jwtService, BlacklistedTokenRepository blacklistedTokenRepository, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -34,17 +39,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
         log.info("Starting JWTFilter for request: {}", request.getRequestURI());
 
-        //OPTIONS 우회
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         // JWT 검증을 건너뛸 public 엔드포인트 설정
         if (request.getRequestURI().equals("/api/users/sign-in")|| request.getRequestURI().equals("/api/users/sign-up") ||
                 request.getRequestURI().equals("/api/leaderboard") ||
                 request.getRequestURI().equals("/api/leaderboard/graph") ||
-                request.getRequestURI().equals("/api/leaderboard/stream")) {
+                request.getRequestURI().equals("/api/leaderboard/stream") ||
+                request.getRequestURI().equals("/api/server-time")) {
             log.info("Skipping JWT filter for public endpoint: {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
@@ -88,6 +88,16 @@ public class JwtFilter extends OncePerRequestFilter {
         List<String> role = jwtService.getRole(accessToken);
 
         log.info("Token validated. loginId: {}, Role: {}", loginId, role);
+
+        // UserRepository에서 userId 조회
+        Optional<UserEntity> userOptional = userRepository.findByLoginId(loginId);
+        if (userOptional.isPresent()) {
+            UserEntity user = userOptional.get();
+            // Request에 userId와 loginId 설정 (AdminController 등에서 사용)
+            request.setAttribute("userId", user.getUserId());
+            request.setAttribute("loginId", user.getLoginId());
+            log.debug("Set request attributes: userId={}, loginId={}", user.getUserId(), user.getLoginId());
+        }
 
         List<SimpleGrantedAuthority> authorities = role.stream()
                 .map(SimpleGrantedAuthority::new)

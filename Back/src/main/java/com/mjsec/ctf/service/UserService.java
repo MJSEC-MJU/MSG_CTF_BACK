@@ -6,14 +6,9 @@ import com.mjsec.ctf.domain.TeamEntity;
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.dto.HistoryDto;
 import com.mjsec.ctf.dto.UserDto;
-import com.mjsec.ctf.repository.BlacklistedTokenRepository;
-import com.mjsec.ctf.repository.ChallengeRepository;
-import com.mjsec.ctf.repository.HistoryRepository;
-import com.mjsec.ctf.repository.RefreshRepository;
-import com.mjsec.ctf.repository.LeaderboardRepository;
+import com.mjsec.ctf.repository.*;
 import com.mjsec.ctf.type.UserRole;
 import com.mjsec.ctf.exception.RestApiException;
-import com.mjsec.ctf.repository.UserRepository;
 import com.mjsec.ctf.type.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,11 +35,13 @@ public class UserService {
     private final LeaderboardRepository leaderboardRepository;
 
     private static final String[] ALLOWED_DOMAINS = {"@mju.ac.kr", "@kku.ac.kr", "@sju.ac.kr"};
+    private final TeamRepository teamRepository;
+    private final SubmissionRepository submissionRepository;
 
     public UserService(TeamService teamService, UserRepository userRepository, PasswordEncoder passwordEncoder,
                        AuthCodeService authCodeService, JwtService jwtService, RefreshRepository refreshRepository,
                        BlacklistedTokenRepository blacklistedTokenRepository, HistoryRepository historyRepository,
-                       ChallengeRepository challengeRepository, LeaderboardRepository leaderboardRepository) {
+                       ChallengeRepository challengeRepository, LeaderboardRepository leaderboardRepository, TeamRepository teamRepository, SubmissionRepository submissionRepository) {
 
         this.teamService = teamService;
         this.userRepository = userRepository;
@@ -56,6 +53,8 @@ public class UserService {
         this.historyRepository = historyRepository;
         this.challengeRepository = challengeRepository;
         this.leaderboardRepository = leaderboardRepository;
+        this.teamRepository = teamRepository;
+        this.submissionRepository = submissionRepository;
     }
 
     //회원가입 로직
@@ -96,7 +95,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .univ(request.getUniv())
-                .role("ROLE_USER")
+                .role(UserRole.ROLE_USER)
                 .totalPoint(0)
                 .build();
 
@@ -105,7 +104,7 @@ public class UserService {
 
     //이메일 검사하기
     public void checkEmail(String email){
-        if(!isEmailExists(email)){
+        if(isEmailExists(email)){
             throw new RestApiException(ErrorCode.DUPLICATE_EMAIL);
         }
 
@@ -153,7 +152,7 @@ public class UserService {
         userProfile.put("loginId", user.getLoginId());
         userProfile.put("email", user.getEmail());
         userProfile.put("univ", user.getUniv());
-        userProfile.put("role", user.getRole());
+        userProfile.put("role", user.getRole().name());
         userProfile.put("total_point", user.getTotalPoint());
         userProfile.put("created_at", user.getCreatedAt());
         userProfile.put("updated_at", user.getUpdatedAt());
@@ -178,9 +177,14 @@ public class UserService {
         // 역할 수정 로직 추가
         if (updateDto.getRole() != null && !updateDto.getRole().isBlank()) {
             String roleStr = updateDto.getRole().toUpperCase();
+
+            if (!roleStr.startsWith("ROLE_")) {
+                roleStr = "ROLE_" + roleStr;
+            }
+
             try {
                 UserRole role = UserRole.valueOf(roleStr);
-                user.setRole(role.toString());
+                user.setRole(role);
             } catch (IllegalArgumentException e) {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
@@ -197,8 +201,28 @@ public class UserService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
 
+        if (user.getCurrentTeamId() != null) {
+            TeamEntity team = teamService.getUserTeam(user.getCurrentTeamId())
+                    .orElse(null);
+
+            if (team != null) {
+                team.removeMember(user.getUserId());
+                teamRepository.save(team);
+                log.info("delete user: {} from team: {}", userId, team.getTeamId());
+            }
+
+            user.leaveTeam();
+            userRepository.save(user);
+        }
+
+        refreshRepository.deleteByLoginId(user.getLoginId());
+        log.info("delete user: {}'s refresh tokens", userId);
+
         leaderboardRepository.findByLoginId(user.getLoginId())
                 .ifPresent(leaderboardRepository::delete);
+
+        submissionRepository.deleteByLoginId(user.getLoginId());
+        log.info("delete user: {}'s submissions", userId);
 
         List<HistoryEntity> historyEntities = historyRepository.findByLoginId(user.getLoginId());
 
@@ -208,14 +232,11 @@ public class UserService {
             });
             historyRepository.saveAll(historyEntities);
             log.info("History Entity list : {}", historyEntities.size());
-
-            // 회원의 로그인 ID를 기준으로 히스토리 삭제
-            historyRepository.deleteByLoginId(user.getLoginId());
-
-            userRepository.delete(user);
-
-            log.info("deleteMember userId : {} is deleted", userId);
         }
+
+        userRepository.delete(user);
+
+        log.info("deleteMember userId : {} is deleted", userId);
     }
 
     //삭제된 유저
@@ -294,17 +315,21 @@ public class UserService {
             throw new RestApiException(ErrorCode.INVALID_EMAIL_FORMAT);
         }
 
-        // role 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "user"로 설정합니다.
-        String role;
+        // role 값이 전달되면 해당 역할을 사용하고, 없으면 기본적으로 "ROLE_USER"로 설정합니다.
+        UserRole role = UserRole.ROLE_USER;
+
         if (request.getRole() != null && !request.getRole().isBlank()) {
-            // 입력값을 대문자로 변환하여 표준 형식으로 맞춥니다.
             String inputRole = request.getRole().toUpperCase();
-            if (!inputRole.equals("ROLE_USER") && !inputRole.equals("ROLE_ADMIN")) {
+
+            if (!inputRole.startsWith("ROLE_")) {
+                inputRole = "ROLE_" + inputRole;
+            }
+
+            try {
+                role = UserRole.valueOf(inputRole);
+            } catch (IllegalArgumentException e) {
                 throw new RestApiException(ErrorCode.INVALID_ROLE);
             }
-            role = inputRole;
-        } else {
-            role = "ROLE_USER";
         }
 
         UserEntity user = UserEntity.builder()
@@ -322,6 +347,19 @@ public class UserService {
     // **전체 사용자 목록 조회 **
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    // ** id로 한 명의 사용자 조회 **
+    @Transactional
+    public void updateEarlyExitStatus(Long userId, boolean earlyExit) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RestApiException(ErrorCode.BAD_REQUEST, "해당 회원이 존재하지 않습니다."));
+
+        if (earlyExit) {
+            user.markEarlyExit();
+        } else {
+            user.cancelEarlyExit();
+        }
     }
 
     // ** id로 한 명의 사용자 조회 **

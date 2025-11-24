@@ -10,4 +10,7 @@ public interface RefreshRepository extends JpaRepository<RefreshEntity,Long> {
 
     @Transactional
     void  deleteByRefresh(String refresh);
+
+    @Transactional
+    void deleteByLoginId(String loginId);
 }

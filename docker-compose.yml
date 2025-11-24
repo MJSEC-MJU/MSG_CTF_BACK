@@ -3,33 +3,36 @@ services:
     image: redis:7.0
     container_name: ctf-redis
     restart: unless-stopped
-    ports: [ "6379:6379" ]
+    ports: ["6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-    networks: [ ctf-network ]
+    networks: [ctf-network]
 
   db:
     image: mysql:8.0
     container_name: ctf-mysql
     restart: unless-stopped
-    ports: [ "3306:3306" ]
+    ports: ["3306:3306"]
     environment:
+      TZ: UTC  # 권장: DB는 UTC 유지
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [ ctf-network ]
+    networks: [ctf-network]
 
   backend:
-    image: ${DOCKER_HUB_USERNAME}/backend:latest
+    image: ${DOCKER_HUB_USERNAME}/backend:${IMAGE_TAG}   # 커밋해시 고정 배포
     container_name: ctf-backend
     restart: unless-stopped
     depends_on:
@@ -39,11 +42,21 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: local
+
+      # 타임존 확정 (JVM/직렬화 모두 KST, DB I/O는 UTC)
+      TZ: Asia/Seoul
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
+      SPRING_JACKSON_TIME_ZONE: Asia/Seoul
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_TIME_ZONE: UTC
+
+      # DB 연결
       DB_HOST: db
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+
+      # 보안/레디스/기타
       SPRING_SECURITY_USER_NAME: ${SPRING_SECURITY_USER_NAME}
       SPRING_SECURITY_USER_PASSWORD: ${SPRING_SECURITY_USER_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -58,18 +71,29 @@ services:
       PROJECT_ID: ${PROJECT_ID}
       GCP_JSON_FILE: ${GCP_JSON_FILE}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp_service_account.json
+
+      # ★ Spring이 직접 읽는 GCS override (중요)
+      SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION: ${SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION}
+      SPRING_CLOUD_GCP_STORAGE_BUCKET: ${SPRING_CLOUD_GCP_STORAGE_BUCKET}
+      
+      # ip 벤 디코봇 환경변수
+      CTF_ALERT_ENABLED: "true"
+      CTF_ALERT_ENDPOINT: ${CTF_ALERT_ENDPOINT}
+      CTF_ALERT_API_KEY: ${CTF_ALERT_API_KEY}
+      CTF_ALERT_ENVIRONMENT: "prod"
+      
     volumes:
       - ${HOST_GCP_JSON_PATH:-/dev/null}:/secrets/gcp_service_account.json:ro
-    networks: [ ctf-network ]
+    networks: [ctf-network]
 
   frontend:
     image: ${DOCKER_HUB_USERNAME}/frontend:latest
     container_name: ctf-frontend
     restart: unless-stopped
-    expose: [ "80" ]
+    expose: ["80"]
     environment:
-      VITE_API_URL: ${VITE_API_URL}  
-    networks: [ ctf-network ]
+      VITE_API_URL: ${VITE_API_URL}
+    networks: [ctf-network]
 
   nginx:
     image: nginx:1.25-alpine
@@ -89,7 +113,7 @@ services:
       - /home/ubuntu/app/nginx:/etc/nginx/templates:ro
       - /home/ubuntu/app/certbot/www:/var/www/certbot:rw
       - /home/ubuntu/app/certbot/config:/etc/letsencrypt:rw
-    networks: [ ctf-network ]
+    networks: [ctf-network]
 
   certbot:
     image: certbot/certbot:latest
@@ -100,18 +124,20 @@ services:
       - /home/ubuntu/app/certbot/config:/etc/letsencrypt
     entrypoint: sh
     command: -c "sleep infinity"
-    networks: [ ctf-network ]
+    networks: [ctf-network]
 
   test:
     image: gradle:8.1.1-jdk17
     container_name: ctf-test
-    profiles: [ "ci" ]
+    profiles: ["ci"]
     working_dir: /app
     volumes:
       - ./Back:/app
       - gradle_cache:/home/gradle/.gradle
     environment:
       SPRING_PROFILES_ACTIVE: local
+      TZ: Asia/Seoul
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
       DB_HOST: db
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
@@ -125,10 +151,11 @@ services:
         condition: service_healthy
     entrypoint: ["sh", "-c"]
     command: ["./gradlew test --stacktrace"]
-    networks: [ ctf-network ]
+    networks: [ctf-network]
 
 volumes:
   gradle_cache:
+  mysql_data:
 
 networks:
   ctf-network:

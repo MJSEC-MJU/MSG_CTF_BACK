@@ -1,4 +1,3 @@
-// AuthCodeService.java - 인증 코드 생성 및 저장 (이메일 인증용)
 package com.mjsec.ctf.service;
 
 import com.mjsec.ctf.exception.RestApiException;
@@ -7,10 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -19,7 +16,6 @@ public class AuthCodeService {
 
     private final StringRedisTemplate redisTemplate;
 
-    //@RequiredArgsConstructor 로 대체 가능
     public AuthCodeService(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }

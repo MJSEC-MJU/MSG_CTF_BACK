@@ -7,8 +7,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${GMAIL_USERNAME}  # Gmail 주소
-    password: ${GMAIL_APP_PASSWORD}   # 앱 비밀번호 사용
+    username: ${GMAIL_USERNAME}
+    password: ${GMAIL_APP_PASSWORD}
     properties:
       mail:
         debug: true
@@ -44,6 +44,12 @@ spring:
         show-sql: false
         jdbc:
           time_zone: Asia/Seoul
+  jackson:
+    time-zone: Asia/Seoul
+    date-format: yyyy-MM-dd HH:mm:ss
+
+app:
+  code-json-path: classpath:/codes.json
 
 management:
   endpoints:
@@ -72,3 +78,11 @@ springdoc:
 api:
   key: ${API_KEY}
   url: ${API_URL}
+
+#  디코봇 HTTP 알림 설정 (환경변수와 매핑)
+ctf:
+  alert:
+    enabled: ${CTF_ALERT_ENABLED:true}
+    endpoint: ${CTF_ALERT_ENDPOINT:}
+    api-key: ${CTF_ALERT_API_KEY:}
+    environment: ${CTF_ALERT_ENVIRONMENT:prod}

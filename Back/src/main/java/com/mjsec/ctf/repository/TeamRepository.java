@@ -17,9 +17,11 @@ public interface TeamRepository extends JpaRepository<TeamEntity, Long> {
 
     List<TeamEntity> findAllByOrderByTotalPointDescLastSolvedTimeAsc();
 
-    @Query(value = "SELECT * FROM team WHERE JSON_CONTAINS(member_user_ids, :userId)", nativeQuery = true)
-    Optional<TeamEntity> findByMemberUserId(@Param("userId") String userId);
+    @Query(value = "SELECT * FROM team WHERE JSON_CONTAINS(member_user_ids, CAST(:userId AS JSON))", nativeQuery = true)
+    Optional<TeamEntity> findByMemberUserId(@Param("userId") Long userId);
 
-    @Query(value = "SELECT * FROM team WHERE JSON_CONTAINS(solved_challenge_ids, :challengeId)", nativeQuery = true)
-    List<TeamEntity> findTeamsBySolvedChallengeId(@Param("challengeId") String challengeId);
+    // 일부 환경에서 solved_challenge_ids가 문자열 배열로 저장된 이력이 있어 두 타입 모두 매칭
+    @Query(value = "SELECT * FROM team WHERE JSON_CONTAINS(solved_challenge_ids, CAST(:challengeId AS JSON)) " +
+            "OR JSON_CONTAINS(solved_challenge_ids, JSON_QUOTE(CAST(:challengeId AS CHAR)))", nativeQuery = true)
+    List<TeamEntity> findTeamsBySolvedChallengeId(@Param("challengeId") Long challengeId);
 }

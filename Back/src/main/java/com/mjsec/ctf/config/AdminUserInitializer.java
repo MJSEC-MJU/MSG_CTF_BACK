@@ -2,6 +2,7 @@ package com.mjsec.ctf.config;
 
 import com.mjsec.ctf.domain.UserEntity;
 import com.mjsec.ctf.repository.UserRepository;
+import com.mjsec.ctf.type.UserRole;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +27,7 @@ public class AdminUserInitializer {
                         .password(passwordEncoder.encode(adminPassword))
                         .email("admin@example.com") 
                         .univ("Admin Univ")       
-                        .role("ROLE_ADMIN")
+                        .role(UserRole.ROLE_ADMIN)
                         .totalPoint(0)
                         .build();
                 userRepository.save(admin);

@@ -34,6 +34,7 @@ public class UserDto {
 
         @NotBlank(message = "학교명을 입력해주세요.")
         private String univ;
+
         //"ROLE_USER" 또는 "ROLE_ADMIN"
         private String role;
 
@@ -71,7 +72,13 @@ public class UserDto {
         private String role;
         private Integer totalPoint;
         private String univ;
+        private boolean earlyExit;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+    }
+
+    @Data
+    public static class EarlyExitUpdate {
+        private boolean earlyExit;
     }
 }

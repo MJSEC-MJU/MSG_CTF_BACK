@@ -2,6 +2,7 @@ package com.mjsec.ctf.controller;
 
 import com.mjsec.ctf.dto.PaymentTokenDto;
 import com.mjsec.ctf.dto.SuccessResponse;
+import com.mjsec.ctf.dto.TeamPaymentHistoryDto;
 import com.mjsec.ctf.service.JwtService;
 import com.mjsec.ctf.service.PaymentService;
 import com.mjsec.ctf.type.ResponseMessage;
@@ -9,11 +10,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -52,6 +52,24 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.OK).body(
                 SuccessResponse.of(
                         ResponseMessage.MILEAGE_BASED_CHECKOUT_SUCCESS
+                )
+        );
+    }
+
+    @Operation(summary = "결제 히스토리 조회", description = "현재 팀의 결제 히스토리를 조회합니다.")
+    @GetMapping("/history")
+    public ResponseEntity<SuccessResponse<List<TeamPaymentHistoryDto>>> getPaymentHistory(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.substring(7);
+        String loginId = jwtService.getLoginId(token);
+
+        List<TeamPaymentHistoryDto> history = paymentService.getTeamPaymentHistory(loginId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                SuccessResponse.of(
+                        ResponseMessage.GET_PAYMENT_HISTORY_SUCCESS,
+                        history
                 )
         );
     }

@@ -12,6 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "user_entity", indexes = {
+        @Index(name = "idx_user_login_id", columnList = "loginId", unique = true),
+        @Index(name = "idx_user_email", columnList = "email", unique = true)
+})
 public class UserEntity extends BaseEntity {
 
     @Id
@@ -30,15 +34,9 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false)
     private String univ;
 
-    /* 처음엔 UserRole로 설정했으나 ERD 설계로 String 타입으로 변경
-    @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @Fetch(FetchMode.JOIN)
-    private List<UserRole> role;
-     */
-
     @Column(nullable = false)
-    private String role;
+    private UserRole role;
 
     @Column(nullable = false)
     private int totalPoint;
@@ -56,6 +54,10 @@ public class UserEntity extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<RefreshEntity> refreshTokens;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean earlyExit = false;
+
     public boolean hasTeam() {
 
         return currentTeamId != null;
@@ -69,5 +71,13 @@ public class UserEntity extends BaseEntity {
     public void leaveTeam() {
 
         this.currentTeamId = null;
+    }
+
+    public void markEarlyExit() {
+        this.earlyExit = true;
+    }
+
+    public void cancelEarlyExit() {
+        this.earlyExit = false;
     }
 }
