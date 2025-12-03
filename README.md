@@ -454,7 +454,7 @@ cd discord-bot
 </table>
 
 ## 🤖 DISCORD BOT
--
+
 <table>
   <tr>
     <td align="center"><b>🎟️ Ticket BOT</b></td>
