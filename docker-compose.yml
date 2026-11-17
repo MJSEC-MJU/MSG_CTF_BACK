@@ -127,7 +127,7 @@ services:
     networks: [ctf-network]
 
   test:
-    image: gradle:8.1.1-jdk17
+    image: eclipse-temurin:17.0.21_9-jdk-jammy@sha256:76751c16a2a07ec0960e659a2603491f8c79d95592173f6c0df8bf8ebab257cc
     container_name: ctf-test
     profiles: ["ci"]
     working_dir: /app
@@ -135,6 +135,7 @@ services:
       - ./Back:/app
       - gradle_cache:/home/gradle/.gradle
     environment:
+      GRADLE_USER_HOME: /home/gradle/.gradle
       SPRING_PROFILES_ACTIVE: local
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
