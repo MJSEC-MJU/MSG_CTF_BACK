@@ -26,7 +26,7 @@ jobs:
           DF="Dockerfile"; [ -f dockerfile ] && DF="dockerfile"
           IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/backend"
           TAG_SHA="${{ github.sha }}"
-          docker build -t "${IMAGE}:${TAG_SHA}" -t "${IMAGE}:latest" -f "$DF" .
+          docker build --pull -t "${IMAGE}:${TAG_SHA}" -t "${IMAGE}:latest" -f "$DF" .
           docker push "${IMAGE}:${TAG_SHA}"
           docker push "${IMAGE}:latest"
 
@@ -239,6 +239,7 @@ jobs:
             sudo docker compose up -d --no-deps --pull always backend
             echo "Running backend image:"
             sudo docker inspect $(sudo docker compose ps -q backend) --format '{{.Config.Image}}'
+            sudo docker compose exec -T backend java -XshowSettings:properties -version
           EOSSH
 
       - name: Start stack (HTTP only)

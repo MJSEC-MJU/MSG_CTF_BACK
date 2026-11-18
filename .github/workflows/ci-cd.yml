@@ -28,7 +28,7 @@ jobs:
       LOCATION: ${{ secrets.LOCATION }}
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
       GCP_JSON_FILE: ${{ secrets.GCP_JSON_FILE }}
-      IMAGE_TAG: latest
+      IMAGE_TAG: ci-${{ github.sha }}
       SPRING_CLOUD_GCP_STORAGE_CREDENTIALS_LOCATION: /dev/null
       SPRING_CLOUD_GCP_STORAGE_BUCKET: ${{ secrets.BUCKET }}
       DOMAIN: localhost
@@ -85,7 +85,9 @@ jobs:
           docker compose version
 
       - name: Build Docker images
-        run: docker compose build backend
+        run: |
+          docker build --pull -t "${DOCKER_HUB_USERNAME}/backend:${IMAGE_TAG}" -f dockerfile .
+          docker run --rm --entrypoint java "${DOCKER_HUB_USERNAME}/backend:${IMAGE_TAG}" -XshowSettings:properties -version
 
       - name: Docker Compose Up (db/redis/backend)
         run: |
@@ -107,7 +109,7 @@ jobs:
           exit 1
 
       - name: Run Gradle Tests in Docker
-        run: docker compose run --rm test
+        run: docker compose run --build --rm test
 
       - name: Backend logs (tail)
         if: always()

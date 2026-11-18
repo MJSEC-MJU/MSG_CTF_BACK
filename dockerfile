@@ -1,4 +1,14 @@
-FROM gradle:8.1.1-jdk17 AS builder
+FROM amazoncorretto:17-al2023@sha256:9f2fde515fa060e6218b680d0f5045940d915af43af266145586344bddb30320 AS java-runtime
+RUN java -XshowSettings:properties -version > /tmp/java-version.txt 2>&1 \
+    && cat /tmp/java-version.txt \
+    && grep -F 'java.runtime.version = 17.0.21.1+2-LTS' /tmp/java-version.txt \
+    && grep -F 'java.vendor.version = Corretto-17.0.21.1.2' /tmp/java-version.txt \
+    && rm /tmp/java-version.txt
+
+FROM java-runtime AS java-build
+RUN dnf install -y findutils && dnf clean all
+
+FROM java-build AS builder
 WORKDIR /app
 COPY Back/ /app
 
@@ -11,7 +21,7 @@ RUN chmod +x gradlew
 RUN ./gradlew clean bootJar -x test
 # ...
 
-FROM eclipse-temurin:17-jre
+FROM java-runtime
 WORKDIR /app
 
 # 빌드 산출물만 복사
